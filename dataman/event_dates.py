@@ -9,6 +9,8 @@ import numpy as np
 import matplotlib
 from matplotlib import pyplot
 matplotlib.use('Agg')
+import random
+random.seed(23)
 
 class EventDate(object):
     """Class for storing informationg related to a single earthquake event
@@ -44,7 +46,7 @@ class EventDate(object):
         """
 
         pyplot.clf()
-        pyplot.plot(self.dates, self.probabilities)
+        pyplot.plot(self.dates, self.probabilities, color='k')
         pyplot.xlabel('Date')
         pyplot.ylabel('Probability')
         pyplot.title(self.id)
@@ -60,11 +62,71 @@ class EventDate(object):
         cdf = cdf / cdf[-1]
         values = np.random.rand(n)
         value_bins = np.searchsorted(cdf, values)
-        random_from_cdf = self.dates[value_bins]
-
+        self.random_from_cdf = self.dates[value_bins]
+        bin_width = (self.dates[1] - self.dates[0])/2
+        date_bins = list(self.dates - bin_width)
+        date_bins.append(self.dates[-1] + bin_width)
         if plot:
             pyplot.clf()
-            pyplot.plot(self.dates, self.probabilities)
-            pyplot.hist(random_from_cdf, len(self.dates))
-            #pyplot.plot(value_bins, random_from_cdf)
+            pyplot.plot(self.dates, self.probabilities, color='k')
+            pyplot.hist(self.random_from_cdf, bins=date_bins, facecolor='0.6',
+                        edgecolor='0.2', density=True)
             pyplot.savefig(fig_filename)
+#        self.random_from_cdf
+
+class EventSet(object):
+    """Class for storing an ordered list of earthquake events.
+    This allows random samples of the event chronology to be drawn
+    """
+
+    def __init__(self, event_list):
+        """Intialise class
+        :param event_list: List of EventDate objects ordered in forward
+        running chronological order.
+        """
+        self.event_list = event_list
+
+    def gen_chronologies(self, n, search_limit=10):
+        """Generate n randomly sampled chronolgies for the events in
+        EventSet object. As dating uncertainties may overlap bewteen events,
+        event chronology is enforced and random samples that aren't in
+        chronological order are discarded.
+        :param n: Integer number of random samples to draw.
+        Ref: Biasi et al. 2002. Paleoseismic Event Dating and the Conditional
+        Probability of Large Earthquakes on the Southern San Andreas Fault,
+        California. Bulletin of the Seismological Society of America 92(7).
+        """
+        
+        n_samples = 0
+        n_tries = 0
+        chron_samples = []
+        while n_samples < n:
+            print('chron_samples',chron_samples)
+            for i, event in enumerate(self.event_list):
+                event.random_sample(n, plot=False)
+                print('event.random_from_cdf',event.random_from_cdf,
+                      type(event.random_from_cdf))
+                try:  # Append to previous sample if already exists
+                    chron_samples[i] = chron_samples[i] + \
+                        (event.random_from_cdf.tolist())
+                except IndexError:
+                    chron_samples.append(event.random_from_cdf.tolist())
+            # Now we check for chronological order
+            print(chron_samples)
+            chronologies = np.array(chron_samples).T
+            print(chronologies)
+            c=chronologies[~np.any(np.diff(chronologies)<0,
+                                 axis=1)]
+            chron_samples = c.T.tolist()
+            print(chron_samples)
+            n_samples = len(chron_samples[0])
+            print(n_samples)
+            n_tries += n
+
+            msg = 'Could not find ' + str(n) + ' samples in ' + \
+                'chronological order after drawing ' + \
+                str(search_limit*n) + ' random samples.' + \
+                'Please  check the input event order or increase ' + \
+                'the search_limit parameter.'
+            assert n_tries < search_limit*n, msg
+            
