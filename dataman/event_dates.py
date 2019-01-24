@@ -64,13 +64,13 @@ class EventDate(object):
         value_bins = np.searchsorted(cdf, values)
         self.random_from_cdf = self.dates[value_bins]
         bin_width = (self.dates[1] - self.dates[0])/2
-        date_bins = list(self.dates - bin_width)
-        date_bins.append(self.dates[-1] + bin_width)
+        self.date_bins = list(self.dates - bin_width)
+        self.date_bins.append(self.dates[-1] + bin_width)
         if plot:
             pyplot.clf()
             pyplot.plot(self.dates, self.probabilities, color='k')
-            pyplot.hist(self.random_from_cdf, bins=date_bins, facecolor='0.6',
-                        edgecolor='0.2', density=True)
+            pyplot.hist(self.random_from_cdf, bins=self.date_bins,
+                        facecolor='0.6', edgecolor='0.2', density=True)
             pyplot.savefig(fig_filename)
 #        self.random_from_cdf
 
@@ -101,24 +101,18 @@ class EventSet(object):
         n_tries = 0
         chron_samples = []
         while n_samples < n:
-            print('chron_samples',chron_samples)
             for i, event in enumerate(self.event_list):
                 event.random_sample(n, plot=False)
-                print('event.random_from_cdf',event.random_from_cdf,
-                      type(event.random_from_cdf))
                 try:  # Append to previous sample if already exists
                     chron_samples[i] = chron_samples[i] + \
                         (event.random_from_cdf.tolist())
                 except IndexError:
                     chron_samples.append(event.random_from_cdf.tolist())
             # Now we check for chronological order
-            print(chron_samples)
             chronologies = np.array(chron_samples).T
-            print(chronologies)
-            c=chronologies[~np.any(np.diff(chronologies)<0,
-                                 axis=1)]
+            c = chronologies[~np.any(np.diff(chronologies)<0,
+                                     axis=1)]
             chron_samples = c.T.tolist()
-            print(chron_samples)
             n_samples = len(chron_samples[0])
             print(n_samples)
             n_tries += n
@@ -129,4 +123,18 @@ class EventSet(object):
                 'Please  check the input event order or increase ' + \
                 'the search_limit parameter.'
             assert n_tries < search_limit*n, msg
-            
+        # Now need to clip to only have n samples, if more than n generated.
+        # FIXME
+        self.chronology = c.T
+
+    def plot_chronology(self, fig_filename):
+        if hasattr(self, 'chronology'):
+            pyplot.clf()
+            for i, event in enumerate(self.event_list): 
+                pyplot.plot(event.dates, event.probabilities, color='k')
+                pyplot.hist(self.chronology[i], bins=event.date_bins,
+                            density=True)#, edgecolor='0.2')
+#                            facecolor='0.6', edgecolor='0.2', density=True)
+            pyplot.savefig(fig_filename)
+        else:
+            print('Need to call self.gen_chronologies before plot_chronology')

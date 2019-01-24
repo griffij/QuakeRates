@@ -65,14 +65,23 @@ if __name__ == "__main__":
     # name, while the two parameters within the list specify that we
     # want the calculated dates from the posterior distribution.
     key_dict = {'I': ['Calculate', 'posterior'],
-                'H': ['Calculate', 'posterior']}
+                'H': ['Calculate', 'posterior'],
+                'G': ['Calculate', 'posterior'],
+                'F': ['Calculate', 'posterior'],
+                'E': ['Calculate', 'posterior'],
+                'D': ['Calculate', 'posterior'],
+                'C': ['Calculate', 'posterior'],
+                'B': ['Calculate', 'posterior'],
+                'A': ['Calculate', 'posterior']}
+    
     # The event order is defined separately from key_dict as may want to
     # try different orderings etc
-    event_order = ['I', 'H']
+    event_order = ['I', 'H', 'G', 'F', 'E', 'D', 'C', 'B', 'A']
     # Parse OxCal file
     events = parse_oxcal(filename, key_dict, event_order)
     event_set = EventSet(events)
-    event_set.gen_chronologies(10,)
+    event_set.gen_chronologies(100,)
+    event_set.plot_chronology('chronologies.png')
     # for event in events:
    #     fig_filename = 'event_' + event.id + '_pdf.png'
    #     event.plot_date_pdf(fig_filename)
