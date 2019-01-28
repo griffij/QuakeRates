@@ -124,7 +124,8 @@ class EventSet(object):
                 'the search_limit parameter.'
             assert n_tries < search_limit*n, msg
         # Now need to clip to only have n samples, if more than n generated.
-        # FIXME
+        c = c[0:(n)]
+        print('Number of chronology samples', c[:,0].size)
         self.chronology = c.T
 
     def plot_chronology(self, fig_filename):
