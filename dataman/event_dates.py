@@ -7,10 +7,11 @@ January 2019
 
 import numpy as np
 import matplotlib
+import random
 from matplotlib import pyplot
 matplotlib.use('Agg')
-import random
 random.seed(23)
+
 
 class EventDate(object):
     """Class for storing informationg related to a single earthquake event
@@ -139,3 +140,35 @@ class EventSet(object):
             pyplot.savefig(fig_filename)
         else:
             print('Need to call self.gen_chronologies before plot_chronology')
+
+    def calculate_cov(self):
+        """Calculate the coeeficient of variation from the randomly 
+        sampled chronolgies.
+        """
+        try:
+            self.chronology
+        except AttributeError as err:
+            e = 'Need to call self.gen_chronologies before COV calculations' 
+            print(e)
+            raise 
+        # The nth row of interevent_times contains all reaslisations of
+        # the interevent time between the nth and n+1 event (counting
+        # forward in time)
+        interevent_times = np.diff(self.chronology, axis=0)
+#        print(self.chronology, len(self.chronology))
+#        print(interevent_times, len(interevent_times))
+        means = np.mean(interevent_times, axis=0)
+        stds = np.std(interevent_times, axis=0)
+#        print(means)
+#        print(stds)
+        self.covs = stds/means
+#        print(self.covs)
+        print('Mean COV', np.mean(self.covs))
+
+        pyplot.clf()
+        pyplot.hist(self.covs, bins=25, density=True, edgecolor='0.2',
+                    facecolor='0.6')
+        pyplot.xlabel('Coefficient of variation')
+        pyplot.ylabel('Probability density')
+        pyplot.savefig('covs.png')
+        

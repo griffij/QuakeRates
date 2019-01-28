@@ -8,6 +8,7 @@ import os, sys
 import csv
 from QuakeRates.dataman.event_dates import EventDate, EventSet
 
+
 def parse_oxcal(filename, key_dict, event_order=None):
     """Parse in csv output file from OxCal and extract data as desired.
     :param filename: string of path to input file
@@ -34,10 +35,10 @@ def parse_oxcal(filename, key_dict, event_order=None):
                 line_count += 1
             else:
                 if row['name'] in key_dict:
-                    print(row['op'])
-                    print(row['type'])
-                    print(key_dict[row['name']][0])
-                    print(key_dict[row['name']][1])
+                    #print(row['op'])
+                    #print(row['type'])
+                    #print(key_dict[row['name']][0])
+                    #print(key_dict[row['name']][1])
                     if row['op'] ==  key_dict[row['name']][0] and \
                        row['type'] == key_dict[row['name']][1]:
                         date_dict[row['name']].append(float(row['value']))
@@ -53,9 +54,9 @@ def parse_oxcal(filename, key_dict, event_order=None):
         event.add_dates_and_probs(date_dict[key], prob_dict[key])
         event_list.append(event)
         
-    print(event_list)
-    print(event_list[0].dates)
-    print(event_list[0].probabilities)
+ #   print(event_list)
+ #   print(event_list[0].dates)
+ #   print(event_list[0].probabilities)
             
     return event_list
 
@@ -80,7 +81,9 @@ if __name__ == "__main__":
     # Parse OxCal file
     events = parse_oxcal(filename, key_dict, event_order)
     event_set = EventSet(events)
-    event_set.gen_chronologies(100,)
+#    event_set.cov()
+    event_set.gen_chronologies(10000,)
+    event_set.calculate_cov()
     event_set.plot_chronology('chronologies.png')
     # for event in events:
    #     fig_filename = 'event_' + event.id + '_pdf.png'
