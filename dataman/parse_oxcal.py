@@ -8,7 +8,6 @@ import os, sys
 import csv
 from QuakeRates.dataman.event_dates import EventDate, EventSet
 
-
 def parse_oxcal(filename, key_dict, event_order=None):
     """Parse in csv output file from OxCal and extract data as desired.
     :param filename: string of path to input file

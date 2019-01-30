@@ -7,10 +7,10 @@ January 2019
 
 import numpy as np
 import matplotlib
-import random
 from matplotlib import pyplot
+
 matplotlib.use('Agg')
-random.seed(23)
+np.random.seed(23)
 
 
 class EventDate(object):
@@ -87,12 +87,16 @@ class EventSet(object):
         """
         self.event_list = event_list
 
-    def gen_chronologies(self, n, search_limit=10):
+    def gen_chronologies(self, n, search_limit=10, min_separation=20):
         """Generate n randomly sampled chronolgies for the events in
         EventSet object. As dating uncertainties may overlap bewteen events,
         event chronology is enforced and random samples that aren't in
         chronological order are discarded.
         :param n: Integer number of random samples to draw.
+        :param min_separation: Integer number of minimum number of years that
+        should separate consecutive events. It is assumed that some minimum
+        period of time should have elasped for discrete palaeo-earthquakes
+        to be observed.
         Ref: Biasi et al. 2002. Paleoseismic Event Dating and the Conditional
         Probability of Large Earthquakes on the Southern San Andreas Fault,
         California. Bulletin of the Seismological Society of America 92(7).
@@ -111,11 +115,11 @@ class EventSet(object):
                     chron_samples.append(event.random_from_cdf.tolist())
             # Now we check for chronological order
             chronologies = np.array(chron_samples).T
-            c = chronologies[~np.any(np.diff(chronologies)<0,
+            c = chronologies[~np.any(np.diff(chronologies)<min_separation,
                                      axis=1)]
             chron_samples = c.T.tolist()
             n_samples = len(chron_samples[0])
-            print(n_samples)
+#            print(n_samples)
             n_tries += n
 
             msg = 'Could not find ' + str(n) + ' samples in ' + \
@@ -159,7 +163,9 @@ class EventSet(object):
 #        print(interevent_times, len(interevent_times))
         means = np.mean(interevent_times, axis=0)
         stds = np.std(interevent_times, axis=0)
-#        print(means)
+        print('Mean recurrence interval', np.mean(means))
+        print('Recurrence interval standard devation',
+              np.mean(stds))
 #        print(stds)
         self.covs = stds/means
 #        print(self.covs)
