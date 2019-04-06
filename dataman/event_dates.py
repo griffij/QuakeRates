@@ -145,6 +145,15 @@ class EventSet(object):
         else:
             print('Need to call self.gen_chronologies before plot_chronology')
 
+    def write_chronology(self, filename):
+        """Dump chronology samples to .csv file
+        """
+        if hasattr(self, 'chronology'):
+            np.savetxt(filename, self.chronology.T, delimiter=',')
+        else:
+            print('Need to call self.gen_chronologies before write_chronology')
+            
+        
     def calculate_cov(self):
         """Calculate the coeeficient of variation from the randomly 
         sampled chronolgies.
