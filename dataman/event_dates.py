@@ -170,7 +170,8 @@ class EventSet(object):
         self.covs = stds/means
 #        print(self.covs)
         print('Mean COV', np.mean(self.covs))
-
+        print('Min COV', np.min(self.covs))
+        print('Max COV', np.max(self.covs))
         pyplot.clf()
         pyplot.hist(self.covs, bins=25, density=True, edgecolor='0.2',
                     facecolor='0.6')

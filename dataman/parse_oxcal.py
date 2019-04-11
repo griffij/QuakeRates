@@ -60,28 +60,30 @@ def parse_oxcal(filename, key_dict, event_order=None):
     return event_list
 
 if __name__ == "__main__":
-    filename = '../data/Xorkoli_Altyn_Tagh_Yuan_2018.csv'
+#    filename = '../data/Xorkoli_Altyn_Tagh_Yuan_2018.csv'
+    filename = '../../OxCal/akatore/Akatore3event_Bdy/Akatore3eventBdy_output.csv'
     # key_dict for parseing OxCal output. The key specifies the event
     # name, while the two parameters within the list specify that we
     # want the calculated dates from the posterior distribution.
-    key_dict = {'I': ['Calculate', 'posterior'],
-                'H': ['Calculate', 'posterior'],
-                'G': ['Calculate', 'posterior'],
-                'F': ['Calculate', 'posterior'],
-                'E': ['Calculate', 'posterior'],
-                'D': ['Calculate', 'posterior'],
-                'C': ['Calculate', 'posterior'],
-                'B': ['Calculate', 'posterior'],
-                'A': ['Calculate', 'posterior']}
+#    key_dict = {'I': ['Calculate', 'posterior'],
+#                'H': ['Calculate', 'posterior'],
+#                'G': ['Calculate', 'posterior'],
+#                'F': ['Calculate', 'posterior'],
+#                'E': ['Calculate', 'posterior'],
+#                'D': ['Calculate', 'posterior'],
+    key_dict = {'C': ['Calculate', 'posterior'],
+                'B': ['Boundary', 'posterior'],
+                'A': ['Boundary', 'posterior']}
     
     # The event order is defined separately from key_dict as may want to
     # try different orderings etc
-    event_order = ['I', 'H', 'G', 'F', 'E', 'D', 'C', 'B', 'A']
-    # Parse OxCal file
+    #    event_order = ['I', 'H', 'G', 'F', 'E', 'D', 'C', 'B', 'A']
+    event_order = ['C', 'B', 'A'] 
+# Parse OxCal file
     events = parse_oxcal(filename, key_dict, event_order)
     event_set = EventSet(events)
 #    event_set.cov()
-    event_set.gen_chronologies(10000,)
+    event_set.gen_chronologies(100000)
     event_set.calculate_cov()
     event_set.plot_chronology('chronologies.png')
     # for event in events:
