@@ -81,9 +81,10 @@ if __name__ == "__main__":
     events = parse_oxcal(filename, key_dict, event_order)
     event_set = EventSet(events)
 #    event_set.cov()
-    event_set.gen_chronologies(10000,)
+    event_set.gen_chronologies(1000,)
     event_set.calculate_cov()
     event_set.plot_chronology('chronologies.png')
+    event_set.write_chronology('chronologies.csv')
     # for event in events:
    #     fig_filename = 'event_' + event.id + '_pdf.png'
    #     event.plot_date_pdf(fig_filename)
