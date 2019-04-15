@@ -140,8 +140,10 @@ class EventSet(object):
                 pyplot.plot(event.dates, event.probabilities, color='k')
                 pyplot.hist(self.chronology[i], bins=event.date_bins,
                             density=True)#, edgecolor='0.2')
-#                            facecolor='0.6', edgecolor='0.2', density=True)
-            pyplot.savefig(fig_filename)
+                           # facecolor='0.6', edgecolor='0.2', density=True)
+                ax = pyplot.gca()
+                ax.set_yscale('log')
+                pyplot.savefig(fig_filename)
         else:
             print('Need to call self.gen_chronologies before plot_chronology')
 
