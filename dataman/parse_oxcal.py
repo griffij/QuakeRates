@@ -61,7 +61,7 @@ def parse_oxcal(filename, key_dict, event_order=None):
 
 if __name__ == "__main__":
 #    filename = '../data/Xorkoli_Altyn_Tagh_Yuan_2018.csv'
-    filename = '../../OxCal/akatore/Akatore3event_Bdy/Akatore3eventBdy_output.csv'
+    filename = '../../OxCal/akatore/Akatore4event_Bdy/Akatore4eventBdy_output.csv'
     # key_dict for parseing OxCal output. The key specifies the event
     # name, while the two parameters within the list specify that we
     # want the calculated dates from the posterior distribution.
@@ -71,23 +71,27 @@ if __name__ == "__main__":
 #                'F': ['Calculate', 'posterior'],
 #                'E': ['Calculate', 'posterior'],
 #                'D': ['Calculate', 'posterior'],
-    key_dict = {'C': ['Calculate', 'posterior'],
+    key_dict = {'D': ['Calculate', 'posterior'], 
+                'C': ['Calculate', 'posterior'],
                 'B': ['Boundary', 'posterior'],
                 'A': ['Boundary', 'posterior']}
     
     # The event order is defined separately from key_dict as may want to
     # try different orderings etc
     #    event_order = ['I', 'H', 'G', 'F', 'E', 'D', 'C', 'B', 'A']
-    event_order = ['C', 'B', 'A'] 
+    event_order = ['D', 'C', 'B', 'A'] 
 # Parse OxCal file
     events = parse_oxcal(filename, key_dict, event_order)
     event_set = EventSet(events)
 #    event_set.cov()
-    event_set.gen_chronologies(1000)
+    n_samples = 10000
+    event_set.gen_chronologies(n_samples)
 
     event_set.calculate_cov()
-    event_set.plot_chronology('chronologies.png')
-    event_set.write_chronology('chronologies.csv')
+    figname = '%s_%i_chronologies.png' % (filename[:-3], n_samples)
+    chron_filename = '%s_%i_chronologies.csv' % (filename[:-3], n_samples) 
+    event_set.plot_chronology(figname)
+    event_set.write_chronology(chron_filename)
     # for event in events:
    #     fig_filename = 'event_' + event.id + '_pdf.png'
    #     event.plot_date_pdf(fig_filename)

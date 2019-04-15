@@ -15,7 +15,7 @@ wharekuri = [65000, 7500, 5, 150000]
 
 galeen=[30000, 5000, 5, 99000]
 roer = [95000, 600, 5, 101000]
-alpine = [330, 330, 22, 8000]
+alpine = [330, 330, 27, 8000]
 
 data = np.array([akatore, cadell, dunstan, galeen, roer, wharekuri, alpine])
 
