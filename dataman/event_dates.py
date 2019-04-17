@@ -133,14 +133,31 @@ class EventSet(object):
         print('Number of chronology samples', c[:,0].size)
         self.chronology = c.T
 
-    def plot_chronology(self, fig_filename):
+    def plot_chronology(self, fig_filename, normalise=False):
         if hasattr(self, 'chronology'):
             pyplot.clf()
-            for i, event in enumerate(self.event_list): 
-                pyplot.plot(event.dates, event.probabilities, color='k')
-                pyplot.hist(self.chronology[i], bins=event.date_bins,
-                            density=True)#, edgecolor='0.2')
-#                            facecolor='0.6', edgecolor='0.2', density=True)
+            if normalise:
+                self.chronology_normalised=[]
+            for i, event in enumerate(self.event_list):
+                if normalise:
+                    # Normalise distirbutions by dividing by maximum value
+                    event.probabilities_normalised = event.probabilities / \
+                        max(event.probabilities)
+                    self.chronology_normalised.append(self.chronology[i] / \
+                                                      max(self.chronology[i]))
+                    pyplot.plot(event.dates, event.probabilities_normalised, color='k')
+                    pyplot.hist(self.chronology_normalised[i], bins=event.date_bins,                                            
+                            density=True)
+
+                else:
+                    pyplot.plot(event.dates, event.probabilities, color='k')
+                    pyplot.hist(self.chronology[i], bins=event.date_bins,
+                                density=True)#, edgecolor='0.2')
+                    # facecolor='0.6', edgecolor='0.2', density=True)
+                ax = pyplot.gca()
+                ax.set_xlabel('Years')
+                ax.set_ylabel('Probability')
+                #ax.set_yscale('log')
             pyplot.savefig(fig_filename)
         else:
             print('Need to call self.gen_chronologies before plot_chronology')
@@ -179,7 +196,8 @@ class EventSet(object):
         self.covs = stds/means
 #        print(self.covs)
         print('Mean COV', np.mean(self.covs))
-
+        print('Min COV', np.min(self.covs))
+        print('Max COV', np.max(self.covs))
         pyplot.clf()
         pyplot.hist(self.covs, bins=25, density=True, edgecolor='0.2',
                     facecolor='0.6')
