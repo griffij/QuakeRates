@@ -10,6 +10,8 @@ akatore = [115000, 600, 4, 125000, 'Akatore']
 cadell = [1500000, 7500, 8, 4500000,'Cadell']
 dunstan = [30000, 2000, 7, 55000, 'Dunstan']
 lake_george = [750000, 3000, 30, 3000000, 'Lake George']
+lake_edgar = [1000000, 16500, 5, 2000000, 'Lake Edgar']
+hyden = [140000, 30000, 3, 250000, 'Hyden']
 
 wharekuri = [65000, 7500, 5, 150000, 'Wharekuri']
 wairau_cloudy_bay = [2200, 1000, 5, 6000, 'Wairau CB'] # Nicol and Van Dissen 2018
@@ -20,9 +22,12 @@ galeen=[30000, 5000, 5, 99000, 'Galeen']
 roer = [95000, 600, 5, 101000, 'Roer']
 alpine = [330, 330, 27, 8000, 'Alpine']
 
-data = np.array([akatore, cadell, dunstan, galeen, roer, wharekuri, lake_george,
+meers = [120000, 1700, 2, 120000, 'Meers']
+
+data = np.array([akatore, cadell, dunstan, lake_edgar, hyden,
+                 galeen, roer, wharekuri, lake_george,
                  wairau_cloudy_bay, wairau_full_rupture, alpine,
-                 wellington])
+                 wellington, meers])
 labels = data[:,4]
 data = data[:,0:-1]
 data = data.astype(np.float)
