@@ -20,13 +20,16 @@ wellington = [1575, 715, 4, 4900, 'Wellington'] # Langridge et al 2011
 
 galeen=[30000, 5000, 5, 99000, 'Galeen']
 roer = [95000, 600, 5, 101000, 'Roer']
+
 alpine = [330, 330, 27, 8000, 'Alpine']
+san_jacinto_anza = [254, 254, 15, 4000, 'San Jacinto'] # Rockwell et al 2015
 
 meers = [120000, 1700, 2, 120000, 'Meers']
 
 data = np.array([akatore, cadell, dunstan, lake_edgar, hyden,
                  galeen, roer, wharekuri, lake_george,
-                 wairau_cloudy_bay, wairau_full_rupture, alpine,
+                 wairau_cloudy_bay, wairau_full_rupture,
+                 alpine, san_jacinto_anza,
                  wellington, meers])
 labels = data[:,4]
 data = data[:,0:-1]
