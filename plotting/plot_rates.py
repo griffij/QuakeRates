@@ -43,8 +43,9 @@ y = data[:,1]
 plt.scatter(x,y)
 ax = plt.gca()
 ax.set_xscale('log')
-ax.set_xlabel('Quiescent recurrence (years)')
-ax.set_ylabel('Active recurrence (years)')
+ax.set_yscale('log')
+ax.set_xlabel('Quiescent recurrence (years)', fontsize=18)
+ax.set_ylabel('Active recurrence (years)', fontsize=18)
 texts = []                                                                                                                      
 for i, label in enumerate(labels):                                                                                              
     texts.append(plt.text(x[i], y[i], label))                                                                                   
@@ -76,8 +77,8 @@ print(y)
 plt.clf()                                                                                                                       
 plt.scatter(x,y)
 ax = plt.gca()                                                                                                                  
-ax.set_xlabel('Quiescent Recurrence (years)')                                                                                   
-ax.set_ylabel('Number of events')
+ax.set_xlabel('Quiescent Recurrence (years)', fontsize=18)                                                                                   
+ax.set_ylabel('Number of events', fontsize=18)
 ax.set_xscale('log')  
 texts = []                                                                                                                      
 for i, label in enumerate(labels):                                                                                               
@@ -95,8 +96,8 @@ plt.clf()
 plt.scatter(x,y)                                                                                                                
 ax = plt.gca()
 ax.set_xscale('log')
-ax.set_xlabel('Active Recurrence (years)')                                                                                   
-ax.set_ylabel('Number of events')
+ax.set_xlabel('Active Recurrence (years)', fontsize=18)                                                                                   
+ax.set_ylabel('Number of events', fontsize=18)
 texts = []                                                                                                                       
 for i, label in enumerate(labels):                                                                                              
     texts.append(plt.text(x[i], y[i], label))                                                                                    
@@ -114,8 +115,8 @@ ax = plt.gca()
 ax.set_xscale('log')
 ax.set_yscale('log')
 ax.set_ylim([0.9*min(y), 1.1*max(y)])
-ax.set_xlabel('Quiescent Recurrence (years)')
-ax.set_ylabel('Events per year')
+ax.set_xlabel('Quiescent Recurrence (years)', fontsize=18)
+ax.set_ylabel('Events per year', fontsize=18)
 texts = []                                                                                                                     
 for i, label in enumerate(labels):                                                                                              
     texts.append(plt.text(x[i], y[i], label))
@@ -133,8 +134,8 @@ ax = plt.gca()
 ax.set_xscale('log')
 ax.set_yscale('log') 
 ax.set_ylim([0.9*min(y), 1.1*max(y)])
-ax.set_xlabel('Active Recurrence (years)')
-ax.set_ylabel('Events per year')
+ax.set_xlabel('Active Recurrence (years)', fontsize=18)
+ax.set_ylabel('Events per year', fontsize=18)
 texts = []
 for i, label in enumerate(labels):
     texts.append(plt.text(x[i], y[i], label))
