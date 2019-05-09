@@ -143,3 +143,24 @@ for i, label in enumerate(labels):
 adjust_text(texts)#, arrowprops=dict(arrowstyle="->", color='r', lw=0.5))
 plt.tight_layout()
 plt.savefig('event_per_year_vs_active_period.png')
+
+x = data[:,1]/data[:,0]
+y = data[:,2]/data[:,3]                                                                                                                                   
+print(x)                                                                                                                                                
+print(y)                                                                                                                                                 
+plt.clf()                                                                                                                                                
+plt.scatter(x,y)                                                                                                                                       
+ax = plt.gca()                                                                                                                                         
+ax.set_xscale('log')                                                                                                                                     
+ax.set_yscale('log')                                                                                                                                     
+ax.set_ylim([0.9*min(y), 1.1*max(y)])                                                                                                                    
+ax.set_xlim([0.9*min(x), 1.1*max(x)]) 
+ax.set_xlabel('Ratio Active:Quiescent', fontsize=18)                                                                                                  
+ax.set_ylabel('Events per year', fontsize=18)                                                                                                             
+texts = []
+for i, label in enumerate(labels):                                                                                                                     
+    texts.append(plt.text(x[i], y[i], label))                                                                                                        
+142#    ax.annotate(label, (x[i], y[i]))                                                                                                                 
+adjust_text(texts)#, arrowprops=dict(arrowstyle="->", color='r', lw=0.5))
+plt.tight_layout()                                                                                                                                     
+plt.savefig('event_per_year_vs_ratio_active_quiescent.png') 
