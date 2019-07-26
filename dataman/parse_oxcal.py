@@ -88,10 +88,11 @@ if __name__ == "__main__":
     event_set.gen_chronologies(n_samples)
 
     event_set.calculate_cov()
-    figname = '%s_%i_chronologies.png' % (filename[:-3], n_samples)
-    chron_filename = '%s_%i_chronologies.csv' % (filename[:-3], n_samples) 
-    event_set.plot_chronology(figname, normalise=False)
-    event_set.write_chronology(chron_filename)
+#    figname = '%s_%i_chronologies.png' % (filename[:-3], n_samples)
+#    chron_filename = '%s_%i_chronologies.csv' % (filename[:-3], n_samples) 
+#    event_set.plot_chronology(figname, normalise=False)
+#    event_set.write_chronology(chron_filename)
+    event_set.confidence_ellipse()
     # for event in events:
    #     fig_filename = 'event_' + event.id + '_pdf.png'
    #     event.plot_date_pdf(fig_filename)
