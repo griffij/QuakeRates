@@ -8,6 +8,8 @@ January 2019
 import numpy as np
 import matplotlib
 from matplotlib import pyplot
+from matplotlib.patches import Ellipse
+from scipy.stats import kde
 
 matplotlib.use('Agg')
 np.random.seed(23)
@@ -86,6 +88,7 @@ class EventSet(object):
         running chronological order.
         """
         self.event_list = event_list
+        self.num_events = len(event_list)
 
     def gen_chronologies(self, n, search_limit=10, min_separation=20):
         """Generate n randomly sampled chronolgies for the events in
@@ -184,11 +187,9 @@ class EventSet(object):
         # The nth row of interevent_times contains all reaslisations of
         # the interevent time between the nth and n+1 event (counting
         # forward in time)
-        interevent_times = np.diff(self.chronology, axis=0)
-#        print(self.chronology, len(self.chronology))
-#        print(interevent_times, len(interevent_times))
-        means = np.mean(interevent_times, axis=0)
-        stds = np.std(interevent_times, axis=0)
+        self.interevent_times = np.diff(self.chronology, axis=0)
+        means = np.mean(self.interevent_times, axis=0)
+        stds = np.std(self.interevent_times, axis=0)
         print('Mean recurrence interval', np.mean(means))
         print('Recurrence interval standard devation',
               np.mean(stds))
@@ -204,4 +205,64 @@ class EventSet(object):
         pyplot.xlabel('Coefficient of variation')
         pyplot.ylabel('Probability density')
         pyplot.savefig('covs.png')
-        
+
+    def confidence_ellipse(self):
+        """Calculate the covariance matrix and confidence ellipse of the
+        long-term rate (number of earthquakes/total time) and COV
+        """
+        try:                                                                                                                                                                                         
+            self.interevent_times
+        except AttributeError as err:
+            e = 'Need to call self.gen_chronologies before COV calculations'                                                                                                                         
+            print(e)                                                                                                                                                                                 
+            raise 
+        self.long_term_rates = self.num_events/np.sum(self.interevent_times, axis=0)
+        """
+        # Calculate error ellipses
+        covariance = np.cov(self.covs, self.long_term_rates)
+        vals, vecs = np.linalg.eig(covariance)
+        order = vals.argsort()[::-1]
+        vals = vals[order]
+        vals = np.sqrt(vals)
+        vecs = vecs[order]
+        theta = np.degrees(np.arctan2(*vecs[:,0][::-1]))
+        pyplot.clf()
+        ax = pyplot.subplot(111)#, aspect='equal')
+        ax.scatter(self.covs, self.long_term_rates, c='0.6', s=1)
+        for j in range(1, 4):
+            ell = Ellipse(xy=(np.mean(self.covs), np.mean(self.long_term_rates)),
+                width=vals[0]*j*2, height=vals[1]*j*2,
+                angle=theta)#np.rad2deg(np.arccos(v[0, 0])))
+            ell.set_facecolor('none')
+            ell.set_edgecolor('0.2')
+            ax.add_artist(ell)
+        """
+
+        # Plot as contoured density plot
+        nbins = 100
+        cov_samples = np.array([self.covs, self.long_term_rates])
+        x, y = cov_samples
+        # Evaluate a gaussian kde on a regular grid of nbins x nbins over data extents
+        k = kde.gaussian_kde(cov_samples)
+        # Slightly extend bounds for smoother plotting
+        xi, yi = np.mgrid[0.98*x.min():1.02*x.max():nbins*1j, 0.98*y.min():1.02*y.max():nbins*1j]
+        zi = k(np.vstack([xi.flatten(), yi.flatten()]))
+        # Calculate percentiles
+        cumsum = np.cumsum(zi)
+        # Normalise data and calculate bottom 5th percentile for drawing contour
+        # that contains 95% of the distribution.
+        zi_norm = zi/max(cumsum)
+        perc_5th = 0.05*max(zi_norm)
+        # Plot the data
+        pyplot.clf()
+        ax = pyplot.subplot(111)
+        # Slightly extend the bounds of the data for smoother plotting
+        ax.pcolormesh(xi, yi, zi_norm.reshape(xi.shape), shading='gouraud', cmap=pyplot.cm.BuGn)
+        ax.contour(xi, yi, zi_norm.reshape(xi.shape), [perc_5th])
+        #FIXME - make bounds parametric/automatic
+        ax.set_xlim([1,1.5])
+        ax.set_ylim([1./100000, 1./1000])
+        ax.set_yscale('log')
+        ax.set_xlabel('COV')
+        ax.set_ylabel('Long-term rate (events per year)')
+        pyplot.savefig('cov_vs_lt_rate.png')
