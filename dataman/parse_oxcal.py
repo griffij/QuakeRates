@@ -52,10 +52,13 @@ def parse_oxcal(filename, key_dict, event_order=None):
         event = EventDate(key, key_dict[key][0], key_dict[key][1])
         event.add_dates_and_probs(date_dict[key], prob_dict[key])
         event_list.append(event)
-        
- #   print(event_list)
- #   print(event_list[0].dates)
- #   print(event_list[0].probabilities)
+    # Check that we've got all the events we think we should have
+    if event_order is not None:
+        for k, key in enumerate(keys):
+            e = 'No data read for event ' + key + ' in file ' + filename +\
+                '. Check param_file correctly specifies required OxCal event' +\
+                ' name and output type'
+            assert (len(event_list[k].dates) > 0), e
             
     return event_list
 
@@ -92,7 +95,7 @@ if __name__ == "__main__":
 #    chron_filename = '%s_%i_chronologies.csv' % (filename[:-3], n_samples) 
 #    event_set.plot_chronology(figname, normalise=False)
 #    event_set.write_chronology(chron_filename)
-    event_set.confidence_ellipse()
+    event_set.cov_density()
     # for event in events:
    #     fig_filename = 'event_' + event.id + '_pdf.png'
    #     event.plot_date_pdf(fig_filename)

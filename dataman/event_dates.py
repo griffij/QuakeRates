@@ -206,15 +206,15 @@ class EventSet(object):
         pyplot.ylabel('Probability density')
         pyplot.savefig('covs.png')
 
-    def confidence_ellipse(self):
-        """Calculate the covariance matrix and confidence ellipse of the
-        long-term rate (number of earthquakes/total time) and COV
+    def cov_density(self):
+        """Calculate the density of the earthquake record's COV and
+        long-term rate from the samples.
         """
         try:                                                                                                                                                                                         
             self.interevent_times
         except AttributeError as err:
-            e = 'Need to call self.gen_chronologies before COV calculations'                                                                                                                         
-            print(e)                                                                                                                                                                                 
+            e = 'Need to call self.gen_chronologies before COV calculations'                                                           
+            print(e)                                                                                                                  
             raise 
         self.long_term_rates = self.num_events/np.sum(self.interevent_times, axis=0)
         """
