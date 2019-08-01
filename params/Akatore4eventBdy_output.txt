@@ -1,0 +1,3 @@
+filename = '../data/Akatore4eventBdy_output.csv'
+events = {'D': ['Calculate', 'posterior'], 'C': ['Calculate', 'posterior'], 'B': ['Boundary', 'posterior'], 'A': ['Boundary', 'posterior']}
+event_order = ['D', 'C', 'B', 'A']      

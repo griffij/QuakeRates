@@ -1,0 +1,3 @@
+filename = '../data/Xorkoli_Altyn_Tagh_Yuan_2018.csv'
+events = {'I': ['Calculate', 'posterior'],'H': ['Calculate', 'posterior'],'G': ['Calculate', 'posterior'],'F': ['Calculate', 'posterior'],'E': ['Calculate', 'posterior'], 'D': ['Calculate', 'posterior'], 'C': ['Calculate', 'posterior'], 'B': ['Calculate', 'posterior'], 'A': ['Calculate', 'posterior']}
+event_order = ['I', 'H', 'G', 'F', 'E', 'D', 'C', 'B', 'A']   
