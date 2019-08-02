@@ -90,7 +90,8 @@ class EventSet(object):
         self.event_list = event_list
         self.num_events = len(event_list)
 
-    def gen_chronologies(self, n, search_limit=10, min_separation=20):
+    def gen_chronologies(self, n, search_limit=10, min_separation=20,
+                         observation_start=None, observation_end=2019):
         """Generate n randomly sampled chronolgies for the events in
         EventSet object. As dating uncertainties may overlap bewteen events,
         event chronology is enforced and random samples that aren't in
@@ -100,6 +101,12 @@ class EventSet(object):
         should separate consecutive events. It is assumed that some minimum
         period of time should have elasped for discrete palaeo-earthquakes
         to be observed.
+        :param observation_start: Start of the observation period. If None,
+        will be calculated as the data of the first earthquake in a sequence.
+        But note that in some situations we may have other geological evidence
+        of the start of the observation period.
+        :param observation_end: Usually the present year, used for calculating
+        the total length of the observation period.
         Ref: Biasi et al. 2002. Paleoseismic Event Dating and the Conditional
         Probability of Large Earthquakes on the Southern San Andreas Fault,
         California. Bulletin of the Seismological Society of America 92(7).
@@ -134,13 +141,20 @@ class EventSet(object):
         # Now need to clip to only have n samples, if more than n generated.
         c = c[0:(n)]
         print('Number of chronology samples', c[:,0].size)
+        if observation_start is None:
+            self.observation_period = np.abs(observation_end -  c[:,0])
+        else:
+            self.observation_period = np.abs(
+                np.ones(n)* (observation_end - observation_start))
+#        print('Length of observation periods is ',
+#              self.observation_period, ' years.')
         self.chronology = c.T
 
     def plot_chronology(self, fig_filename, normalise=False):
         if hasattr(self, 'chronology'):
             pyplot.clf()
             if normalise:
-                self.chronology_normalised=[]
+                self.chronology_normalised = []
             for i, event in enumerate(self.event_list):
                 if normalise:
                     # Normalise distirbutions by dividing by maximum value
@@ -148,10 +162,10 @@ class EventSet(object):
                         max(event.probabilities)
                     self.chronology_normalised.append(self.chronology[i] / \
                                                       max(self.chronology[i]))
-                    pyplot.plot(event.dates, event.probabilities_normalised, color='k')
-                    pyplot.hist(self.chronology_normalised[i], bins=event.date_bins,                                            
-                            density=True)
-
+                    pyplot.plot(event.dates, event.probabilities_normalised,
+                                color='k')
+                    pyplot.hist(self.chronology_normalised[i],
+                                bins=event.date_bins, density=True)
                 else:
                     pyplot.plot(event.dates, event.probabilities, color='k')
                     pyplot.hist(self.chronology[i], bins=event.date_bins,
@@ -206,7 +220,7 @@ class EventSet(object):
         pyplot.ylabel('Probability density')
         pyplot.savefig('covs.png')
 
-    def cov_density(self):
+    def cov_density(self, fig_filename=None):
         """Calculate the density of the earthquake record's COV and
         long-term rate from the samples.
         """
@@ -216,7 +230,8 @@ class EventSet(object):
             e = 'Need to call self.gen_chronologies before COV calculations'                                                           
             print(e)                                                                                                                  
             raise 
-        self.long_term_rates = self.num_events/np.sum(self.interevent_times, axis=0)
+        self.long_term_rates = self.num_events/self.observation_period
+                                                    
         """
         # Calculate error ellipses
         covariance = np.cov(self.covs, self.long_term_rates)
@@ -237,32 +252,32 @@ class EventSet(object):
             ell.set_edgecolor('0.2')
             ax.add_artist(ell)
         """
-
-        # Plot as contoured density plot
-        nbins = 100
-        cov_samples = np.array([self.covs, self.long_term_rates])
-        x, y = cov_samples
-        # Evaluate a gaussian kde on a regular grid of nbins x nbins over data extents
-        k = kde.gaussian_kde(cov_samples)
-        # Slightly extend bounds for smoother plotting
-        xi, yi = np.mgrid[0.98*x.min():1.02*x.max():nbins*1j, 0.98*y.min():1.02*y.max():nbins*1j]
-        zi = k(np.vstack([xi.flatten(), yi.flatten()]))
-        # Calculate percentiles
-        cumsum = np.cumsum(zi)
-        # Normalise data and calculate bottom 5th percentile for drawing contour
-        # that contains 95% of the distribution.
-        zi_norm = zi/max(cumsum)
-        perc_5th = 0.05*max(zi_norm)
-        # Plot the data
-        pyplot.clf()
-        ax = pyplot.subplot(111)
-        # Slightly extend the bounds of the data for smoother plotting
-        ax.pcolormesh(xi, yi, zi_norm.reshape(xi.shape), shading='gouraud', cmap=pyplot.cm.BuGn)
-        ax.contour(xi, yi, zi_norm.reshape(xi.shape), [perc_5th])
-        #FIXME - make bounds parametric/automatic
-        ax.set_xlim([1,1.5])
-        ax.set_ylim([1./100000, 1./1000])
-        ax.set_yscale('log')
-        ax.set_xlabel('COV')
-        ax.set_ylabel('Long-term rate (events per year)')
-        pyplot.savefig('cov_vs_lt_rate.png')
+        if fig_filename is not None:
+            # Plot as contoured density plot
+            nbins = 100
+            cov_samples = np.array([self.covs, self.long_term_rates])
+            x, y = cov_samples
+            # Evaluate a gaussian kde on a regular grid of nbins x nbins over data extents
+            k = kde.gaussian_kde(cov_samples)
+            # Slightly extend bounds for smoother plotting
+            xi, yi = np.mgrid[0.98*x.min():1.02*x.max():nbins*1j, 0.98*y.min():1.02*y.max():nbins*1j]
+            zi = k(np.vstack([xi.flatten(), yi.flatten()]))
+            # Calculate percentiles
+            cumsum = np.cumsum(zi)
+            # Normalise data and calculate bottom 5th percentile for drawing contour
+            # that contains 95% of the distribution.
+            zi_norm = zi/max(cumsum)
+            perc_5th = 0.05*max(zi_norm)
+            # Plot the data
+            pyplot.clf()
+            ax = pyplot.subplot(111)
+            # Slightly extend the bounds of the data for smoother plotting
+            ax.pcolormesh(xi, yi, zi_norm.reshape(xi.shape), shading='gouraud', cmap=pyplot.cm.BuGn)
+            ax.contour(xi, yi, zi_norm.reshape(xi.shape), [perc_5th])
+            #FIXME - make bounds parametric/automatic
+            ax.set_xlim([0,3])
+            ax.set_ylim([1./100000, 1./100])
+            ax.set_yscale('log')
+            ax.set_xlabel('COV')
+            ax.set_ylabel('Long-term rate (events per year)')
+            pyplot.savefig(fig_filename)
