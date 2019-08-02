@@ -34,7 +34,7 @@ for param_file in param_file_list:
     events = parse_oxcal(params['filename'], params['events'],
                          params['event_order'])
     event_set = EventSet(events)  
-    event_set.gen_chronologies(n_samples)
+    event_set.gen_chronologies(n_samples, observation_end=2019)
     event_set.calculate_cov() 
     event_set.cov_density()
     covs.append(event_set.covs)
