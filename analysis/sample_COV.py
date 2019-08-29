@@ -13,7 +13,7 @@ from QuakeRates.dataman.parse_oxcal import parse_oxcal
 
 filepath = '../params'
 param_file_list = glob(os.path.join(filepath, '*.txt'))
-n_samples = 10000  # Number of Monte Carlo samples to take of the earthquake chronologies
+n_samples = 10000  # Number of Monte Carlo samples of the eq chronologies
 
 
 params = {}
