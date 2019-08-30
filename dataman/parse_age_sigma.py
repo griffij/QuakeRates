@@ -24,20 +24,36 @@ def parse_age_sigma(filename, sigma_level, event_order, truncation=3,
 
     event_list = []
     data = np.genfromtxt(filename, delimiter=delimiter, skip_header=header)
+    # We want time to be running forwards
+    if event_order == 'Backwards':
+        data = np.flip(data, axis=0)
     sigmas = data[:,1]/sigma_level #Convert, e.g. 2 sigma to 1 sigma
     for i,mean_age in enumerate(data[:,0]):
         event_id = i
-        ages = np.arange(mean_age-truncation*sigmas[i],
-                         mean_age+truncation*sigmas[i], 1)
-        probs = norm.pdf(ages, mean_age, sigmas[i])
-        # Normalise probs due to truncation of distribution
-        probs = probs/sum(probs)
+        # Special case of zero uncertainty
+        if sigmas[i]==0:
+            ages = np.array([mean_age])
+            probs = np.array([1.])
+        else:
+            ages = np.arange(mean_age-truncation*sigmas[i],
+                             mean_age+truncation*sigmas[i]+1, 1)
+            probs = norm.pdf(ages, mean_age, sigmas[i])
+            # Normalise probs due to truncation of distribution
+            probs = probs/sum(probs)
         event = EventDate(event_id, 'manual', 'age_sigma')
         event.add_dates_and_probs(ages, probs)
+        print(event.dates)
+        print(event.probabilities)
         event_list.append(event)
     return event_list
 
 if __name__ == "__main__":
     filename = '../data/SanJacinto_Rockwell_2015_simple.txt'
-    parse_age_sigma(filename, sigma_level=2, event_order='Backwards')
-    
+    event_list = parse_age_sigma(filename, sigma_level=2, event_order='Backwards')
+    event_set = EventSet(event_list)
+    print(event_list)
+    print(event_set)
+    n_samples = 10000                                                                                            
+    event_set.gen_chronologies(n_samples)
+    event_set.calculate_cov()
+    event_set.cov_density()

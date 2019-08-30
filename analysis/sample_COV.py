@@ -10,6 +10,7 @@ from matplotlib.patches import PathPatch
 from scipy.stats import kde
 from QuakeRates.dataman.event_dates import EventSet
 from QuakeRates.dataman.parse_oxcal import parse_oxcal
+from QuakeRates.dataman.parse_age_sigma import parse_age_sigma
 
 filepath = '../params'
 param_file_list = glob(os.path.join(filepath, '*.txt'))
@@ -20,6 +21,7 @@ params = {}
 
 
 def parse_param_file(param_file_name):
+    params={}
     with open(param_file_name) as f_in:
         for line in f_in:
             var, value = line.strip().split('=')
@@ -31,9 +33,26 @@ long_term_rates = []
 for param_file in param_file_list:
     params = parse_param_file(param_file)
     print(params)
-    events = parse_oxcal(params['filename'], params['events'],
-                         params['event_order'])
-    event_set = EventSet(events)  
+    # Deal with OxCal output and lists of dates with uncertainties
+    # separately
+    try:
+        params['chron_type']
+    except KeyError:
+        msg = 'chron_type not defined in parameter file ' + param_file                                                                                         
+        print(msg)
+        raise
+    if params['chron_type'] == 'OxCal':
+        events = parse_oxcal(params['filename'], params['events'],
+                             params['event_order'])
+        event_set = EventSet(events)  
+    elif params['chron_type'] == 'Age2Sigma':
+        # Write method to sample these
+        events = parse_age_sigma(params['filename'], params['sigma_level'],
+                                 params['event_order'])
+        event_set = EventSet(events)
+    else:
+        msg = 'Unknown form of chron_type defined in ' + param_file
+        raise Exception(msg)
     event_set.gen_chronologies(n_samples, observation_end=2019)
     event_set.calculate_cov() 
     event_set.cov_density()

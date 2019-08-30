@@ -66,9 +66,12 @@ class EventDate(object):
         values = np.random.rand(n)
         value_bins = np.searchsorted(cdf, values)
         self.random_from_cdf = self.dates[value_bins]
-        bin_width = (self.dates[1] - self.dates[0])/2
-        self.date_bins = list(self.dates - bin_width)
-        self.date_bins.append(self.dates[-1] + bin_width)
+        if len(self.dates) > 1:
+            bin_width = (self.dates[1] - self.dates[0])/2
+            self.date_bins = list(self.dates - bin_width)
+            self.date_bins.append(self.dates[-1] + bin_width)
+        else:
+            self.data_bins = self.dates[0]
         if plot:
             pyplot.clf()
             pyplot.plot(self.dates, self.probabilities, color='k')
