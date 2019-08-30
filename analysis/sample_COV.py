@@ -39,13 +39,12 @@ for param_file in param_file_list:
     long_term_rates.append(event_set.long_term_rates)
 
 # Now do some plotting
-pyplot.clf()                                                                                                                                                                                                                                   
-ax = pyplot.subplot(111)
+pyplot.clf()
 nbins = 100
 for i, cov_set in enumerate(covs):
-    cov_samples = np.array([cov_set, long_term_rates[i]])                                                                               
-    x, y = cov_samples                                                                                                                      
-    # Evaluate a gaussian kde on a regular grid of nbins x nbins over data extents                                                          
+    cov_samples = np.array([cov_set, long_term_rates[i]])                    
+    x, y = cov_samples
+    # Evaluate a gaussian kde on a regular grid of nbins x nbins over data extents
     k = kde.gaussian_kde(cov_samples)
     xi, yi = np.mgrid[0.98*x.min():1.02*x.max():nbins*1j, 0.98*y.min():1.02*y.max():nbins*1j]
     zi = k(np.vstack([xi.flatten(), yi.flatten()]))
