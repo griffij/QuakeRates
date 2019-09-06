@@ -93,7 +93,7 @@ class EventSet(object):
         self.event_list = event_list
         self.num_events = len(event_list)
 
-    def gen_chronologies(self, n, search_limit=10, min_separation=20,
+    def gen_chronologies(self, n, search_limit=500, min_separation=20,
                          observation_start=None, observation_end=2019):
         """Generate n randomly sampled chronolgies for the events in
         EventSet object. As dating uncertainties may overlap bewteen events,

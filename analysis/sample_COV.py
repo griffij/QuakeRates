@@ -30,7 +30,11 @@ def parse_param_file(param_file_name):
 
 covs = []
 long_term_rates = []
+names = []
 for param_file in param_file_list:
+    name = param_file.split('/')[-1].split('_')[0]
+    print(name)
+    names.append(name)
     params = parse_param_file(param_file)
     print(params)
     # Deal with OxCal output and lists of dates with uncertainties
@@ -59,7 +63,7 @@ for param_file in param_file_list:
     else:
         msg = 'Unknown form of chron_type defined in ' + param_file
         raise Exception(msg)
-    event_set.gen_chronologies(n_samples, observation_end=2019)
+    event_set.gen_chronologies(n_samples, observation_end=2019, min_separation=1)
     event_set.calculate_cov() 
     event_set.cov_density()
     covs.append(event_set.covs)
@@ -70,6 +74,10 @@ pyplot.clf()
 ax = pyplot.subplot(111)
 nbins = 100
 for i, cov_set in enumerate(covs):
+    print('Plotting ' + names[i])
+    if names[i]=='NankaiTrough': # Deal with special case later
+        print('Skipping as single data point')
+        continue
     cov_samples = np.array([cov_set, long_term_rates[i]])                                                                               
     x, y = cov_samples
     # Evaluate a gaussian kde on a regular grid of nbins x nbins over
@@ -90,9 +98,12 @@ for i, cov_set in enumerate(covs):
     cs = ax.contour(xi, yi, zi_norm.reshape(xi.shape), [perc_5th], colors='k',
                     linewidths=0.4)
     for c in cs.collections:
-        c_path = c.get_paths()[0]
-        patch = PathPatch(c_path, transform=ax.transData, facecolor='none',
-                          linewidth=0.4, linestyle='--')
+        try:
+            c_path = c.get_paths()[0]
+            patch = PathPatch(c_path, transform=ax.transData, facecolor='none',
+                              linewidth=0.4, linestyle='--')
+        except:
+            print('Cannot plot this contour, does not exist')
 ##        print('Adding patch')
 ##        ax.add_patch(patch)
     m = ax.pcolormesh(xi, yi, zi_norm.reshape(xi.shape), shading='gouraud',

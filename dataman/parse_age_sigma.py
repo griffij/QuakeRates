@@ -23,12 +23,24 @@ def parse_age_sigma(filename, sigma_level, event_order, truncation=3,
     """
 
     event_list = []
-    data = np.genfromtxt(filename, delimiter=delimiter, skip_header=header)
+#    data = np.genfromtxt(filename, delimiter=delimiter, skip_header=header)
+    data = np.genfromtxt(filename, delimiter=delimiter, names=True)
+    print(data)
+    print(type(data))
+    print(data.dtype)
+    print(data.dtype.names)
     # We want time to be running forwards
     if event_order == 'Backwards':
         data = np.flip(data, axis=0)
-    sigmas = data[:,1]/sigma_level #Convert, e.g. 2 sigma to 1 sigma
-    for i,mean_age in enumerate(data[:,0]):
+    print(data)
+    if data.dtype.names[0]=='Date':
+        dates = data['Date']
+    elif data.dtype.names[0]=='Age':
+        # Conver to dates assuming age before 1950
+        dates = 1950 - data['Age']
+    print(dates)
+    sigmas = data['Uncertainty']/sigma_level #Convert, e.g. 2 sigma to 1 sigma
+    for i,mean_age in enumerate(dates):
         event_id = i
         # Special case of zero uncertainty
         if sigmas[i]==0:
@@ -42,12 +54,13 @@ def parse_age_sigma(filename, sigma_level, event_order, truncation=3,
             probs = probs/sum(probs)
         event = EventDate(event_id, 'manual', 'age_sigma')
         event.add_dates_and_probs(ages, probs)
-        print(event.dates)
-        print(event.probabilities)
+#        print(event.dates)
+#        print(event.probabilities)
         event_list.append(event)
     return event_list
 
 if __name__ == "__main__":
+#    filename = '../data/Elsinore_Rockwell_1986_simple.txt'
     filename = '../data/SanJacinto_Rockwell_2015_simple.txt'
     event_list = parse_age_sigma(filename, sigma_level=2, event_order='Backwards')
     event_set = EventSet(event_list)
