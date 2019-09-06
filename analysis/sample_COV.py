@@ -35,10 +35,16 @@ for param_file in param_file_list:
     print(params)
     # Deal with OxCal output and lists of dates with uncertainties
     # separately
+    # Check that data file exists
+    if not os.path.isfile(params['filename']):
+        msg = 'Data file ' + params['filename'] + ' does not exist.' + \
+            ' Continuing to next file.'
+        print(msg)
+        continue
     try:
         params['chron_type']
     except KeyError:
-        msg = 'chron_type not defined in parameter file ' + param_file                                                                                         
+        msg = 'chron_type not defined in parameter file ' + param_file
         print(msg)
         raise
     if params['chron_type'] == 'OxCal':
@@ -66,7 +72,8 @@ nbins = 100
 for i, cov_set in enumerate(covs):
     cov_samples = np.array([cov_set, long_term_rates[i]])                                                                               
     x, y = cov_samples
-    # Evaluate a gaussian kde on a regular grid of nbins x nbins over data extents                                                          
+    # Evaluate a gaussian kde on a regular grid of nbins x nbins over
+    # data extents
     k = kde.gaussian_kde(cov_samples)
     xi, yi = np.mgrid[0.98*x.min():1.02*x.max():nbins*1j, 0.98*y.min():1.02*y.max():nbins*1j]
     zi = k(np.vstack([xi.flatten(), yi.flatten()]))
