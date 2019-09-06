@@ -1,0 +1,4 @@
+filename = '../data/NorthAnatolianYalabeli_Kozaci_2011_simple.txt'
+chron_type = 'Age2Sigma'
+sigma_level = 2
+event_order = 'Backwards'

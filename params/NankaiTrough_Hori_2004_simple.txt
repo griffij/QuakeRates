@@ -1,0 +1,4 @@
+filename = '../data/NankaiTrough_Hori_2004_simple.txt'
+chron_type = 'Age2Sigma'
+sigma_level = 2
+event_order = 'Backwards'

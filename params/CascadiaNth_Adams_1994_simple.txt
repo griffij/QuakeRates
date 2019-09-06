@@ -1,0 +1,4 @@
+filename = '../data/CascadiaNth_Adams_1994_simple.txt'
+chron_type = 'Age2Sigma'
+sigma_level = 2
+event_order = 'Forwards'
