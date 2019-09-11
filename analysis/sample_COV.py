@@ -111,7 +111,7 @@ for i, cov_set in enumerate(covs):
 
 #FIXME - make bounds parametric/automatic
 ax.set_xlim([0, 2.5])
-ax.set_ylim([1./100000, 1./100])
+ax.set_ylim([1./1000000, 1./50])
 ax.set_yscale('log')
 ax.set_xlabel('COV')
 ax.set_ylabel('Long-term rate (events per year)')
