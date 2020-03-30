@@ -64,7 +64,7 @@ def parse_oxcal(filename, key_dict, event_order=None):
 
 if __name__ == "__main__":
 #    filename = '../data/Xorkoli_Altyn_Tagh_Yuan_2018.csv'
-    filename = '../../OxCal/akatore/Akatore4event_Bdy/Akatore4eventBdy_output.csv'
+    filename = '../data/Akatore4eventBdy_output.csv'
     # key_dict for parseing OxCal output. The key specifies the event
     # name, while the two parameters within the list specify that we
     # want the calculated dates from the posterior distribution.
@@ -91,11 +91,12 @@ if __name__ == "__main__":
     event_set.gen_chronologies(n_samples)
 
     event_set.calculate_cov()
-#    figname = '%s_%i_chronologies.png' % (filename[:-3], n_samples)
-#    chron_filename = '%s_%i_chronologies.csv' % (filename[:-3], n_samples) 
-#    event_set.plot_chronology(figname, normalise=False)
-#    event_set.write_chronology(chron_filename)
-    event_set.cov_density()
+    figname = '%s_%i_chronologies.png' % (filename[:-4], n_samples)
+    chron_filename = '%s_%i_chronologies.csv' % (filename[:-4], n_samples) 
+    print(chron_filename)
+    #    event_set.plot_chronology(figname, normalise=False)
+    event_set.write_chronology(chron_filename)
+#    event_set.cov_density()
     # for event in events:
    #     fig_filename = 'event_' + event.id + '_pdf.png'
    #     event.plot_date_pdf(fig_filename)

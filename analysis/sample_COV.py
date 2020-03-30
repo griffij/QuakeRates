@@ -4,6 +4,7 @@
 import os
 import ast
 from glob import glob
+from operator import itemgetter 
 import numpy as np
 from matplotlib import pyplot
 from matplotlib.patches import PathPatch
@@ -13,8 +14,8 @@ from QuakeRates.dataman.parse_oxcal import parse_oxcal
 from QuakeRates.dataman.parse_age_sigma import parse_age_sigma
 
 filepath = '../params'
-param_file_list = glob(os.path.join(filepath, '*.txt'))
-n_samples = 10000  # Number of Monte Carlo samples of the eq chronologies
+param_file_list = glob(os.path.join(filepath, 'Yam*.txt'))
+n_samples = 1000  # Number of Monte Carlo samples of the eq chronologies
 
 
 params = {}
@@ -57,17 +58,38 @@ for param_file in param_file_list:
         event_set = EventSet(events)  
     elif params['chron_type'] == 'Age2Sigma':
         # Write method to sample these
-        events = parse_age_sigma(params['filename'], params['sigma_level'],
-                                 params['event_order'])
+        events, event_certainty = parse_age_sigma(params['filename'],
+                                                  params['sigma_level'],
+                                                  params['event_order'])
         event_set = EventSet(events)
     else:
         msg = 'Unknown form of chron_type defined in ' + param_file
         raise Exception(msg)
+    # Handle cases with uncertain number of events. Where events identification is
+    # unsure, event_certainty is given a value of 0, compared with 1 for certain
+    # events
+    # First generate chronologies assuming all events are certain
     event_set.gen_chronologies(n_samples, observation_end=2019, min_separation=1)
-    event_set.calculate_cov() 
-    event_set.cov_density()
-    covs.append(event_set.covs)
-    long_term_rates.append(event_set.long_term_rates)
+    event_set.calculate_cov()
+    event_set.cov_density() 
+    # Now generate chronologies assuming uncertain events did not occur
+    if sum(event_certainty) < len(events):
+        indices = np.where(event_certainty == 1)
+        indices = list(indices[0])
+        print(indices[0], type(indices))
+        events_subset = list(itemgetter(*indices)(events)) 
+        event_set_certain = EventSet(events_subset)
+        event_set_certain.gen_chronologies(n_samples, observation_end=2019, min_separation=1)
+        event_set_certain.calculate_cov()
+        event_set_certain.cov_density()
+        combined_covs = np.concatenate([event_set.covs, event_set_certain.covs])
+        covs.append(combined_covs)
+        combined_ltrs = np.concatenate([event_set.long_term_rates,
+                                        event_set_certain.long_term_rates])
+        long_term_rates.append(combined_ltrs)
+    else:
+        covs.append(event_set.covs)
+        long_term_rates.append(event_set.long_term_rates)
 
 # Now do some plotting
 pyplot.clf()

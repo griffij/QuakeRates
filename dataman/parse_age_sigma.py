@@ -35,11 +35,17 @@ def parse_age_sigma(filename, sigma_level, event_order, truncation=3,
     print(data)
     if data.dtype.names[0]=='Date':
         dates = data['Date']
+        sigmas = data['Uncertainty']/sigma_level #Convert, e.g. 2 sigma to 1 sigma  
     elif data.dtype.names[0]=='Age':
         # Conver to dates assuming age before 1950
         dates = 1950 - data['Age']
+        sigmas = data['Uncertainty']/sigma_level #Convert, e.g. 2 sigma to 1 sigma  
+    # Deal with age ranges, rather than mean and standard deviation, assuming
+    # range covers 95% of the distirbution (i.e. +/- 2 sigma)
+    elif data.dtype.names[0]=='Age1':
+        dates = np.mean([(1950 - data['Age1']),(1950 - data['Age2'])], axis=0)
+        sigmas = abs(data['Age1'] - data['Age2'])/4
     print(dates)
-    sigmas = data['Uncertainty']/sigma_level #Convert, e.g. 2 sigma to 1 sigma
     for i,mean_age in enumerate(dates):
         event_id = i
         # Special case of zero uncertainty
@@ -57,12 +63,19 @@ def parse_age_sigma(filename, sigma_level, event_order, truncation=3,
 #        print(event.dates)
 #        print(event.probabilities)
         event_list.append(event)
-    return event_list
+    # Note cases with uncertain event occurrences
+    if data.dtype.names[2]=='Certain':
+        event_certainty = data['Certain']
+    else:
+        event_certainty = np.ones(length(dates))
+    print(event_certainty)
+    return event_list, event_certainty
 
 if __name__ == "__main__":
 #    filename = '../data/Elsinore_Rockwell_1986_simple.txt'
-    filename = '../data/SanJacinto_Rockwell_2015_simple.txt'
-    event_list = parse_age_sigma(filename, sigma_level=2, event_order='Backwards')
+    filename = '../data/Yammouneh_Daeron_2007_simple.txt'
+    event_list, event_certainty = parse_age_sigma(filename, sigma_level=2,
+                                                  event_order='Backwards')
     event_set = EventSet(event_list)
     print(event_list)
     print(event_set)
