@@ -14,8 +14,8 @@ from QuakeRates.dataman.parse_oxcal import parse_oxcal
 from QuakeRates.dataman.parse_age_sigma import parse_age_sigma
 
 filepath = '../params'
-param_file_list = glob(os.path.join(filepath, 'Yam*.txt'))
-n_samples = 1000  # Number of Monte Carlo samples of the eq chronologies
+param_file_list = glob(os.path.join(filepath, '*.txt'))
+n_samples = 500  # Number of Monte Carlo samples of the eq chronologies
 
 
 params = {}
@@ -133,8 +133,29 @@ for i, cov_set in enumerate(covs):
 
 #FIXME - make bounds parametric/automatic
 ax.set_xlim([0, 2.5])
-ax.set_ylim([1./1000000, 1./50])
+ax.set_ylim([1./1000000, 1./40])
 ax.set_yscale('log')
 ax.set_xlabel('COV')
 ax.set_ylabel('Long-term rate (events per year)')
 pyplot.savefig('cov_vs_lt_rate.png')
+
+
+# Now just plot the means
+pyplot.clf()
+ax = pyplot.subplot(111)
+mean_covs = []
+mean_ltrs = []
+for i, cov_set in enumerate(covs):
+    mean_cov = np.mean(cov_set)
+    mean_covs.append(mean_cov)
+    mean_ltr = np.mean(long_term_rates[i])
+    mean_ltrs.append(mean_ltr)
+#print(mean_covs, type(mean_covs))
+#print(long_term_rates, type(long_term_rates))
+pyplot.scatter(mean_covs, mean_ltrs, marker = 's', c='0.1', s=20)
+ax.set_xlim([0, 2.5])
+ax.set_ylim([1./1000000, 1./40])
+ax.set_yscale('log')
+ax.set_xlabel('COV')
+ax.set_ylabel('Long-term rate (events per year)')
+pyplot.savefig('mean_cov_vs_lt_rate.png')
