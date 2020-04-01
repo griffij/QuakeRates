@@ -205,14 +205,12 @@ class EventSet(object):
         # the interevent time between the nth and n+1 event (counting
         # forward in time)
         self.interevent_times = np.diff(self.chronology, axis=0)
-        means = np.mean(self.interevent_times, axis=0)
-        stds = np.std(self.interevent_times, axis=0)
-        print('Mean recurrence interval', np.mean(means))
+        self.means = np.mean(self.interevent_times, axis=0)
+        self.stds = np.std(self.interevent_times, axis=0)
+        print('Mean recurrence interval', np.mean(self.means))
         print('Recurrence interval standard devation',
-              np.mean(stds))
-#        print(stds)
-        self.covs = stds/means
-#        print(self.covs)
+              np.mean(self.stds))
+        self.covs = self.stds/self.means
         print('Mean COV', np.mean(self.covs))
         print('Min COV', np.min(self.covs))
         print('Max COV', np.max(self.covs))
@@ -284,3 +282,40 @@ class EventSet(object):
             ax.set_xlabel('COV')
             ax.set_ylabel('Long-term rate (events per year)')
             pyplot.savefig(fig_filename)
+
+    def basic_chronology_stats(self):
+        """ Generate some basic statistics from the set of chronolgies
+        """
+
+        # Take global mean and standard devation of interevent times
+        # across all simulated chronologies
+        self.mean_interevent_time = np.mean(self.interevent_times)
+        self.std_interevent_time = np.std(self.interevent_times)
+
+        # Calculate mean value of shortest two consecutive interevent times.
+        # This aims to estimate a 'short term rate'
+        # Calculate sum of consecutive interevent_times
+        min_interevent_times = []
+        min_interevent_pairs = []
+        max_interevent_times = []
+        for int_ev_set in self.interevent_times.T:
+            int_ev_pairs = np.array([np.sum(int_ev_set[current: current+2]) for current \
+                                     in range(0, len(int_ev_set))])[:-1]
+            min_int_ev_pair = np.min(int_ev_pairs)
+            min_interevent_pairs.append(min_int_ev_pair)
+            max_interevent_times.append(np.max(int_ev_set))
+            min_interevent_times.append(np.min(int_ev_set)) 
+        # Find mean of shortest two consecutive interevent times
+        self.minimum_two_interevent_times = np.mean(min_interevent_pairs)
+        # Divide by two to estimate mean value of within cluster rate
+        self.mean_minimum_pair_interevent_time =  self.minimum_two_interevent_times/2.
+        print('Minimum_pair_interevent time', self.mean_minimum_pair_interevent_time)
+        # Get mean of maximum interevent times
+        self.mean_maximum_interevent_time = np.mean(max_interevent_times)
+        print('self.mean_maximum_interevent_time', self.mean_maximum_interevent_time)
+        # Get mean of minimum interevent times
+        self.mean_minimum_interevent_time = np.mean(min_interevent_times)
+        print('self.mean_minimum_interevent_time', self.mean_minimum_interevent_time)
+        # And index
+#        min_index = np.argmin(int_ev_pairs)
+        

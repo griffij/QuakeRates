@@ -6,6 +6,7 @@ import ast
 from glob import glob
 from operator import itemgetter 
 import numpy as np
+from scipy.optimize import curve_fit
 from matplotlib import pyplot
 from matplotlib.patches import PathPatch
 from scipy.stats import kde
@@ -32,6 +33,9 @@ def parse_param_file(param_file_name):
 covs = []
 long_term_rates = []
 names = []
+max_interevent_times = []
+min_interevent_times = []
+min_paired_interevent_times = []
 for param_file in param_file_list:
     name = param_file.split('/')[-1].split('_')[0]
     print(name)
@@ -71,17 +75,23 @@ for param_file in param_file_list:
     # First generate chronologies assuming all events are certain
     event_set.gen_chronologies(n_samples, observation_end=2019, min_separation=1)
     event_set.calculate_cov()
-    event_set.cov_density() 
+    event_set.cov_density()
+    # Now calculate some statistics on the sampled chronologies
+    event_set.basic_chronology_stats()
+    min_paired_interevent_times.append(event_set.mean_minimum_pair_interevent_time)
+    max_interevent_times.append(event_set.mean_maximum_interevent_time)
+    min_interevent_times.append(event_set.mean_minimum_interevent_time)  
     # Now generate chronologies assuming uncertain events did not occur
     if sum(event_certainty) < len(events):
         indices = np.where(event_certainty == 1)
         indices = list(indices[0])
-        print(indices[0], type(indices))
+#        print(indices[0], type(indices))
         events_subset = list(itemgetter(*indices)(events)) 
         event_set_certain = EventSet(events_subset)
         event_set_certain.gen_chronologies(n_samples, observation_end=2019, min_separation=1)
         event_set_certain.calculate_cov()
         event_set_certain.cov_density()
+        event_set.basic_chronology_stats()
         combined_covs = np.concatenate([event_set.covs, event_set_certain.covs])
         covs.append(combined_covs)
         combined_ltrs = np.concatenate([event_set.long_term_rates,
@@ -90,7 +100,7 @@ for param_file in param_file_list:
     else:
         covs.append(event_set.covs)
         long_term_rates.append(event_set.long_term_rates)
-
+    
 # Now do some plotting
 pyplot.clf()
 ax = pyplot.subplot(111)
@@ -159,3 +169,60 @@ ax.set_yscale('log')
 ax.set_xlabel('COV')
 ax.set_ylabel('Long-term rate (events per year)')
 pyplot.savefig('mean_cov_vs_lt_rate.png')
+
+# Now plot basic statistics
+pyplot.clf()
+ax = pyplot.subplot(111)
+pyplot.scatter(max_interevent_times, min_interevent_times,
+               marker = 's', c='0.1', s=20)
+ax.set_xlabel('Maximum interevent time')
+ax.set_ylabel('Minimum interevent time') 
+ax.set_xscale('log')
+ax.set_yscale('log')
+# Label low-slip rate faults
+for i, txt in enumerate(names):
+    if max_interevent_times[i] > 10000:
+        ax.annotate(txt, (max_interevent_times[i],
+                          min_interevent_times[i]))  
+pyplot.savefig('min_vs_max_interevent_time.png')
+
+# Plot minimum pairs
+pyplot.clf()
+ax = pyplot.subplot(111)
+pyplot.scatter(max_interevent_times, min_paired_interevent_times,
+               marker = 's', c='0.1', s=20)
+ax.set_xlabel('Maximum interevent time')
+ax.set_ylabel('Mean minimum interevent pair time')
+ax.set_xscale('log')
+ax.set_yscale('log') 
+# Label low-slip rate faults
+for i, txt in enumerate(names):
+    if max_interevent_times[i] > 10000:
+        ax.annotate(txt, (max_interevent_times[i],
+                          min_paired_interevent_times[i]))
+# Now fit with a regression in log-log space
+xvals = np.arange(100, 2e6, 100) # For plotting
+# Linear fit
+lf = np.polyfit(np.log10(max_interevent_times),
+                np.log10(min_paired_interevent_times), 1)
+log_yvals = lf[0]*np.log10(xvals) + lf[1]
+yvals = np.power(10, log_yvals)
+pyplot.plot(xvals, yvals)
+
+# Quadratic fit
+qf = np.polyfit(np.log10(max_interevent_times),
+                      np.log10(min_paired_interevent_times), 2)
+print(qf)
+log_yvals = qf[0]*np.log10(xvals)**2 + qf[1]*np.log10(xvals) + qf[2]
+yvals = np.power(10, log_yvals)
+pyplot.plot(xvals, yvals)
+
+# Power law fit
+# Define function to fit
+def func_powerlaw(x, m, c, c0):
+    return c0 + x**m * c
+target_func = func_powerlaw
+popt, pcov = curve_fit(target_func, max_interevent_times, min_paired_interevent_times)
+print('popt', popt)
+pyplot.plot(xvals, target_func(xvals, *popt), '--')
+pyplot.savefig('min_pair_vs_max_interevent_time.png')
