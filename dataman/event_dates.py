@@ -305,16 +305,28 @@ class EventSet(object):
             min_interevent_pairs.append(min_int_ev_pair)
             max_interevent_times.append(np.max(int_ev_set))
             min_interevent_times.append(np.min(int_ev_set)) 
-        # Find mean of shortest two consecutive interevent times
-        self.minimum_two_interevent_times = np.mean(min_interevent_pairs)
+        # Find mean and std of shortest two consecutive interevent times
+        #self.minimum_two_interevent_times = np.mean(min_interevent_pairs)
         # Divide by two to estimate mean value of within cluster rate
-        self.mean_minimum_pair_interevent_time =  self.minimum_two_interevent_times/2.
+        min_interevent_pairs = np.array(min_interevent_pairs)
+        max_interevent_times = np.array(max_interevent_times)
+        min_interevent_times = np.array(min_interevent_times)
+        self.mean_minimum_pair_interevent_time =  np.mean(min_interevent_pairs/2.)
+        self.std_minimum_pair_interevent_time =  np.std(min_interevent_pairs/2.)
+        self.minimum_pair_interevent_time_lb = np.percentile((min_interevent_pairs/2.), 2.5)
+        self.minimum_pair_interevent_time_ub = np.percentile((min_interevent_pairs/2.), 97.5)
         print('Minimum_pair_interevent time', self.mean_minimum_pair_interevent_time)
-        # Get mean of maximum interevent times
+        # Get mean and std of maximum interevent times
         self.mean_maximum_interevent_time = np.mean(max_interevent_times)
+        self.std_maximum_interevent_time = np.std(max_interevent_times)
+        self.maximum_interevent_time_lb = np.percentile((max_interevent_times/2.), 2.5)
+        self.maximum_interevent_time_ub = np.percentile((max_interevent_times/2.), 97.5)
         print('self.mean_maximum_interevent_time', self.mean_maximum_interevent_time)
-        # Get mean of minimum interevent times
+        # Get mean and std of minimum interevent times
         self.mean_minimum_interevent_time = np.mean(min_interevent_times)
+        self.std_minimum_interevent_time = np.std(min_interevent_times)
+        self.minimum_interevent_time_lb = np.percentile((min_interevent_times/2.), 2.5)
+        self.minimum_interevent_time_ub = np.percentile((min_interevent_times/2.), 97.5)
         print('self.mean_minimum_interevent_time', self.mean_minimum_interevent_time)
         # And index
 #        min_index = np.argmin(int_ev_pairs)

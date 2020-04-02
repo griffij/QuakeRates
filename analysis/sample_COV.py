@@ -1,4 +1,4 @@
-"""Script forA sampling COV uncertainties on many faults and plotting them
+"""Script for sampling COV uncertainties on many faults and plotting them
 """
 
 import os
@@ -36,6 +36,12 @@ names = []
 max_interevent_times = []
 min_interevent_times = []
 min_paired_interevent_times = []
+std_min_paired_interevent_times = []
+std_min_interevent_times = []
+std_max_interevent_times = []
+max_interevent_times_bounds = []
+min_interevent_times_bounds = []
+min_paired_interevent_times_bounds = []
 for param_file in param_file_list:
     name = param_file.split('/')[-1].split('_')[0]
     print(name)
@@ -81,6 +87,21 @@ for param_file in param_file_list:
     min_paired_interevent_times.append(event_set.mean_minimum_pair_interevent_time)
     max_interevent_times.append(event_set.mean_maximum_interevent_time)
     min_interevent_times.append(event_set.mean_minimum_interevent_time)  
+    std_min_paired_interevent_times.append(event_set.std_minimum_pair_interevent_time)
+    std_min_interevent_times.append(event_set.std_minimum_interevent_time)
+    std_max_interevent_times.append(event_set.std_maximum_interevent_time)
+    max_interevent_times_bounds.append([abs(event_set.mean_maximum_interevent_time -
+                                            event_set.maximum_interevent_time_lb),
+                                        abs(event_set.mean_maximum_interevent_time -
+                                            event_set.maximum_interevent_time_ub)])
+    min_interevent_times_bounds.append([abs(event_set.mean_minimum_interevent_time -
+                                            event_set.minimum_interevent_time_lb),
+                                        abs(event_set.mean_minimum_interevent_time -
+                                            event_set.minimum_interevent_time_ub)])
+    min_paired_interevent_times_bounds.append([abs(event_set.mean_minimum_pair_interevent_time -
+                                                   event_set.minimum_pair_interevent_time_lb),
+                                        abs(event_set.mean_minimum_pair_interevent_time -
+                                            event_set.minimum_pair_interevent_time_ub)])
     # Now generate chronologies assuming uncertain events did not occur
     if sum(event_certainty) < len(events):
         indices = np.where(event_certainty == 1)
@@ -100,7 +121,15 @@ for param_file in param_file_list:
     else:
         covs.append(event_set.covs)
         long_term_rates.append(event_set.long_term_rates)
-    
+
+max_interevent_times = np.array(max_interevent_times)
+min_interevent_times = np.array(min_interevent_times)
+min_paired_interevent_times = np.array(min_paired_interevent_times)
+max_interevent_times_bounds = np.array(max_interevent_times_bounds).T
+min_interevent_times_bounds = np.array(min_interevent_times_bounds).T
+min_paired_interevent_times_bounds = np.array(min_paired_interevent_times_bounds).T
+print(max_interevent_times_bounds, np.shape(max_interevent_times_bounds))
+
 # Now do some plotting
 pyplot.clf()
 ax = pyplot.subplot(111)
@@ -162,7 +191,7 @@ for i, cov_set in enumerate(covs):
     mean_ltrs.append(mean_ltr)
 #print(mean_covs, type(mean_covs))
 #print(long_term_rates, type(long_term_rates))
-pyplot.scatter(mean_covs, mean_ltrs, marker = 's', c='0.1', s=20)
+pyplot.scatter(mean_covs, mean_ltrs, marker = 's', c='0.1', s=25)
 ax.set_xlim([0, 2.5])
 ax.set_ylim([1./1000000, 1./40])
 ax.set_yscale('log')
@@ -173,8 +202,16 @@ pyplot.savefig('mean_cov_vs_lt_rate.png')
 # Now plot basic statistics
 pyplot.clf()
 ax = pyplot.subplot(111)
+pyplot.errorbar(max_interevent_times, min_interevent_times,
+                yerr = min_interevent_times_bounds,
+                ecolor = '0.4',
+                linestyle="None")
+pyplot.errorbar(max_interevent_times, min_interevent_times,
+                   xerr = max_interevent_times_bounds,
+                   ecolor = '0.6',
+                   linestyle="None")
 pyplot.scatter(max_interevent_times, min_interevent_times,
-               marker = 's', c='0.1', s=20)
+               marker = 's', c='0.1', s=25)
 ax.set_xlabel('Maximum interevent time')
 ax.set_ylabel('Minimum interevent time') 
 ax.set_xscale('log')
@@ -184,15 +221,40 @@ for i, txt in enumerate(names):
     if max_interevent_times[i] > 10000:
         ax.annotate(txt, (max_interevent_times[i],
                           min_interevent_times[i]))  
+
+# Linear fit only bottom end of data
+indices = np.argwhere(max_interevent_times < 10000).flatten()
+print('indices', indices)
+print(max_interevent_times[indices])
+print(min_paired_interevent_times[indices])
+lf = np.polyfit(np.log10(max_interevent_times[indices]),
+                   np.log10(min_interevent_times[indices]), 1)
+xvals_short = np.arange(100, 1e4, 100)
+log_yvals = lf[0]*np.log10(xvals_short) + lf[1]
+yvals = np.power(10, log_yvals)
+pyplot.plot(xvals_short, yvals)
+# Add formula for linear fit to low-end of data
+txt = 'Log(Y) = %.2fLog(x) + %.2f' % (lf[0], lf[1])
+print(txt)
+ax.annotate(txt, (800, 10000))
+
 pyplot.savefig('min_vs_max_interevent_time.png')
 
 # Plot minimum pairs
 pyplot.clf()
 ax = pyplot.subplot(111)
+pyplot.errorbar(max_interevent_times, min_paired_interevent_times,
+                yerr = min_paired_interevent_times_bounds,
+                ecolor = '0.4',
+                linestyle="None")
+pyplot.errorbar(max_interevent_times, min_paired_interevent_times,
+                xerr = max_interevent_times_bounds,
+                ecolor = '0.6',
+                linestyle="None")
 pyplot.scatter(max_interevent_times, min_paired_interevent_times,
-               marker = 's', c='0.1', s=20)
+               marker = 's', c='0.1', s=25)
 ax.set_xlabel('Maximum interevent time')
-ax.set_ylabel('Mean minimum interevent pair time')
+ax.set_ylabel('Minimum interevent time \n(mean of two shortest consecutive interevent times)')
 ax.set_xscale('log')
 ax.set_yscale('log') 
 # Label low-slip rate faults
@@ -209,6 +271,22 @@ log_yvals = lf[0]*np.log10(xvals) + lf[1]
 yvals = np.power(10, log_yvals)
 pyplot.plot(xvals, yvals)
 
+# Linear fit only bottom end of data
+indices = np.argwhere(max_interevent_times < 10000).flatten()
+print('indices', indices)
+print(max_interevent_times[indices])
+print(min_paired_interevent_times[indices])
+lf = np.polyfit(np.log10(max_interevent_times[indices]),
+                np.log10(min_paired_interevent_times[indices]), 1)
+xvals_short = np.arange(100, 1e4, 100)
+log_yvals = lf[0]*np.log10(xvals_short) + lf[1]
+yvals = np.power(10, log_yvals)
+pyplot.plot(xvals_short, yvals)
+# Add formula for linear fit to low-end of data
+txt = 'Log(Y) = %.2fLog(x) + %.2f' % (lf[0], lf[1])
+print(txt)
+ax.annotate(txt, (800, 10000))
+
 # Quadratic fit
 qf = np.polyfit(np.log10(max_interevent_times),
                       np.log10(min_paired_interevent_times), 2)
@@ -219,10 +297,10 @@ pyplot.plot(xvals, yvals)
 
 # Power law fit
 # Define function to fit
-def func_powerlaw(x, m, c, c0):
-    return c0 + x**m * c
-target_func = func_powerlaw
-popt, pcov = curve_fit(target_func, max_interevent_times, min_paired_interevent_times)
-print('popt', popt)
-pyplot.plot(xvals, target_func(xvals, *popt), '--')
+#def func_powerlaw(x, m, c, c0):
+#    return c0 + x**m * c
+#target_func = func_powerlaw
+#popt, pcov = curve_fit(target_func, max_interevent_times, min_paired_interevent_times)
+#print('popt', popt)
+#pyplot.plot(xvals, target_func(xvals, *popt), '--')
 pyplot.savefig('min_pair_vs_max_interevent_time.png')
