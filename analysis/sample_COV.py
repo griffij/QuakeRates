@@ -16,8 +16,9 @@ from QuakeRates.dataman.parse_age_sigma import parse_age_sigma
 
 filepath = '../params'
 param_file_list = glob(os.path.join(filepath, '*.txt'))
-n_samples = 500  # Number of Monte Carlo samples of the eq chronologies
-
+n_samples = 10000  # Number of Monte Carlo samples of the eq chronologies
+half_n = int(n_samples/2)
+print(half_n)
 
 params = {}
 
@@ -113,10 +114,13 @@ for param_file in param_file_list:
         event_set_certain.calculate_cov()
         event_set_certain.cov_density()
         event_set.basic_chronology_stats()
-        combined_covs = np.concatenate([event_set.covs, event_set_certain.covs])
+        combined_covs = np.concatenate([event_set.covs[:half_n],
+                                        event_set_certain.covs[:half_n]])
         covs.append(combined_covs)
-        combined_ltrs = np.concatenate([event_set.long_term_rates,
-                                        event_set_certain.long_term_rates])
+        # Combine, taking n/2 samples from each set
+        combined_ltrs = np.concatenate([event_set.long_term_rates[:half_n],
+                                        event_set_certain.long_term_rates[:half_n]])
+        print(len(combined_ltrs))
         long_term_rates.append(combined_ltrs)
     else:
         covs.append(event_set.covs)
@@ -125,11 +129,34 @@ for param_file in param_file_list:
 max_interevent_times = np.array(max_interevent_times)
 min_interevent_times = np.array(min_interevent_times)
 min_paired_interevent_times = np.array(min_paired_interevent_times)
+print('min_paired_interevent_times', min_paired_interevent_times)
 max_interevent_times_bounds = np.array(max_interevent_times_bounds).T
 min_interevent_times_bounds = np.array(min_interevent_times_bounds).T
 min_paired_interevent_times_bounds = np.array(min_paired_interevent_times_bounds).T
+long_term_rates_T = np.array(long_term_rates).T
+mean_ltr = np.mean(long_term_rates_T, axis = 0)
+print('mean_ltr', mean_ltr)
+ltr_bounds = np.array([abs(mean_ltr - (np.percentile(long_term_rates_T, 2.5, axis=0))),
+                       abs(mean_ltr - (np.percentile(long_term_rates_T, 97.5, axis=0)))])
+print('ltr_bounds', ltr_bounds)
 print(max_interevent_times_bounds, np.shape(max_interevent_times_bounds))
-
+# Ratios 
+#ratio_min_pair_max = min_paired_interevent_times/max_interevent_times
+#print('ratio_min_pair_max', ratio_min_pair_max)
+##ratio_min_pair_max_T = ratio_min_pair_max.T
+#mean_ratio_min_pair_max = np.mean(ratio_min_pair_max, axis=0)
+#print('mean_ratio_min_pair_max ', mean_ratio_min_pair_max)
+#ratio_min_max = min_interevent_times/max_interevent_times
+#ratio_min_max_T = ratio_min_max.T
+#mean_ratio_min_max = np.mean(ratio_min_max_T, axis=0) 
+#ratio_min_pair_max_bounds = \
+#    np.array([abs(mean_ratio_min_pair_max - (np.percentile(ratio_min_pair_max_T, 2.5, axis=0))),
+ #             abs(mean_ratio_min_pair_max - (np.percentile(ratio_min_pair_max_T, 97.5, axis=0)))])
+#print('ratio_min_pair_max_bound', ratio_min_pair_max_bounds)
+#ratio_min_max_bounds = \
+#    np.array([abs(mean_ratio_min_max - (np.percentile(ratio_min_max_T, 2.5, axis=0))),
+#              abs(mean_ratio_min_max - (np.percentile(ratio_min_max_T, 97.5, axis=0)))])
+#sys.exit()
 # Now do some plotting
 pyplot.clf()
 ax = pyplot.subplot(111)
@@ -183,15 +210,15 @@ pyplot.savefig('cov_vs_lt_rate.png')
 pyplot.clf()
 ax = pyplot.subplot(111)
 mean_covs = []
-mean_ltrs = []
+#mean_ltrs = []
 for i, cov_set in enumerate(covs):
     mean_cov = np.mean(cov_set)
     mean_covs.append(mean_cov)
-    mean_ltr = np.mean(long_term_rates[i])
-    mean_ltrs.append(mean_ltr)
+#    mean_ltr = np.mean(long_term_rates[i])
+#    mean_ltrs.append(mean_ltr)
 #print(mean_covs, type(mean_covs))
 #print(long_term_rates, type(long_term_rates))
-pyplot.scatter(mean_covs, mean_ltrs, marker = 's', c='0.1', s=25)
+pyplot.scatter(mean_covs, mean_ltr, marker = 's', c='0.1', s=25)
 ax.set_xlim([0, 2.5])
 ax.set_ylim([1./1000000, 1./40])
 ax.set_yscale('log')
@@ -285,7 +312,7 @@ pyplot.plot(xvals_short, yvals)
 # Add formula for linear fit to low-end of data
 txt = 'Log(Y) = %.2fLog(x) + %.2f' % (lf[0], lf[1])
 print(txt)
-ax.annotate(txt, (800, 10000))
+ax.annotate(txt, (100, 10000))
 
 # Quadratic fit
 qf = np.polyfit(np.log10(max_interevent_times),
@@ -304,3 +331,145 @@ pyplot.plot(xvals, yvals)
 #print('popt', popt)
 #pyplot.plot(xvals, target_func(xvals, *popt), '--')
 pyplot.savefig('min_pair_vs_max_interevent_time.png')
+
+# Similar plots, against long term rates
+pyplot.clf()
+ax = pyplot.subplot(111)  
+print('mean_ltr', mean_ltr)
+print('min_interevent_times', min_interevent_times)
+print('ltr-bounds', ltr_bounds)
+pyplot.errorbar(mean_ltr, min_interevent_times,
+                yerr = min_interevent_times_bounds,
+                ecolor = '0.4',
+                linestyle="None")
+pyplot.errorbar(mean_ltr, min_interevent_times,
+                xerr = ltr_bounds,
+                ecolor = '0.6',
+                linestyle="None")
+pyplot.scatter(mean_ltr, min_interevent_times,
+               marker = 's', c='0.1', s=25)
+ax.set_xlabel('Long-term rate')
+ax.set_ylabel('Minimum interevent time')
+ax.set_xscale('log')
+ax.set_yscale('log') 
+# Label low-slip rate faults
+for i, txt in enumerate(names):
+    if max_interevent_times[i] > 10000:
+        ax.annotate(txt, (mean_ltr[i],
+                          min_interevent_times[i]))
+# Now fit with a regression in log-log space
+#xvals = np.arange(10e-6, 10e-1, 1e-7) # For plotting
+# Linear fit
+#lf = np.polyfit(np.log10(mean_ltr),
+#                np.log10(min_interevent_times), 1)
+#log_yvals = lf[0]*np.log10(xvals) + lf[1]
+#yvals = np.power(10, log_yvals)
+#pyplot.plot(xvals, yvals)
+
+# Linear fit only bottom end of data
+indices = np.argwhere(mean_ltr > 5e-4).flatten()
+print('indices', indices)
+lf = np.polyfit(np.log10(mean_ltr[indices]),
+                np.log10(min_interevent_times[indices]), 1)
+xvals_short = np.arange(5e-4, 1e-2, 1e-4)
+log_yvals = lf[0]*np.log10(xvals_short) + lf[1]
+yvals = np.power(10, log_yvals)
+pyplot.plot(xvals_short, yvals)
+# Add formula for linear fit to low-end of data
+txt = 'Log(Y) = %.2fLog(x) + %.2f' % (lf[0], lf[1])
+ax.annotate(txt, (1e-4, 10000))      
+pyplot.savefig('min_interevent_time_vs_ltr.png')
+
+# Plot long term rate against minimum pair
+pyplot.clf()
+ax = pyplot.subplot(111)  
+pyplot.errorbar(mean_ltr, min_paired_interevent_times,
+                yerr = min_paired_interevent_times_bounds,
+                ecolor = '0.4',
+                linestyle="None")
+pyplot.errorbar(mean_ltr, min_paired_interevent_times,
+                xerr = ltr_bounds,
+                ecolor = '0.6',
+                linestyle="None")
+pyplot.scatter(mean_ltr, min_paired_interevent_times,
+               marker = 's', c='0.1', s=25)
+ax.set_xlabel('Long-term rate')
+ax.set_ylabel('Minimum interevent time \n(mean of two shortest consecutive interevent times)')
+ax.set_xscale('log')
+ax.set_yscale('log') 
+# Label low-slip rate faults
+for i, txt in enumerate(names):
+    if max_interevent_times[i] > 10000:
+        ax.annotate(txt, (mean_ltr[i],
+                          min_interevent_times[i]))
+# Now fit with a regression in log-log space
+#xvals = np.arange(10e-6, 10e-1, 1e-7) # For plotting
+# Linear fit
+#lf = np.polyfit(np.log10(mean_ltr),
+#                np.log10(min_paired_interevent_times), 1)
+#log_yvals = lf[0]*np.log10(xvals) + lf[1]
+#yvals = np.power(10, log_yvals)
+#pyplot.plot(xvals, yvals)
+
+# Linear fit only bottom end of data
+indices = np.argwhere(mean_ltr > 5e-4).flatten()
+print('indices', indices)
+lf = np.polyfit(np.log10(mean_ltr[indices]),
+                np.log10(min_paired_interevent_times[indices]), 1)
+xvals_short = np.arange(5e-4, 1e-2, 1e-4)
+log_yvals = lf[0]*np.log10(xvals_short) + lf[1]
+yvals = np.power(10, log_yvals)
+pyplot.plot(xvals_short, yvals)
+# Add formula for linear fit to low-end of data
+txt = 'Log(Y) = %.2fLog(x) + %.2f' % (lf[0], lf[1])
+print(txt)
+ax.annotate(txt, (1e-4, 10000))
+
+pyplot.savefig('min_pair_vs_ltr.png')
+
+# Now plot ratios against long term rates
+pyplot.clf()
+ax = pyplot.subplot(111)  
+#ratio_min_pair_max = min_paired_interevent_times/max_interevent_times
+print('ratio_min_pair_max_bounds', ratio_min_pair_max_bounds)
+print(np.shape(ratio_min_pair_max_bounds))
+pyplot.errorbar(mean_ltr, mean_ratio_min_pair_max,
+                yerr = ratio_min_pair_max_bounds,
+                ecolor = '0.4',
+                linestyle="None")
+pyplot.errorbar(mean_ltr, mean_ratio_min_pair_max,
+                xerr = ltr_bounds,
+                ecolor = '0.6',
+                linestyle="None")
+pyplot.scatter(mean_ltr, mean_ratio_min_pair_max,
+               marker = 's', c='0.1', s=25)
+ax.set_xlabel('Long-term rate')
+ax.set_ylabel('Minimum pair interevent time: maximum interevent time')
+ax.set_xscale('log')
+ax.set_yscale('log') 
+# Label low-slip rate faults
+for i, txt in enumerate(names):
+    if max_interevent_times[i] > 10000:
+        ax.annotate(txt, (mean_ltr[i],
+                          min_interevent_times[i]))
+
+#log_yvals = lf[0]*np.log10(xvals) + lf[1]
+#yvals = np.power(10, log_yvals)
+#pyplot.plot(xvals, yvals)
+
+# Linear fit only bottom end of data
+indices = np.argwhere(mean_ltr > 5e-4).flatten()
+print('indices', indices)
+lf = np.polyfit(np.log10(mean_ltr[indices]),
+                                np.log10(mean_ratio_min_pair_max[indices]), 1)
+xvals_short = np.arange(5e-4, 1e-2, 1e-4)
+log_yvals = lf[0]*np.log10(xvals_short) + lf[1]
+yvals = np.power(10, log_yvals)
+pyplot.plot(xvals_short, yvals)
+# Add formula for linear fit to low-end of data
+txt = 'Log(Y) = %.2fLog(x) + %.2f' % (lf[0], lf[1])
+print(txt)
+ax.annotate(txt, (1e-4, 10000))
+
+pyplot.savefig('min_pair_max_ratio_vs_ltr.png')
+

@@ -36,6 +36,9 @@ def parse_age_sigma(filename, sigma_level, event_order, truncation=3,
     if data.dtype.names[0]=='Date':
         dates = data['Date']
         sigmas = data['Uncertainty']/sigma_level #Convert, e.g. 2 sigma to 1 sigma  
+    elif data.dtype.names[0]=='Date1':
+        dates = np.mean([data['Date1'],data['Date2']], axis=0)
+        sigmas = abs(data['Date1'] - data['Date2'])/4 
     elif data.dtype.names[0]=='Age':
         # Conver to dates assuming age before 1950
         dates = 1950 - data['Age']
@@ -64,10 +67,11 @@ def parse_age_sigma(filename, sigma_level, event_order, truncation=3,
 #        print(event.probabilities)
         event_list.append(event)
     # Note cases with uncertain event occurrences
-    if data.dtype.names[2]=='Certain':
-        event_certainty = data['Certain']
-    else:
-        event_certainty = np.ones(length(dates))
+    try:
+        if data.dtype.names[2]=='Certain':
+            event_certainty = data['Certain']
+    except:
+        event_certainty = np.ones(len(dates))
     print(event_certainty)
     return event_list, event_certainty
 
