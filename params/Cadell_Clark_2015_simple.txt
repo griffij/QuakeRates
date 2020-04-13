@@ -2,3 +2,5 @@ filename = '../data/Cadell_Clark_2015_simple.txt'
 chron_type = 'Age2Sigma'
 sigma_level = 2
 event_order = 'Backwards'
+tectonic_region = 'Intraplate_noncratonic'
+faulting_style = 'Reverse'

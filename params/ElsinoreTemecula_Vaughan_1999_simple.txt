@@ -1,4 +1,4 @@
-filename = '../data/Yammouneh_Daeron_2007_simple.txt'
+filename = '../data/ElsinoreTemecula_Vaughan_1999_simple.txt'
 chron_type = 'Age2Sigma'
 sigma_level = 2
 event_order = 'Backwards'

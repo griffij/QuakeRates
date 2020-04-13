@@ -2,3 +2,5 @@ filename = '../data/EmersonNorth_Rockwell_2000_simple.txt'
 chron_type = 'Age2Sigma'
 sigma_level = 1
 event_order = 'Backwards'
+tectonic_region = 'Near_plate_boundary'
+faulting_style = 'Strike_slip'

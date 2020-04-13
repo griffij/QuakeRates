@@ -2,3 +2,5 @@ filename = '../data/CloudyFault_Nicol_2016_simple.txt'
 chron_type = 'Age2Sigma'
 sigma_level = 2
 event_order = 'Backwards'
+tectonic_region = 'Plate_boundary_network'
+faulting_style = 'Strike_slip'
