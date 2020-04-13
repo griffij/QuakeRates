@@ -1,0 +1,4 @@
+filename = '../data/JohnsonValleySN_Rockwell_2000_simple.txt'
+chron_type = 'Age2Sigma'
+sigma_level = 1
+event_order = 'Backwards'

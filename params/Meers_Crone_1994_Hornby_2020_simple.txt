@@ -1,0 +1,4 @@
+filename = '../data/Meers_Crone_1994_Hornby_2020_simple.txt'
+chron_type = 'Age2Sigma'
+sigma_level = 2
+event_order = 'Backwards'
