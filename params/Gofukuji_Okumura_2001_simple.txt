@@ -1,0 +1,6 @@
+filename = '../data/Gofukuji_Okumura_2001_simple.txt'
+chron_type = 'Age2Sigma'
+sigma_level = 1
+event_order = 'Backwards'
+tectonic_region = 'Near_plate_boundary'
+faulting_style = 'Strike_slip'
