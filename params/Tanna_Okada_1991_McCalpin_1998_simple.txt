@@ -1,0 +1,6 @@
+filename = '../data/Tanna_Okada_1991_McCalpin_1998_simple.txt'
+chron_type = 'Age2Sigma'
+sigma_level = 2
+event_order = 'Backwards'
+tectonic_region = 'Near_plate_boundary'
+faulting_style = 'Strike_slip'
