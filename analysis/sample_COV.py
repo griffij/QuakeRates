@@ -21,9 +21,16 @@ n_samples = 500  # Number of Monte Carlo samples of the eq chronologies
 half_n = int(n_samples/2)
 print(half_n)
 
+# Define subset to take
+#faulting_styles = ['Reverse']
+#faulting_styles = ['Normal']
+#faulting_styles = ['Strike_slip'] 
+faulting_styles = ['all']
+tectonic_regions = ['all']
+#tectonic_regions = ['Plate_boundary_master', 'Plate_boundary_network']
+min_number_events = 1
+
 params = {}
-
-
 def parse_param_file(param_file_name):
     params={}
     with open(param_file_name) as f_in:
@@ -32,9 +39,19 @@ def parse_param_file(param_file_name):
             params[var.strip()] = ast.literal_eval(value.strip())
     return params
 
+def file_len(fname):
+    with open(fname) as f:
+        for i, l in enumerate(f):
+            pass
+    return i + 1
+
 covs = []
+cov_bounds = []
+burstinesses = []
+burstiness_bounds = []
 long_term_rates = []
 names = []
+num_events = []
 max_interevent_times = []
 min_interevent_times = []
 min_paired_interevent_times = []
@@ -53,9 +70,22 @@ ratio_min_max_bounds = []
 for param_file in param_file_list:
     name = param_file.split('/')[-1].split('_')[0]
     print(name)
-    names.append(name)
     params = parse_param_file(param_file)
     print(params)
+    # Now we want to take subsets of the data based on paremeters
+    if params['tectonic_region'] not in tectonic_regions:
+        if tectonic_regions[0] == 'all':
+            pass
+        else:
+            continue
+    if params['faulting_style'] not in faulting_styles:
+        if faulting_styles[0] == 'all':
+            pass
+        else:
+            continue
+#    if params['tectonic_region'] not in tectonic_regions and \
+#       params['faulting_style'] not in faulting_styles:
+#        continue
     # Deal with OxCal output and lists of dates with uncertainties
     # separately
     # Check that data file exists
@@ -71,18 +101,27 @@ for param_file in param_file_list:
         print(msg)
         raise
     if params['chron_type'] == 'OxCal':
-        events = parse_oxcal(params['filename'], params['events'],
-                             params['event_order'])
-        event_set = EventSet(events)  
+        if len(params['event_order']) >= min_number_events:
+            num_events.append(len(params['event_order']))
+            events = parse_oxcal(params['filename'], params['events'],
+                                 params['event_order'])
+            event_set = EventSet(events)
+        else:
+            continue
     elif params['chron_type'] == 'Age2Sigma':
-        # Write method to sample these
-        events, event_certainty = parse_age_sigma(params['filename'],
-                                                  params['sigma_level'],
-                                                  params['event_order'])
-        event_set = EventSet(events)
+        # Assume single header line
+        if (file_len(params['filename']) - 1) >= min_number_events:
+            num_events.append((file_len(params['filename']) - 1))
+            events, event_certainty = parse_age_sigma(params['filename'],
+                                                      params['sigma_level'],
+                                                      params['event_order'])
+            event_set = EventSet(events)
+        else:
+            continue
     else:
         msg = 'Unknown form of chron_type defined in ' + param_file
         raise Exception(msg)
+    names.append(name)
     # Handle cases with uncertain number of events. Where events identification is
     # unsure, event_certainty is given a value of 0, compared with 1 for certain
     # events
@@ -138,7 +177,20 @@ for param_file in param_file_list:
         event_set.basic_chronology_stats()
         combined_covs = np.concatenate([event_set.covs[:half_n],
                                         event_set_certain.covs[:half_n]])
+        combined_burstiness = np.concatenate([event_set.burstiness[:half_n],
+                                        event_set_certain.burstiness[:half_n]])
         covs.append(combined_covs)
+        burstinesses.append(combined_burstiness)
+        cov_bounds.append([abs(np.mean(combined_covs) - \
+                               min(event_set.cov_lb, event_set_certain.cov_lb)),
+                           abs(np.mean(combined_covs) - \
+                               max(event_set.cov_ub, event_set_certain.cov_ub))])
+        burstiness_bounds.append([abs(np.mean(combined_burstiness) - \
+                                      min(event_set.burstiness_lb,
+                                          event_set_certain.burstiness_lb)),
+                                  abs(np.mean(combined_burstiness) - \
+                                      max(event_set.burstiness_ub,
+                                          event_set_certain.burstiness_ub))])
         # Combine, taking n/2 samples from each set
         combined_ltrs = np.concatenate([event_set.long_term_rates[:half_n],
                                         event_set_certain.long_term_rates[:half_n]])
@@ -146,9 +198,14 @@ for param_file in param_file_list:
         long_term_rates.append(combined_ltrs)
     else:
         covs.append(event_set.covs)
+        burstinesses.append(event_set.burstiness) 
         long_term_rates.append(event_set.long_term_rates)
-
+        cov_bounds.append([abs(event_set.mean_cov - event_set.cov_lb),
+                          abs(event_set.mean_cov - event_set.cov_ub)])
+        burstiness_bounds.append([abs(event_set.mean_burstiness - event_set.burstiness_lb),
+                                  abs(event_set.mean_burstiness - event_set.burstiness_ub)])
 # Convert to numpy arrays and transpose where necessary
+num_events = np.array(num_events)
 max_interevent_times = np.array(max_interevent_times)
 min_interevent_times = np.array(min_interevent_times)
 min_paired_interevent_times = np.array(min_paired_interevent_times)
@@ -171,7 +228,8 @@ std_ratio_min_pair_max = np.array(std_ratio_min_pair_max)
 std_ratio_min_max = np.array(std_ratio_min_max)
 ratio_min_pair_max_bounds = np.array(ratio_min_pair_max_bounds).T
 ratio_min_max_bounds = np.array(ratio_min_max_bounds).T
-
+cov_bounds = np.array(cov_bounds).T
+burstiness_bounds = np.array(burstiness_bounds).T
 
 # Now do some plotting
 pyplot.clf()
@@ -242,6 +300,14 @@ for mean_cov in mean_covs:
         colours.append('g')
     else:
         colours.append('r')
+pyplot.errorbar(mean_covs, mean_ltr,
+                yerr = ltr_bounds,
+                ecolor = '0.4',
+                linestyle="None")
+pyplot.errorbar(mean_covs, mean_ltr,
+                   xerr = cov_bounds,
+                   ecolor = '0.6',
+                   linestyle="None")
 pyplot.scatter(mean_covs, mean_ltr, marker = 's', c=colours, s=25)
 for i, txt in enumerate(names):
     if max_interevent_times[i] > 10:
@@ -254,6 +320,78 @@ ax.set_yscale('log')
 ax.set_xlabel('COV')
 ax.set_ylabel('Long-term rate (events per year)')
 pyplot.savefig('mean_cov_vs_lt_rate.png')
+
+# Plot burstiness against mean ltr
+pyplot.clf()
+ax = pyplot.subplot(111)
+mean_bs = []
+#mean_ltrs = []
+for i, b_set in enumerate(burstinesses):
+    mean_b = np.mean(b_set)
+    mean_bs.append(mean_b)
+colours = []
+for mean_b in mean_bs:
+    if mean_b <= -0.1:
+        colours.append('b')
+    elif mean_b > -0.1 and mean_b <= 0.1:
+        colours.append('g')
+    else:
+        colours.append('r')
+
+pyplot.errorbar(mean_bs, mean_ltr,
+                yerr = ltr_bounds,
+                ecolor = '0.4',
+                linestyle="None")
+pyplot.errorbar(mean_bs, mean_ltr,
+                   xerr = burstiness_bounds,
+                   ecolor = '0.6',
+                   linestyle="None")
+pyplot.scatter(mean_bs, mean_ltr, marker = 's', c=colours, s=25)
+for i, txt in enumerate(names):
+    if max_interevent_times[i] > 10:
+        ax.annotate(txt[:4],
+                    (mean_bs[i], mean_ltr[i]),
+                    fontsize=8)
+ax.set_xlim([-1, 1])
+ax.set_ylim([1./1000000, 1./40])
+ax.set_yscale('log')
+ax.set_xlabel('B')
+ax.set_ylabel('Long-term rate (events per year)')
+pyplot.savefig('burstiness_vs_lt_rate.png')
+
+# Plot COV against number of events to look at sampling biases
+pyplot.clf()
+ax = pyplot.subplot(111)
+mean_covs = []
+#mean_ltrs = []
+for i, cov_set in enumerate(covs):
+    mean_cov = np.mean(cov_set)
+    mean_covs.append(mean_cov)
+colours = []
+for mean_cov in mean_covs:
+    if mean_cov <= 0.9:
+        colours.append('b')
+    elif mean_cov > 0.9 and mean_cov <= 1.1:
+        colours.append('g')
+    else:
+        colours.append('r')
+
+pyplot.errorbar(mean_covs, num_events,
+                   xerr = cov_bounds,
+                   ecolor = '0.6',
+                   linestyle="None")
+pyplot.scatter(mean_covs, num_events, marker = 's', c=colours, s=25)
+for i, txt in enumerate(names):
+    if max_interevent_times[i] > 10:
+        ax.annotate(txt[:4],
+                    (mean_covs[i], num_events[i]),
+                    fontsize=8)
+#ax.set_xlim([0, 2.5])
+#ax.set_ylim([1./1000000, 1./40])
+#ax.set_yscale('log')
+ax.set_xlabel('COV')
+ax.set_ylabel('Number of events in earthquake record')
+pyplot.savefig('mean_cov_vs_number_events.png')
 
 # Now plot basic statistics
 pyplot.clf()
@@ -565,16 +703,17 @@ print(txt)
 ax.annotate(txt, (5e-4, 1e-2))
 
 # Slow long-term rates
-lf = np.polyfit(np.log10(mean_ltr[indices_slow_faults]),
-                                np.log10(ratio_min_pair_max[indices_slow_faults]), 1)
-xvals_short = np.arange(2e-6, 2e-4, 1e-6)
-log_yvals = lf[0]*np.log10(xvals_short) + lf[1]
-yvals = np.power(10, log_yvals)
-pyplot.plot(xvals_short, yvals)
-# Add formula for linear fit to low-end of data
-txt = 'Log(Y) = %.2fLog(x) + %.2f' % (lf[0], lf[1])
-print(txt)
-ax.annotate(txt, (1e-5, 5e-3))
+if len(indices_slow_faults) > 0:
+    lf = np.polyfit(np.log10(mean_ltr[indices_slow_faults]),
+                    np.log10(ratio_min_pair_max[indices_slow_faults]), 1)
+    xvals_short = np.arange(2e-6, 2e-4, 1e-6)
+    log_yvals = lf[0]*np.log10(xvals_short) + lf[1]
+    yvals = np.power(10, log_yvals)
+    pyplot.plot(xvals_short, yvals)
+    # Add formula for linear fit to low-end of data
+    txt = 'Log(Y) = %.2fLog(x) + %.2f' % (lf[0], lf[1])
+    print(txt)
+    ax.annotate(txt, (1e-5, 5e-3))
 
 """
 #Orthogonal linear fit high long-term rate data

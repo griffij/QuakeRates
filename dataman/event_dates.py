@@ -211,15 +211,33 @@ class EventSet(object):
         print('Recurrence interval standard devation',
               np.mean(self.stds))
         self.covs = self.stds/self.means
-        print('Mean COV', np.mean(self.covs))
+        # Now calculate normalised COV
+        # (Brustiness parameter - Goh and Barabasi 2008; Chen et al 2020)
+        self.burstiness = (self.stds - self.means)/ \
+            (self.stds + self.means)
+        self.mean_burstiness = np.mean(self.burstiness)
+        self.mean_cov = np.mean(self.covs)
+        print('Mean COV', self.mean_cov)
         print('Min COV', np.min(self.covs))
         print('Max COV', np.max(self.covs))
+        # Now calculate bounds on COV and burstiness distribution
+        self.cov_lb = np.percentile(self.covs, 2.5)
+        self.cov_ub = np.percentile(self.covs, 97.5)
+        self.burstiness_lb = np.percentile(self.burstiness, 2.5)
+        self.burstiness_ub = np.percentile(self.burstiness, 97.5)
         pyplot.clf()
         pyplot.hist(self.covs, bins=25, density=True, edgecolor='0.2',
                     facecolor='0.6')
         pyplot.xlabel('Coefficient of variation')
         pyplot.ylabel('Probability density')
         pyplot.savefig('covs.png')
+        # Plot burstiness distribution
+        pyplot.clf()
+        pyplot.hist(self.burstiness, bins=25, density=True, edgecolor='0.2',
+                    facecolor='0.6')
+        pyplot.xlabel('Burstiness')
+        pyplot.ylabel('Probability density')
+        pyplot.savefig('burstiness.png')
 
     def cov_density(self, fig_filename=None):
         """Calculate the density of the earthquake record's COV and
@@ -328,6 +346,14 @@ class EventSet(object):
         self.minimum_interevent_time_lb = np.percentile((min_interevent_times/2.), 2.5)
         self.minimum_interevent_time_ub = np.percentile((min_interevent_times/2.), 97.5)
         print('self.mean_minimum_interevent_time', self.mean_minimum_interevent_time)
-        # And index
-#        min_index = np.argmin(int_ev_pairs)
-        
+        # Get ratios
+        self.ratio_min_pair_max = min_interevent_pairs/max_interevent_times
+        self.ratio_min_max = min_interevent_times/max_interevent_times
+        self.mean_ratio_min_pair_max = np.mean(self.ratio_min_pair_max)
+        self.mean_ratio_min_max = np.mean(self.ratio_min_max)
+        self.std_ratio_min_pair_max = np.std(self.ratio_min_pair_max)
+        self.std_ratio_min_max = np.std(self.ratio_min_max)
+        self.ratio_min_pair_max_lb = np.percentile(self.ratio_min_pair_max, 2.5)
+        self.ratio_min_pair_max_ub = np.percentile(self.ratio_min_pair_max, 97.5)
+        self.ratio_min_max_lb = np.percentile(self.ratio_min_max, 2.5)
+        self.ratio_min_max_ub = np.percentile(self.ratio_min_max, 97.5) 
