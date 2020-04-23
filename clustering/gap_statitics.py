@@ -29,6 +29,7 @@ print(X, type(X))
 print('Calculating optimal number of clusters')
 n_clusters = optimalK(X, cluster_array=np.arange(1, 6), n_refs=100)
 print('Optimal clusters: ', n_clusters)
+print('Diff', optimalK.gap_df["diff"])
 #sys.exit()
 optimalK.plot_results()
 # Plot some results
@@ -45,11 +46,34 @@ plt.show()
 km = KMeans(n_clusters)
 km.fit(X)
 
-print(km.cluster_centers_)
+print('Cluster centres', km.cluster_centers_)
+print('Cluster labels', km.labels_)
+all_ie_times = []
+for i, cc in enumerate(km.cluster_centers_):
+    indices = np.argwhere(km.labels_ == i)
+    cluster_events = X[indices].flatten()
+    print(cluster_events)
+    if len(cluster_events) > 1:
+        print(np.sort(cluster_events))
+        interevent_times = np.diff(np.sort(cluster_events), axis=0)
+        for ie_t in interevent_times:
+            all_ie_times.append(ie_t)
+all_ie_times = np.array(all_ie_times)
+print('all_ie_times', all_ie_times)
+mean_within_cluster_ie_time = np.mean(all_ie_times)
+print('mean_within_cluster_ie_time', mean_within_cluster_ie_time)
+
+# Now calculate mean time between cluster centres
+cc = np.sort(km.cluster_centers_.flatten())
+print(cc)
+cluster_ie_times = np.diff(cc)
+mean_cluster_ie_time = np.mean(cluster_ie_times)
+print('cluster_ie_times', cluster_ie_times)
+print('mean_cluster_ie_time', mean_cluster_ie_time)
+
 #df = pd.DataFrame(X, columns=['x','y'])
 df = pd.DataFrame(X, columns=['x'])
 df['label'] = km.labels_
-
 data_ones = np.ones(len(X))
 colors = plt.cm.Spectral(np.linspace(0, 1, len(df.label.unique())))
 
