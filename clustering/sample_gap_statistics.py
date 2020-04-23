@@ -26,8 +26,8 @@ from QuakeRates.dataman.parse_params import parse_param_file, \
 
 # Define parameter files
 filepath = '../params'
-param_file_list = glob(os.path.join(filepath, 'A*.txt'))
-n_samples = 500  # Number of Monte Carlo samples of the eq chronologies
+param_file_list = glob(os.path.join(filepath, '*.txt'))
+n_samples = 20  # Number of Monte Carlo samples of the eq chronologies
 half_n = int(n_samples/2)
 
 plot_dir = './plots'
@@ -47,13 +47,17 @@ names, event_sets, event_certainties, num_events = \
                    faulting_styles, min_number_events)  
 
 # Now loop over paleo-earthquake records
+within_clusters = []
+between_clusters = []
 for i, event_set in enumerate(event_sets):
     # Generate some chronologies
     event_set.gen_chronologies(n_samples, observation_end=2019, min_separation=1)
     print(num_events[i])
     optimal_ks = []
+    mean_within_cluster_ie_times = []
+    mean_between_cluster_times = []
     for chron in event_set.chronology.T:
-     #   print(chron)
+        chron = np.expand_dims(chron, axis=1)
         # Initialise OptimalK
         #optimalK = OptimalK(parallel_backend='rust')
         optimalK = OptimalK() 
@@ -73,9 +77,41 @@ for i, event_set in enumerate(event_sets):
                 msg = 'Could not run fault %s, continuing to next fault' % names[i]
                 print(msg)
                 continue
+        # Now run k-means clustering algorithm with optimal k
+        km = KMeans(n_clusters)
+        km.fit(chron)
+        # Now get statistics of within cluster event times and time
+        # between cluster centres
+        if n_clusters > 1:
+            all_ie_times = [] 
+            for j, cc in enumerate(km.cluster_centers_):
+                indices = np.argwhere(km.labels_ == j)
+                cluster_events = chron[indices].flatten()
+                if len(cluster_events) > 1:
+                    interevent_times = np.diff(np.sort(cluster_events), axis=0)
+                    for ie_t in interevent_times:
+                        all_ie_times.append(ie_t)
+                    
+            all_ie_times = np.array(all_ie_times)
+            mean_within_cluster_ie_time = np.mean(all_ie_times)
+                
+            # Now calculate mean time between cluster centres
+            cc = np.sort(km.cluster_centers_.flatten())
+            cluster_ie_times = np.diff(cc)
+            mean_cluster_ie_time = np.mean(cluster_ie_times)
+            mean_within_cluster_ie_times.append(mean_within_cluster_ie_time)
+            mean_between_cluster_times.append(mean_cluster_ie_time)
+        # Case where we only have one cluster (i.e. unclustered data)
+        elif n_clusters == 1:
+            ie_times = np.diff(chron.flatten())
+            mean_ie_time = np.mean(ie_times)
+            # In this case both the between and within cluster time are treated as equal
+            mean_within_cluster_ie_times.append(mean_ie_time)
+            mean_between_cluster_times.append(mean_ie_time)
             
-#        print('Optimal clusters: ', n_clusters)
         optimal_ks.append(n_clusters)
+    within_clusters.append(mean_within_cluster_ie_times)
+    between_clusters.append(mean_between_cluster_times)
     print(names[i])
     print(optimal_ks)
     # Plot histogram of optimal k values
@@ -87,6 +123,20 @@ for i, event_set in enumerate(event_sets):
     figname = 'OptimalK_histogram_%s.png' % names[i]
     fig_filename = os.path.join(plot_dir, figname)
     plt.savefig(fig_filename)
+
+print(between_clusters)
+print(within_clusters)
+plt.clf()
+ax = plt.subplot(111)
+for i, wc in enumerate(within_clusters):
+#    print(between_clusters[i])
+#    print(wc)
+    plt.scatter(np.mean(between_clusters[i]), np.mean(wc), c='k')
+ax.set_xlabel('Between cluster time')
+ax.set_ylabel('Within cluster time')
+ax.set_xscale('log')  
+plt.savefig('within_vs_between_cluster_time.png')
+
 sys.exit()
 optimalK.plot_results()
 # Plot some results
