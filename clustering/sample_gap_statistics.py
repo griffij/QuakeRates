@@ -41,6 +41,7 @@ faulting_styles = ['all']
 tectonic_regions = ['all']
 #tectonic_regions = ['Plate_boundary_master', 'Plate_boundary_network']
 min_number_events = 1
+plot_colours = []
 
 names, event_sets, event_certainties, num_events = \
     get_event_sets(param_file_list, tectonic_regions,
@@ -49,9 +50,15 @@ names, event_sets, event_certainties, num_events = \
 # Now loop over paleo-earthquake records
 within_clusters = []
 between_clusters = []
+long_term_rates = []
 for i, event_set in enumerate(event_sets):
+    print('Running %s fault' % names[i])
     # Generate some chronologies
     event_set.gen_chronologies(n_samples, observation_end=2019, min_separation=1)
+    event_set.calculate_cov()
+    event_set.cov_density()  
+    event_set.basic_chronology_stats()
+    long_term_rates.append(event_set.long_term_rates)
     print(num_events[i])
     optimal_ks = []
     mean_within_cluster_ie_times = []
@@ -78,26 +85,47 @@ for i, event_set in enumerate(event_sets):
                 print(msg)
                 continue
         # Now run k-means clustering algorithm with optimal k
-        km = KMeans(n_clusters)
-        km.fit(chron)
+        try:
+            km = KMeans(n_clusters)
+            km.fit(chron)
+        except UserWarning:
+            print('Re-running k-means algorithm')
+            try:
+                km.fit(chron)
+            except UserWarning:
+                msg = 'Did not fit clusters'
+                print(msg)
+                continue
         # Now get statistics of within cluster event times and time
         # between cluster centres
         if n_clusters > 1:
-            all_ie_times = [] 
+            all_ie_times = []
+            cluster_bounds = []
             for j, cc in enumerate(km.cluster_centers_):
                 indices = np.argwhere(km.labels_ == j)
                 cluster_events = chron[indices].flatten()
                 if len(cluster_events) > 1:
-                    interevent_times = np.diff(np.sort(cluster_events), axis=0)
+                    cluster_events = np.sort(cluster_events)
+                    interevent_times = np.diff(cluster_events, axis=0)
                     for ie_t in interevent_times:
                         all_ie_times.append(ie_t)
-                    
+                # Get start and end event of the cluster (which may be the same)
+                cluster_bounds.append([cluster_events[0], cluster_events[-1]])
             all_ie_times = np.array(all_ie_times)
             mean_within_cluster_ie_time = np.mean(all_ie_times)
-                
-            # Now calculate mean time between cluster centres
-            cc = np.sort(km.cluster_centers_.flatten())
-            cluster_ie_times = np.diff(cc)
+            cluster_bounds = np.array(cluster_bounds)
+            
+            # Update: calculate mean time bewteen cluster edge events
+            #cluster_ind = np.argsort(km.cluster_centers_.flatten())
+            cluster_bounds = np.sort(cluster_bounds, axis=0)
+            cluster_ie_times = []
+            for k, cb in enumerate(cluster_bounds):
+                if k == 0:
+                    pass
+                else:
+                    cluster_ie_time = cluster_bounds[k][0] - cluster_bounds[k-1][1]
+                    cluster_ie_times.append(cluster_ie_time)
+            cluster_ie_times = np.array(cluster_ie_times)
             mean_cluster_ie_time = np.mean(cluster_ie_times)
             mean_within_cluster_ie_times.append(mean_within_cluster_ie_time)
             mean_between_cluster_times.append(mean_cluster_ie_time)
@@ -112,8 +140,6 @@ for i, event_set in enumerate(event_sets):
         optimal_ks.append(n_clusters)
     within_clusters.append(mean_within_cluster_ie_times)
     between_clusters.append(mean_between_cluster_times)
-    print(names[i])
-    print(optimal_ks)
     # Plot histogram of optimal k values
     plt.clf()
     bins = np.arange(1, num_events[i]+1) - 0.5
@@ -124,18 +150,73 @@ for i, event_set in enumerate(event_sets):
     fig_filename = os.path.join(plot_dir, figname)
     plt.savefig(fig_filename)
 
+    # Get colours for later plotting
+    if event_set.faulting_style == 'Normal':
+        plot_colours.append('r')
+    elif event_set.faulting_style == 'Reverse':
+        plot_colours.append('b')
+    elif event_set.faulting_style == 'Strike_slip':
+        plot_colours.append('g')
+    else:
+        plot_colours.append('k')
 print(between_clusters)
 print(within_clusters)
+
+# Calculate means across samples
+long_term_rates_T = np.array(long_term_rates).T 
+mean_ltr = np.mean(long_term_rates_T, axis = 0)  
+std_ltr = np.std(long_term_rates_T, axis = 0)
+ltr_bounds = np.array([abs(mean_ltr - (np.percentile(long_term_rates_T, 2.5, axis=0))),
+                       abs(mean_ltr - (np.percentile(long_term_rates_T, 97.5, axis=0)))])
+within_clusters = np.array(within_clusters)
+between_clusters = np.array(between_clusters)
+ratio_within_between_clusters = np.mean(within_clusters.T, axis=0)/ \
+    np.mean(between_clusters.T, axis=0)
+print(ratio_within_between_clusters)
+
 plt.clf()
 ax = plt.subplot(111)
+
 for i, wc in enumerate(within_clusters):
 #    print(between_clusters[i])
 #    print(wc)
-    plt.scatter(np.mean(between_clusters[i]), np.mean(wc), c='k')
-ax.set_xlabel('Between cluster time')
-ax.set_ylabel('Within cluster time')
-ax.set_xscale('log')  
+    plt.scatter(np.mean(between_clusters[i]), np.mean(wc),
+                marker = 's', c=plot_colours[i], s=25)
+    ax.annotate(names[i][:4], (np.mean(between_clusters[i]), np.mean(wc)),
+                fontsize=8)
+# Add y=x lines
+xvals = [1e2, 1e6]
+yvals = xvals
+plt.plot(xvals, yvals)
+# Add y=0.1x line
+xvals = [1e2, 1e7]
+yvals = [1e1, 1e6]
+plt.plot(xvals, yvals)
+    
+ax.set_xlabel('Mean time between clusters')
+ax.set_ylabel('Mean within-cluster inter-event time')
+ax.set_xscale('log')
+ax.set_yscale('log')
 plt.savefig('within_vs_between_cluster_time.png')
+
+# Now plot as ratio against long-term rate 
+plt.clf()
+ax = plt.subplot(111)
+plt.errorbar(mean_ltr, ratio_within_between_clusters,
+             xerr = ltr_bounds,
+             ecolor='0.4',
+             linestyle="None")
+plt.scatter(mean_ltr, ratio_within_between_clusters, marker = 's',
+            c=plot_colours, s=25)
+for i, name in enumerate(names):
+    ax.annotate(name[:4], (mean_ltr[i], ratio_within_between_clusters[i]),
+                fontsize=8)
+ax.set_xlabel('Long-term rate')
+ax.set_ylabel('Ratio of within cluster inter-event time to between cluster time')
+ax.set_xscale('log')
+ax.set_yscale('log')
+ax.set_xlim([1e-6, 1e-1])
+plt.savefig('Ratio_within_btn_ie_time_ltr.png')
 
 sys.exit()
 optimalK.plot_results()
