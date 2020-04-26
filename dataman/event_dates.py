@@ -357,3 +357,29 @@ class EventSet(object):
         self.ratio_min_pair_max_ub = np.percentile(self.ratio_min_pair_max, 97.5)
         self.ratio_min_max_lb = np.percentile(self.ratio_min_max, 2.5)
         self.ratio_min_max_ub = np.percentile(self.ratio_min_max, 97.5) 
+
+    def memory_coefficient(self):
+        """ Calculate the memory coeeficient of 
+        Goh, K.-I. and A.-L. Barabási (2008). Burstiness and memory in 
+        complex systems, Europhysics Lett., 81, no. 4, 48002.
+        """
+        print(self.interevent_times)
+        self.m1 = np.mean(self.interevent_times[0:-1], axis=0)
+        self.m2 = np.mean(self.interevent_times[1:], axis = 0)
+        self.s1 = np.std(self.interevent_times[0:-1], axis=0)
+        self.s2 = np.std(self.interevent_times[1:], axis = 0)
+        self.s1s2 = self.s1*self.s2
+        # Loop over chronologies
+        ie_min_m1 = self.interevent_times - self.m1
+        # Remove last element
+        ie_min_m1 = ie_min_m1[0:-1]
+        ie_min_m2 = self.interevent_times - self.m2
+        # Remove first element
+        ie_min_m2 = ie_min_m2[1:]
+        numerator = ie_min_m1 * ie_min_m2
+        numerator = np.sum(numerator, axis=0)
+        sum_term = numerator/self.s1s2
+        self.mem_coef = sum_term * (1/(self.num_events - 1))
+        print('Memory coefficient', self.mem_coef)
+        
+              
