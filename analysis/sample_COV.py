@@ -14,6 +14,8 @@ from scipy.stats import kde
 from QuakeRates.dataman.event_dates import EventSet
 from QuakeRates.dataman.parse_oxcal import parse_oxcal
 from QuakeRates.dataman.parse_age_sigma import parse_age_sigma
+from QuakeRates.dataman.parse_params import parse_param_file, \
+    get_event_sets, file_len
 
 filepath = '../params'
 param_file_list = glob(os.path.join(filepath, '*.txt'))
@@ -28,30 +30,15 @@ print(half_n)
 faulting_styles = ['all']
 tectonic_regions = ['all']
 #tectonic_regions = ['Plate_boundary_master', 'Plate_boundary_network']
-min_number_events = 1
-
-params = {}
-def parse_param_file(param_file_name):
-    params={}
-    with open(param_file_name) as f_in:
-        for line in f_in:
-            var, value = line.strip().split('=')
-            params[var.strip()] = ast.literal_eval(value.strip())
-    return params
-
-def file_len(fname):
-    with open(fname) as f:
-        for i, l in enumerate(f):
-            pass
-    return i + 1
+min_number_events = 6
 
 covs = []
 cov_bounds = []
 burstinesses = []
 burstiness_bounds = []
+memory_coefficients = []
+memory_bounds = []
 long_term_rates = []
-names = []
-num_events = []
 max_interevent_times = []
 min_interevent_times = []
 min_paired_interevent_times = []
@@ -67,61 +54,12 @@ std_ratio_min_pair_max = []
 std_ratio_min_max = []
 ratio_min_pair_max_bounds =[]
 ratio_min_max_bounds = []
-for param_file in param_file_list:
-    name = param_file.split('/')[-1].split('_')[0]
-    print(name)
-    params = parse_param_file(param_file)
-    print(params)
-    # Now we want to take subsets of the data based on paremeters
-    if params['tectonic_region'] not in tectonic_regions:
-        if tectonic_regions[0] == 'all':
-            pass
-        else:
-            continue
-    if params['faulting_style'] not in faulting_styles:
-        if faulting_styles[0] == 'all':
-            pass
-        else:
-            continue
-#    if params['tectonic_region'] not in tectonic_regions and \
-#       params['faulting_style'] not in faulting_styles:
-#        continue
-    # Deal with OxCal output and lists of dates with uncertainties
-    # separately
-    # Check that data file exists
-    if not os.path.isfile(params['filename']):
-        msg = 'Data file ' + params['filename'] + ' does not exist.' + \
-            ' Continuing to next file.'
-        print(msg)
-        continue
-    try:
-        params['chron_type']
-    except KeyError:
-        msg = 'chron_type not defined in parameter file ' + param_file
-        print(msg)
-        raise
-    if params['chron_type'] == 'OxCal':
-        if len(params['event_order']) >= min_number_events:
-            num_events.append(len(params['event_order']))
-            events = parse_oxcal(params['filename'], params['events'],
-                                 params['event_order'])
-            event_set = EventSet(events)
-        else:
-            continue
-    elif params['chron_type'] == 'Age2Sigma':
-        # Assume single header line
-        if (file_len(params['filename']) - 1) >= min_number_events:
-            num_events.append((file_len(params['filename']) - 1))
-            events, event_certainty = parse_age_sigma(params['filename'],
-                                                      params['sigma_level'],
-                                                      params['event_order'])
-            event_set = EventSet(events)
-        else:
-            continue
-    else:
-        msg = 'Unknown form of chron_type defined in ' + param_file
-        raise Exception(msg)
-    names.append(name)
+
+names, event_sets, event_certainties, num_events = \
+    get_event_sets(param_file_list, tectonic_regions,
+                   faulting_styles, min_number_events)
+
+for i, event_set in enumerate(event_sets):
     # Handle cases with uncertain number of events. Where events identification is
     # unsure, event_certainty is given a value of 0, compared with 1 for certain
     # events
@@ -129,6 +67,7 @@ for param_file in param_file_list:
     event_set.gen_chronologies(n_samples, observation_end=2019, min_separation=1)
     event_set.calculate_cov()
     event_set.cov_density()
+    event_set.memory_coefficient()
     # Now calculate some statistics on the sampled chronologies
     event_set.basic_chronology_stats()
     min_paired_interevent_times.append(event_set.mean_minimum_pair_interevent_time)
@@ -165,22 +104,26 @@ for param_file in param_file_list:
                                  abs(event_set.mean_ratio_min_max -
                                      event_set.ratio_min_max_ub)])
     # Now generate chronologies assuming uncertain events did not occur
-    if sum(event_certainty) < len(events):
-        indices = np.where(event_certainty == 1)
+    if sum(event_certainties[i]) < event_set.num_events:
+        indices = np.where(event_certainties[i] == 1)
         indices = list(indices[0])
 #        print(indices[0], type(indices))
-        events_subset = list(itemgetter(*indices)(events)) 
+        events_subset = list(itemgetter(*indices)(event_set.event_list)) 
         event_set_certain = EventSet(events_subset)
         event_set_certain.gen_chronologies(n_samples, observation_end=2019, min_separation=1)
         event_set_certain.calculate_cov()
         event_set_certain.cov_density()
-        event_set.basic_chronology_stats()
+        event_set_certain.basic_chronology_stats()
+        event_set_certain.memory_coefficient()
         combined_covs = np.concatenate([event_set.covs[:half_n],
                                         event_set_certain.covs[:half_n]])
         combined_burstiness = np.concatenate([event_set.burstiness[:half_n],
                                         event_set_certain.burstiness[:half_n]])
+        combined_memory = np.concatenate([event_set.mem_coef[:half_n],
+                                          event_set_certain.mem_coef[:half_n]])
         covs.append(combined_covs)
         burstinesses.append(combined_burstiness)
+        memory_coefficients.append(combined_memory)
         cov_bounds.append([abs(np.mean(combined_covs) - \
                                min(event_set.cov_lb, event_set_certain.cov_lb)),
                            abs(np.mean(combined_covs) - \
@@ -191,6 +134,12 @@ for param_file in param_file_list:
                                   abs(np.mean(combined_burstiness) - \
                                       max(event_set.burstiness_ub,
                                           event_set_certain.burstiness_ub))])
+        memory_bounds.append([abs(np.mean(combined_memory) - \
+                                  min(event_set.memory_lb,
+                                      event_set_certain.memory_lb)),
+                              abs(np.mean(combined_memory) - \
+                                  max(event_set.memory_ub,
+                                      event_set_certain.memory_ub))])
         # Combine, taking n/2 samples from each set
         combined_ltrs = np.concatenate([event_set.long_term_rates[:half_n],
                                         event_set_certain.long_term_rates[:half_n]])
@@ -198,12 +147,15 @@ for param_file in param_file_list:
         long_term_rates.append(combined_ltrs)
     else:
         covs.append(event_set.covs)
-        burstinesses.append(event_set.burstiness) 
+        burstinesses.append(event_set.burstiness)
+        memory_coefficients.append(event_set.mem_coef)
         long_term_rates.append(event_set.long_term_rates)
         cov_bounds.append([abs(event_set.mean_cov - event_set.cov_lb),
                           abs(event_set.mean_cov - event_set.cov_ub)])
         burstiness_bounds.append([abs(event_set.mean_burstiness - event_set.burstiness_lb),
                                   abs(event_set.mean_burstiness - event_set.burstiness_ub)])
+        memory_bounds.append([abs(event_set.mean_mem_coef - event_set.memory_lb),
+                              abs(event_set.mean_mem_coef - event_set.memory_ub)])
 # Convert to numpy arrays and transpose where necessary
 num_events = np.array(num_events)
 max_interevent_times = np.array(max_interevent_times)
@@ -230,7 +182,7 @@ ratio_min_pair_max_bounds = np.array(ratio_min_pair_max_bounds).T
 ratio_min_max_bounds = np.array(ratio_min_max_bounds).T
 cov_bounds = np.array(cov_bounds).T
 burstiness_bounds = np.array(burstiness_bounds).T
-
+memory_bounds = np.array(memory_bounds).T 
 # Now do some plotting
 pyplot.clf()
 ax = pyplot.subplot(111)
@@ -331,9 +283,9 @@ for i, b_set in enumerate(burstinesses):
     mean_bs.append(mean_b)
 colours = []
 for mean_b in mean_bs:
-    if mean_b <= -0.1:
+    if mean_b <= -0.05:
         colours.append('b')
-    elif mean_b > -0.1 and mean_b <= 0.1:
+    elif mean_b > -0.05 and mean_b <= 0.05:
         colours.append('g')
     else:
         colours.append('r')
@@ -358,6 +310,44 @@ ax.set_yscale('log')
 ax.set_xlabel('B')
 ax.set_ylabel('Long-term rate (events per year)')
 pyplot.savefig('burstiness_vs_lt_rate.png')
+
+# Plot memory coefficients against long term rates
+pyplot.clf()
+ax = pyplot.subplot(111)
+mean_mems = []
+#mean_ltrs = []
+for i, mem_set in enumerate(memory_coefficients):
+    mean_mem = np.mean(mem_set)
+    mean_mems.append(mean_mem)
+colours = []
+for mean_mem in mean_mems:
+    if mean_mem <= -0.05:
+        colours.append('b')
+    elif mean_mem > -0.05 and mean_mem <= 0.05:
+        colours.append('g')
+    else:
+        colours.append('r')
+
+pyplot.errorbar(mean_mems, mean_ltr,
+                yerr = ltr_bounds,
+                ecolor = '0.4',
+                linestyle="None")
+pyplot.errorbar(mean_mems, mean_ltr,
+                   xerr = memory_bounds,
+                   ecolor = '0.6',
+                   linestyle="None")
+pyplot.scatter(mean_mems, mean_ltr, marker = 's', c=colours, s=25)
+for i, txt in enumerate(names):
+    if max_interevent_times[i] > 10:
+        ax.annotate(txt[:4],
+                    (mean_mems[i], mean_ltr[i]),
+                    fontsize=8)
+#ax.set_xlim([-1, 1])
+ax.set_ylim([1./1000000, 1./40])
+ax.set_yscale('log')
+ax.set_xlabel('Memory_coefficient')
+ax.set_ylabel('Long-term rate (events per year)')
+pyplot.savefig('memory_coefficient_vs_lt_rate.png')
 
 # Plot COV against number of events to look at sampling biases
 pyplot.clf()

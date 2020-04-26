@@ -380,6 +380,8 @@ class EventSet(object):
         numerator = np.sum(numerator, axis=0)
         sum_term = numerator/self.s1s2
         self.mem_coef = sum_term * (1/(self.num_events - 1))
-        print('Memory coefficient', self.mem_coef)
-        
+        self.mean_mem_coef = np.mean(self.mem_coef)
+        print('Mean memory coefficient', self.mean_mem_coef)
+        self.memory_lb = np.percentile(self.mem_coef, 2.5)
+        self.memory_ub = np.percentile(self.mem_coef, 97.5)
               
