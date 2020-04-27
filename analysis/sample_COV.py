@@ -24,13 +24,23 @@ half_n = int(n_samples/2)
 print(half_n)
 
 # Define subset to take
-#faulting_styles = ['Reverse']
+faulting_styles = ['Reverse']
 #faulting_styles = ['Normal']
 #faulting_styles = ['Strike_slip'] 
-faulting_styles = ['all']
+#faulting_styles = ['all']
 tectonic_regions = ['all']
 #tectonic_regions = ['Plate_boundary_master', 'Plate_boundary_network']
 min_number_events = 6
+
+#Summarise for comment to add to figure filename
+fig_comment = ''
+for f in faulting_styles:
+    fig_comment += f
+    fig_comment += '_'
+for t in tectonic_regions:
+    fig_comment += t
+    fig_comment += '_'
+fig_comment += str(min_number_events)
 
 covs = []
 cov_bounds = []
@@ -183,6 +193,7 @@ ratio_min_max_bounds = np.array(ratio_min_max_bounds).T
 cov_bounds = np.array(cov_bounds).T
 burstiness_bounds = np.array(burstiness_bounds).T
 memory_bounds = np.array(memory_bounds).T 
+
 # Now do some plotting
 pyplot.clf()
 ax = pyplot.subplot(111)
@@ -229,7 +240,8 @@ ax.set_ylim([1./1000000, 1./40])
 ax.set_yscale('log')
 ax.set_xlabel('COV')
 ax.set_ylabel('Long-term rate (events per year)')
-pyplot.savefig('cov_vs_lt_rate.png')
+figname = 'cov_vs_lt_rate_%s.png' % fig_comment
+pyplot.savefig(figname)
 
 
 # Now just plot the means
@@ -271,7 +283,8 @@ ax.set_ylim([1./1000000, 1./40])
 ax.set_yscale('log')
 ax.set_xlabel('COV')
 ax.set_ylabel('Long-term rate (events per year)')
-pyplot.savefig('mean_cov_vs_lt_rate.png')
+figname = 'mean_cov_vs_lt_rate_%s.png' % fig_comment 
+pyplot.savefig(figname)
 
 # Plot burstiness against mean ltr
 pyplot.clf()
@@ -309,7 +322,8 @@ ax.set_ylim([1./1000000, 1./40])
 ax.set_yscale('log')
 ax.set_xlabel('B')
 ax.set_ylabel('Long-term rate (events per year)')
-pyplot.savefig('burstiness_vs_lt_rate.png')
+figname = 'burstiness_vs_lt_rate_%s.png' % fig_comment 
+pyplot.savefig(figname)
 
 # Plot memory coefficients against long term rates
 pyplot.clf()
@@ -345,9 +359,45 @@ for i, txt in enumerate(names):
 #ax.set_xlim([-1, 1])
 ax.set_ylim([1./1000000, 1./40])
 ax.set_yscale('log')
-ax.set_xlabel('Memory_coefficient')
+ax.set_xlabel('M')
 ax.set_ylabel('Long-term rate (events per year)')
-pyplot.savefig('memory_coefficient_vs_lt_rate.png')
+figname = 'memory_coefficient_vs_lt_rate_%s.png' % fig_comment
+pyplot.savefig(figname)
+
+# Plot burstiness against memory coefficient
+# Plot burstiness against mean ltr
+pyplot.clf()
+ax = pyplot.subplot(111)
+colours = []
+for mean_b in mean_bs:
+    if mean_b <= -0.05:
+        colours.append('b')
+    elif mean_b > -0.05 and mean_b <= 0.05:
+        colours.append('g')
+    else:
+        colours.append('r')
+pyplot.errorbar(mean_bs, mean_mems,
+                yerr = memory_bounds,
+                ecolor = '0.4',
+                linestyle="None")
+pyplot.errorbar(mean_bs, mean_mems,
+                   xerr = burstiness_bounds,
+                   ecolor = '0.6',
+                   linestyle="None")
+pyplot.scatter(mean_bs, mean_mems, marker = 's', c=colours, s=25)
+for i, txt in enumerate(names):
+    if max_interevent_times[i] > 10:
+        ax.annotate(txt[:4],
+                    (mean_bs[i], mean_mems[i]),
+                    fontsize=8)
+#ax.set_xlim([-1, 1])
+#ax.set_ylim([1./1000000, 1./40])
+#ax.set_yscale('log')
+ax.set_xlabel('B')
+ax.set_ylabel('M')
+figname = 'burstiness_vs_memory_coefficient_%s.png' % fig_comment 
+pyplot.savefig(figname)
+
 
 # Plot COV against number of events to look at sampling biases
 pyplot.clf()
@@ -381,7 +431,8 @@ for i, txt in enumerate(names):
 #ax.set_yscale('log')
 ax.set_xlabel('COV')
 ax.set_ylabel('Number of events in earthquake record')
-pyplot.savefig('mean_cov_vs_number_events.png')
+figname = 'mean_cov_vs_number_events_%s.png' % fig_comment
+pyplot.savefig(figname)
 
 # Now plot basic statistics
 pyplot.clf()
@@ -420,8 +471,8 @@ pyplot.plot(xvals_short, yvals)
 txt = 'Log(Y) = %.2fLog(x) + %.2f' % (lf[0], lf[1])
 print(txt)
 ax.annotate(txt, (800, 10000))
-
-pyplot.savefig('min_vs_max_interevent_time.png')
+figname = 'min_vs_max_interevent_time_%s.png' % fig_comment
+pyplot.savefig(figname)
 
 # Plot minimum pairs
 pyplot.clf()
@@ -505,7 +556,8 @@ pyplot.plot(xvals_short, y_fit, '--')
 txt = 'Log(Y) =  %.2fLog(x) + %.2f' % (out.beta[0], out.beta[1])
 print(txt)
 ax.annotate(txt, (100, 40000))
-pyplot.savefig('min_pair_vs_max_interevent_time.png')
+figname = 'min_pair_vs_max_interevent_time_%s.png' % fig_comment
+pyplot.savefig(figname)
 
 # Similar plots, against long term rates
 pyplot.clf()
@@ -550,8 +602,9 @@ yvals = np.power(10, log_yvals)
 pyplot.plot(xvals_short, yvals)
 # Add formula for linear fit to low-end of data
 txt = 'Log(Y) = %.2fLog(x) + %.2f' % (lf[0], lf[1])
-ax.annotate(txt, (1e-4, 10000))      
-pyplot.savefig('min_interevent_time_vs_ltr.png')
+ax.annotate(txt, (1e-4, 10000))
+figname = 'min_interevent_time_vs_ltr_%s.png' % fig_comment
+pyplot.savefig(figname)
 
 # Plot long term rate against minimum pair
 pyplot.clf()
@@ -598,8 +651,8 @@ pyplot.plot(xvals_short, yvals)
 txt = 'Log(Y) = %.2fLog(x) + %.2f' % (lf[0], lf[1])
 print(txt)
 ax.annotate(txt, (1e-4, 10000))
-
-pyplot.savefig('min_pair_vs_ltr.png')
+figname = 'min_pair_vs_ltr_%s.png' % fig_comment 
+pyplot.savefig(figname)
 
 # Plot long term rate against maximum interevent time
 pyplot.clf()
@@ -646,8 +699,8 @@ pyplot.plot(xvals_short, yvals)
 txt = 'Log(Y) = %.2fLog(x) + %.2f' % (lf[0], lf[1])
 print(txt)
 ax.annotate(txt, (1e-4, 10000))
-
-pyplot.savefig('max_interevent_time_vs_ltr.png')
+figname = 'max_interevent_time_vs_ltr_%s.png' % fig_comment
+pyplot.savefig(figname)
 
 
 # Now plot ratios against long term rates
@@ -750,7 +803,8 @@ print(txt)
 ax.annotate(txt, (1e-5, 5e-3))
 """
 
-pyplot.savefig('min_pair_max_ratio_vs_ltr.png')
+figname = 'min_pair_max_ratio_vs_ltr_%s.png' % fig_comment 
+pyplot.savefig(figname)
 
 # Now plot ratios against long term rates
 pyplot.clf()
@@ -792,4 +846,5 @@ pyplot.plot(xvals_short, yvals)
 txt = 'Log(Y) = %.2fLog(x) + %.2f' % (lf[0], lf[1])
 print(txt)
 ax.annotate(txt, (1e-4, 1e-3))
-pyplot.savefig('min_max_ratio_vs_ltr.png')
+figname = 'min_max_ratio_vs_ltr_%s.png' % fig_comment
+pyplot.savefig(figname)
