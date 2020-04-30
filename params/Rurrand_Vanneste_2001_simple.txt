@@ -1,4 +1,4 @@
-filename = '../data/Rurrand_simple.txt'
+filename = '../data/Rurrand_Vanneste_2001_simple.txt'
 chron_type = 'Age2Sigma'
 sigma_level = 2
 event_order = 'Backwards'

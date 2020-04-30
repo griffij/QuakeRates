@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib
 from matplotlib import pyplot
 from matplotlib.patches import Ellipse
-from scipy.stats import kde
+from scipy.stats import kde, spearmanr
 
 matplotlib.use('Agg')
 np.random.seed(23)
@@ -363,7 +363,7 @@ class EventSet(object):
         Goh, K.-I. and A.-L. Barabási (2008). Burstiness and memory in 
         complex systems, Europhysics Lett., 81, no. 4, 48002.
         """
-        print(self.interevent_times)
+        #print(self.interevent_times)
         self.m1 = np.mean(self.interevent_times[0:-1], axis=0)
         self.m2 = np.mean(self.interevent_times[1:], axis = 0)
         self.s1 = np.std(self.interevent_times[0:-1], axis=0)
@@ -384,4 +384,63 @@ class EventSet(object):
         print('Mean memory coefficient', self.mean_mem_coef)
         self.memory_lb = np.percentile(self.mem_coef, 2.5)
         self.memory_ub = np.percentile(self.mem_coef, 97.5)
-              
+
+    def memory_spearman_rank_correlation(self):
+        """ Calculate alternative memory coefficient using Spearman rank
+        correlation. This may avoid some biases in the calculation. 
+        See: Schleiss, M. and J. A. Smith (2016). Two Simple Metrics for 
+        Quantifying Rainfall Intermittency: The Burstiness and Memory of
+        Interamount Times, J. Hydrometeorol., 17, no. 1, 421–436.
+        """
+        # Lag-1
+        a = self.interevent_times[0:-1].T
+        b = self.interevent_times[1:].T
+        # Lag-2
+        a2 = self.interevent_times[0:-2].T
+        b2 = self.interevent_times[2:].T 
+#        print(a, b)
+        rhos = []
+        rhos2 = []
+        #        self.rhos, self.pvalues = spearmanr(a, b)
+        for i, ie_t in enumerate(a):
+#            print(ie_t.T)
+#            print(b[i].T)
+            rho, pvalue = spearmanr(ie_t.T, b[i].T)
+#            print('rho', rho)
+            rhos.append(rho)
+        for i, ie_t in enumerate(a2):
+            rho, pvalue = spearmanr(ie_t.T, b2[i].T)
+            rhos2.append(rho)
+        self.rhos = np.array(rhos)
+        self.rhos2 = np.array(rhos2)
+#        print(self.rhos, self.pvalues)
+        self.mean_rho = np.mean(self.rhos)
+        self.mean_rho2 = np.mean(self.rhos2)
+        print('Mean Spearman Rank coefficient', self.mean_rho)
+        print('Mean Spearman Rank coefficient', self.mean_rho2)
+        self.rho_lb = np.percentile(self.rhos, 2.5)
+        self.rho_ub = np.percentile(self.rhos, 97.5)
+        self.rho2_lb = np.percentile(self.rhos2, 2.5)
+        self.rho2_ub = np.percentile(self.rhos2, 97.5) 
+#        print(self.rho_lb, self.rho_ub)
+    
+    def plot_interevent_time_hist(self, fig_filename='interevent_times.png'):
+        """ Plot histogram of interevent times
+        """
+        ie_times_flat = self.interevent_times.flatten()
+        max_interevent_time = max(ie_times_flat)
+        if max_interevent_time < 200:
+            s = 10
+        elif max_interevent_time < 1000:
+            s = 50
+        elif max_interevent_time < 10000:
+            s = 200
+        elif max_interevent_time < 1e5:
+            s = 2000
+        else:
+            s = 5000
+        bins = np.arange(1, max_interevent_time, s)
+        pyplot.clf()
+        pyplot.hist(ie_times_flat, bins = 50,
+                    facecolor='0.6', edgecolor='0.2', density=True)
+        pyplot.savefig(fig_filename)

@@ -1,4 +1,4 @@
-"""Script for sampling COV uncertainties on many faults and plotting them
+"""Script for sampling COV uncertaintiesA on many faults and plotting them
 """
 
 import os, sys
@@ -23,14 +23,23 @@ n_samples = 500  # Number of Monte Carlo samples of the eq chronologies
 half_n = int(n_samples/2)
 print(half_n)
 
+plot_folder = './plots'
+if not os.path.exists(plot_folder):
+    os.makedirs(plot_folder)
+
 # Define subset to take
-faulting_styles = ['Reverse']
+#faulting_styles = ['Reverse']
 #faulting_styles = ['Normal']
 #faulting_styles = ['Strike_slip'] 
-#faulting_styles = ['all']
+faulting_styles = ['all']
 tectonic_regions = ['all']
+#tectonic_regions = ['Intraplate_noncratonic', 'Intraplate_cratonic']
 #tectonic_regions = ['Plate_boundary_master', 'Plate_boundary_network']
-min_number_events = 6
+#tectonic_regions = ['Plate_boundary_network'] 
+#tectonic_regions = ['Plate_boundary_master']
+#tectonic_regions = ['Subduction']
+#tectonic_regions = ['Near_plate_boundary']
+min_number_events = 8
 
 #Summarise for comment to add to figure filename
 fig_comment = ''
@@ -48,6 +57,10 @@ burstinesses = []
 burstiness_bounds = []
 memory_coefficients = []
 memory_bounds = []
+memory_spearman_coefficients = []
+memory_spearman_bounds = []
+memory_spearman_lag2_coef = []
+memory_spearman_lag2_bounds = []
 long_term_rates = []
 max_interevent_times = []
 min_interevent_times = []
@@ -78,8 +91,12 @@ for i, event_set in enumerate(event_sets):
     event_set.calculate_cov()
     event_set.cov_density()
     event_set.memory_coefficient()
+    event_set.memory_spearman_rank_correlation()
     # Now calculate some statistics on the sampled chronologies
     event_set.basic_chronology_stats()
+    # Plot histogram of interevent times
+    figfile = os.path.join(plot_folder, ('interevent_times_%s.png' % names[i]))
+    event_set.plot_interevent_time_hist(fig_filename=figfile)
     min_paired_interevent_times.append(event_set.mean_minimum_pair_interevent_time)
     max_interevent_times.append(event_set.mean_maximum_interevent_time)
     min_interevent_times.append(event_set.mean_minimum_interevent_time)  
@@ -125,15 +142,22 @@ for i, event_set in enumerate(event_sets):
         event_set_certain.cov_density()
         event_set_certain.basic_chronology_stats()
         event_set_certain.memory_coefficient()
+        event_set_certain.memory_spearman_rank_correlation()
         combined_covs = np.concatenate([event_set.covs[:half_n],
                                         event_set_certain.covs[:half_n]])
         combined_burstiness = np.concatenate([event_set.burstiness[:half_n],
                                         event_set_certain.burstiness[:half_n]])
         combined_memory = np.concatenate([event_set.mem_coef[:half_n],
                                           event_set_certain.mem_coef[:half_n]])
+        combined_memory_spearman = np.concatenate([event_set.rhos[:half_n],
+                                                   event_set_certain.rhos[:half_n]])
+        combined_memory_spearman_lag2 = np.concatenate([event_set.rhos2[:half_n],
+                                                        event_set_certain.rhos2[:half_n]]) 
         covs.append(combined_covs)
         burstinesses.append(combined_burstiness)
         memory_coefficients.append(combined_memory)
+        memory_spearman_coefficients.append(combined_memory_spearman)
+        memory_spearman_lag2_coef.append(combined_memory_spearman_lag2)
         cov_bounds.append([abs(np.mean(combined_covs) - \
                                min(event_set.cov_lb, event_set_certain.cov_lb)),
                            abs(np.mean(combined_covs) - \
@@ -150,6 +174,18 @@ for i, event_set in enumerate(event_sets):
                               abs(np.mean(combined_memory) - \
                                   max(event_set.memory_ub,
                                       event_set_certain.memory_ub))])
+        memory_spearman_bounds.append([abs(np.mean(combined_memory_spearman) - \
+                                           min(event_set.rho_lb,
+                                               event_set_certain.rho_lb)),
+                                       abs(np.mean(combined_memory_spearman) - \
+                                           max(event_set.rho_ub,
+                                               event_set_certain.rho_ub))])
+        memory_spearman_lag2_bounds.append([abs(np.mean(combined_memory_spearman_lag2) - \
+                                                min(event_set.rho2_lb,
+                                                    event_set_certain.rho2_lb)),
+                                            abs(np.mean(combined_memory_spearman_lag2) - \
+                                                max(event_set.rho2_ub,
+                                                    event_set_certain.rho2_ub))])
         # Combine, taking n/2 samples from each set
         combined_ltrs = np.concatenate([event_set.long_term_rates[:half_n],
                                         event_set_certain.long_term_rates[:half_n]])
@@ -159,6 +195,8 @@ for i, event_set in enumerate(event_sets):
         covs.append(event_set.covs)
         burstinesses.append(event_set.burstiness)
         memory_coefficients.append(event_set.mem_coef)
+        memory_spearman_coefficients.append(event_set.rhos)
+        memory_spearman_lag2_coef.append(event_set.rhos2)
         long_term_rates.append(event_set.long_term_rates)
         cov_bounds.append([abs(event_set.mean_cov - event_set.cov_lb),
                           abs(event_set.mean_cov - event_set.cov_ub)])
@@ -166,6 +204,10 @@ for i, event_set in enumerate(event_sets):
                                   abs(event_set.mean_burstiness - event_set.burstiness_ub)])
         memory_bounds.append([abs(event_set.mean_mem_coef - event_set.memory_lb),
                               abs(event_set.mean_mem_coef - event_set.memory_ub)])
+        memory_spearman_bounds.append([abs(event_set.mean_rho - event_set.rho_lb),
+                                        abs(event_set.mean_rho - event_set.rho_ub)])
+        memory_spearman_lag2_bounds.append([abs(event_set.mean_rho2 - event_set.rho2_lb),
+                                            abs(event_set.mean_rho2 - event_set.rho2_ub)])
 # Convert to numpy arrays and transpose where necessary
 num_events = np.array(num_events)
 max_interevent_times = np.array(max_interevent_times)
@@ -193,7 +235,8 @@ ratio_min_max_bounds = np.array(ratio_min_max_bounds).T
 cov_bounds = np.array(cov_bounds).T
 burstiness_bounds = np.array(burstiness_bounds).T
 memory_bounds = np.array(memory_bounds).T 
-
+memory_spearman_bounds = np.array(memory_spearman_bounds).T
+memory_spearman_lag2_bounds = np.array(memory_spearman_lag2_bounds).T
 # Now do some plotting
 pyplot.clf()
 ax = pyplot.subplot(111)
@@ -264,25 +307,25 @@ for mean_cov in mean_covs:
         colours.append('g')
     else:
         colours.append('r')
-pyplot.errorbar(mean_covs, mean_ltr,
-                yerr = ltr_bounds,
+pyplot.errorbar(mean_ltr, mean_covs,
+                xerr = ltr_bounds,
                 ecolor = '0.4',
                 linestyle="None")
-pyplot.errorbar(mean_covs, mean_ltr,
-                   xerr = cov_bounds,
-                   ecolor = '0.6',
-                   linestyle="None")
-pyplot.scatter(mean_covs, mean_ltr, marker = 's', c=colours, s=25)
+pyplot.errorbar(mean_ltr, mean_covs,
+                yerr = cov_bounds,
+                ecolor = '0.6',
+                linestyle="None")
+pyplot.scatter(mean_ltr, mean_covs, marker = 's', c=colours, s=25)
 for i, txt in enumerate(names):
     if max_interevent_times[i] > 10:
         ax.annotate(txt[:4],
-                    (mean_covs[i], mean_ltr[i]),
+                    (mean_ltr[i], mean_covs[i]),
                     fontsize=8)
-ax.set_xlim([0, 2.5])
-ax.set_ylim([1./1000000, 1./40])
-ax.set_yscale('log')
-ax.set_xlabel('COV')
-ax.set_ylabel('Long-term rate (events per year)')
+ax.set_ylim([0, 2.5])
+ax.set_xlim([1./1000000, 1./40])
+ax.set_xscale('log')
+ax.set_xlabel('Long-term rate (events per year)')
+ax.set_ylabel('COV')
 figname = 'mean_cov_vs_lt_rate_%s.png' % fig_comment 
 pyplot.savefig(figname)
 
@@ -303,25 +346,25 @@ for mean_b in mean_bs:
     else:
         colours.append('r')
 
-pyplot.errorbar(mean_bs, mean_ltr,
-                yerr = ltr_bounds,
+pyplot.errorbar(mean_ltr, mean_bs,
+                xerr = ltr_bounds,
                 ecolor = '0.4',
                 linestyle="None")
-pyplot.errorbar(mean_bs, mean_ltr,
-                   xerr = burstiness_bounds,
+pyplot.errorbar(mean_ltr, mean_bs,
+                   yerr = burstiness_bounds,
                    ecolor = '0.6',
                    linestyle="None")
-pyplot.scatter(mean_bs, mean_ltr, marker = 's', c=colours, s=25)
+pyplot.scatter(mean_ltr, mean_bs, marker = 's', c=colours, s=25)
 for i, txt in enumerate(names):
     if max_interevent_times[i] > 10:
         ax.annotate(txt[:4],
-                    (mean_bs[i], mean_ltr[i]),
+                    (mean_ltr[i], mean_bs[i]),
                     fontsize=8)
-ax.set_xlim([-1, 1])
-ax.set_ylim([1./1000000, 1./40])
-ax.set_yscale('log')
-ax.set_xlabel('B')
-ax.set_ylabel('Long-term rate (events per year)')
+ax.set_ylim([-1, 1])
+ax.set_xlim([1./1000000, 1./40])
+ax.set_xscale('log')
+ax.set_xlabel('Long-term rate (events per year)')
+ax.set_ylabel('B')
 figname = 'burstiness_vs_lt_rate_%s.png' % fig_comment 
 pyplot.savefig(figname)
 
@@ -342,26 +385,142 @@ for mean_mem in mean_mems:
     else:
         colours.append('r')
 
-pyplot.errorbar(mean_mems, mean_ltr,
-                yerr = ltr_bounds,
+pyplot.errorbar(mean_ltr, mean_mems,
+                xerr = ltr_bounds,
                 ecolor = '0.4',
                 linestyle="None")
-pyplot.errorbar(mean_mems, mean_ltr,
-                   xerr = memory_bounds,
+pyplot.errorbar(mean_ltr, mean_mems,
+                   yerr = memory_bounds,
                    ecolor = '0.6',
                    linestyle="None")
-pyplot.scatter(mean_mems, mean_ltr, marker = 's', c=colours, s=25)
+pyplot.scatter(mean_ltr, mean_mems, marker = 's', c=colours, s=25)
 for i, txt in enumerate(names):
     if max_interevent_times[i] > 10:
         ax.annotate(txt[:4],
-                    (mean_mems[i], mean_ltr[i]),
+                    (mean_ltr[i], mean_mems[i]),
                     fontsize=8)
 #ax.set_xlim([-1, 1])
-ax.set_ylim([1./1000000, 1./40])
-ax.set_yscale('log')
-ax.set_xlabel('M')
-ax.set_ylabel('Long-term rate (events per year)')
+ax.set_xlim([1./1000000, 1./40])
+ax.set_xscale('log')
+ax.set_xlabel('Long-term rate (events per year)')
+ax.set_ylabel('M')
 figname = 'memory_coefficient_vs_lt_rate_%s.png' % fig_comment
+pyplot.savefig(figname)
+
+# Plot Spearman Rank coefficients against long term rates
+pyplot.clf()
+ax = pyplot.subplot(111)
+mean_mems = []
+#mean_ltrs = []
+for i, mem_set in enumerate(memory_spearman_coefficients):
+    mean_mem = np.mean(mem_set)
+    mean_mems.append(mean_mem)
+colours = []
+for mean_mem in mean_mems:
+    if mean_mem <= -0.05:
+        colours.append('b')
+    elif mean_mem > -0.05 and mean_mem <= 0.05:
+        colours.append('g')
+    else:
+        colours.append('r')
+pyplot.errorbar(mean_ltr, mean_mems,
+                xerr = ltr_bounds,
+                ecolor = '0.4',
+                linestyle="None")
+pyplot.errorbar(mean_ltr, mean_mems,
+                   yerr = memory_spearman_bounds,
+                   ecolor = '0.6',
+                   linestyle="None")
+pyplot.scatter(mean_ltr, mean_mems, marker = 's', c=colours, s=25)
+for i, txt in enumerate(names):
+    if max_interevent_times[i] > 10:
+        ax.annotate(txt[:4],
+                    (mean_ltr[i], mean_mems[i]),
+                    fontsize=8)
+ax.set_xlim([1./1000000, 1./40])
+ax.set_xscale('log')
+ax.set_xlabel('Long-term rate (events per year)')
+ax.set_ylabel('M (Spearman Rank)')
+figname = 'memory_coefficient_Spearman_vs_lt_rate_%s.png' % fig_comment
+pyplot.savefig(figname)
+
+
+# Plot Spearman Rank (Lag-2) coefficients against long term rates
+pyplot.clf()
+ax = pyplot.subplot(111)
+mean_mems = []
+#mean_ltrs = []
+for i, mem_set in enumerate(memory_spearman_lag2_coef):
+    mean_mem = np.mean(mem_set)
+    mean_mems.append(mean_mem)
+colours = []
+for mean_mem in mean_mems:
+    if mean_mem <= -0.05:
+        colours.append('b')
+    elif mean_mem > -0.05 and mean_mem <= 0.05:
+        colours.append('g')
+    else:
+        colours.append('r')
+pyplot.errorbar(mean_ltr, mean_mems,
+                xerr = ltr_bounds,
+                ecolor = '0.4',
+                linestyle="None")
+pyplot.errorbar(mean_ltr, mean_mems,
+                   yerr = memory_spearman_lag2_bounds,
+                   ecolor = '0.6',
+                   linestyle="None")
+pyplot.scatter(mean_ltr, mean_mems, marker = 's', c=colours, s=25)
+for i, txt in enumerate(names):
+    if max_interevent_times[i] > 10:
+        ax.annotate(txt[:4],
+                    (mean_ltr[i], mean_mems[i]),
+                    fontsize=8)
+ax.set_xlim([1./1000000, 1./40])
+ax.set_xscale('log')
+ax.set_xlabel('Long-term rate (events per year)')
+ax.set_ylabel('M (Spearman Rank Lag-2)')
+figname = 'memory_coefficient_Spearman_Lag2_vs_lt_rate_%s.png' % fig_comment
+pyplot.savefig(figname)
+
+# Plot Spearman rank Lag-1 against Lag-2
+# Plot Spearman Rank coefficients against long term rates
+pyplot.clf()
+ax = pyplot.subplot(111)
+mean_mems = []
+mean_mems_l2 = []
+#mean_ltrs = []
+for i, mem_set in enumerate(memory_spearman_coefficients):
+    mean_mem = np.mean(mem_set)
+    mean_mem_l2 = np.mean(memory_spearman_lag2_coef[i])
+    mean_mems.append(mean_mem)
+    mean_mems_l2.append(mean_mem_l2)
+colours = []
+for mean_mem in mean_mems:
+    if mean_mem <= -0.05:
+        colours.append('b')
+    elif mean_mem > -0.05 and mean_mem <= 0.05:
+        colours.append('g')
+    else:
+        colours.append('r')
+pyplot.errorbar(mean_mems, mean_mems_l2,
+                xerr = memory_spearman_bounds,
+                ecolor = '0.4',
+                linestyle="None")
+pyplot.errorbar(mean_mems, mean_mems_l2,
+                   yerr = memory_spearman_lag2_bounds,
+                   ecolor = '0.6',
+                   linestyle="None")
+pyplot.scatter(mean_mems, mean_mems_l2, marker = 's', c=colours, s=25)
+for i, txt in enumerate(names):
+    if max_interevent_times[i] > 10:
+        ax.annotate(txt[:4],
+                    (mean_mems[i], mean_mems_l2[i]),
+                    fontsize=8)
+#ax.set_xlim([1./1000000, 1./40])
+#ax.set_xscale('log')
+ax.set_xlabel('M (Spearman Rank Lag-1)')
+ax.set_ylabel('M (Spearman Rank Lag-2)')
+figname = 'memory_coefficient_Spearman_L1_vs_L2_%s.png' % fig_comment
 pyplot.savefig(figname)
 
 # Plot burstiness against memory coefficient
