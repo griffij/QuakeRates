@@ -27,7 +27,7 @@ from QuakeRates.dataman.parse_params import parse_param_file, \
 # Define parameter files
 filepath = '../params'
 param_file_list = glob(os.path.join(filepath, '*.txt'))
-n_samples = 20  # Number of Monte Carlo samples of the eq chronologies
+n_samples = 100  # Number of Monte Carlo samples of the eq chronologies
 half_n = int(n_samples/2)
 
 plot_dir = './plots'
@@ -61,6 +61,8 @@ for i, event_set in enumerate(event_sets):
     long_term_rates.append(event_set.long_term_rates)
     print(num_events[i])
     optimal_ks = []
+    within_cluster_ie_times = []
+    between_cluster_ie_times = []
     mean_within_cluster_ie_times = []
     mean_between_cluster_times = []
     for chron in event_set.chronology.T:
@@ -112,6 +114,7 @@ for i, event_set in enumerate(event_sets):
                 # Get start and end event of the cluster (which may be the same)
                 cluster_bounds.append([cluster_events[0], cluster_events[-1]])
             all_ie_times = np.array(all_ie_times)
+            within_cluster_ie_times.append(all_ie_times)
             mean_within_cluster_ie_time = np.mean(all_ie_times)
             cluster_bounds = np.array(cluster_bounds)
             
@@ -126,6 +129,7 @@ for i, event_set in enumerate(event_sets):
                     cluster_ie_time = cluster_bounds[k][0] - cluster_bounds[k-1][1]
                     cluster_ie_times.append(cluster_ie_time)
             cluster_ie_times = np.array(cluster_ie_times)
+            between_cluster_ie_times.append(cluster_ie_times)
             mean_cluster_ie_time = np.mean(cluster_ie_times)
             mean_within_cluster_ie_times.append(mean_within_cluster_ie_time)
             mean_between_cluster_times.append(mean_cluster_ie_time)
@@ -134,6 +138,8 @@ for i, event_set in enumerate(event_sets):
             ie_times = np.diff(chron.flatten())
             mean_ie_time = np.mean(ie_times)
             # In this case both the between and within cluster time are treated as equal
+#            within_cluster_ie_times.append(ie_times)
+#            between_cluster_ie_times.append(ie_times)
             mean_within_cluster_ie_times.append(mean_ie_time)
             mean_between_cluster_times.append(mean_ie_time)
             
@@ -150,6 +156,31 @@ for i, event_set in enumerate(event_sets):
     fig_filename = os.path.join(plot_dir, figname)
     plt.savefig(fig_filename)
 
+    # For each fault plot histogram of within and between
+    # cluster inter-event times
+    plt.clf()
+
+    #    within_cluster_ie_times = np.array(within_cluster_ie_times).flatten(axis=0)
+    if len(within_cluster_ie_times) > 1:
+        within_cluster_ie_times = np.concatenate(within_cluster_ie_times)
+        max_wc_time = max(within_cluster_ie_times)
+        bins = np.arange(1, max_wc_time, 50) 
+        plt.hist(within_cluster_ie_times, bins=bins,
+                 facecolor='0.6', edgecolor='0.2', density=True)
+        figname = 'within_cluster_histogram_%s.png' % names[i]
+        fig_filename = os.path.join(plot_dir, figname)
+        plt.savefig(fig_filename)
+
+        plt.clf()
+        between_cluster_ie_times = np.concatenate(between_cluster_ie_times)
+        max_bc_time = max(between_cluster_ie_times)
+        bins = np.arange(1, max_bc_time, 50)       
+        plt.hist(between_cluster_ie_times, bins=bins,
+                 facecolor='0.6', edgecolor='0.2', density=True)
+        figname = 'between_cluster_histogram_%s.png' % names[i]
+        fig_filename = os.path.join(plot_dir, figname)
+        plt.savefig(fig_filename)
+    
     # Get colours for later plotting
     if event_set.faulting_style == 'Normal':
         plot_colours.append('r')
