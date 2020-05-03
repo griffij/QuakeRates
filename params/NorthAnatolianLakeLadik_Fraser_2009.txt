@@ -1,0 +1,6 @@
+filename = '../data/NorthAnatolianLakeLadik_Fraser_2009'
+chron_type = 'OxCal'
+events = {'E7': ['Calculate', 'posterior'], 'E6': ['Calculate', 'posterior'], 'E5': ['Calculate', 'posterior'], 'E4': ['Calculate', 'posterior'], 'E3': ['Calculate', 'posterior'], 'E2': ['Calculate', 'posterior'], 'E1': ['Calculate', 'posterior']}
+event_order = ['E7', 'E6', 'E5', 'E4', 'E3', 'E2','E1']
+tectonic_region = 'Plate_boundary_master'
+faulting_style = 'Strike_slip'
