@@ -74,7 +74,10 @@ def get_event_sets(param_file_list, tectonic_regions,
                 events = parse_oxcal(params['filename'], params['events'],
                                      params['event_order'])
                 event_set = EventSet(events)
-                event_certainty = np.ones(len(events))
+                try:
+                    event_certainty = np.array(params['event_certainty'])
+                except KeyError: # If not specified, assume all events are certain
+                    event_certainty = np.ones(len(events))
                 event_certainties.append(event_certainty)
             else:
                 continue

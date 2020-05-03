@@ -18,7 +18,7 @@ from QuakeRates.dataman.parse_params import parse_param_file, \
     get_event_sets, file_len
 
 filepath = '../params'
-param_file_list = glob(os.path.join(filepath, '*.txt'))
+param_file_list = glob(os.path.join(filepath, '*Coachella*.txt'))
 n_samples = 500  # Number of Monte Carlo samples of the eq chronologies
 half_n = int(n_samples/2)
 print(half_n)
@@ -39,7 +39,7 @@ tectonic_regions = ['all']
 #tectonic_regions = ['Plate_boundary_master']
 #tectonic_regions = ['Subduction']
 #tectonic_regions = ['Near_plate_boundary']
-min_number_events = 8
+min_number_events = 4
 
 #Summarise for comment to add to figure filename
 fig_comment = ''
@@ -223,6 +223,7 @@ min_interevent_times_bounds = np.array(min_interevent_times_bounds).T
 min_paired_interevent_times_bounds = np.array(min_paired_interevent_times_bounds).T
 long_term_rates_T = np.array(long_term_rates).T
 mean_ltr = np.mean(long_term_rates_T, axis = 0)
+print('Mean_ltr', mean_ltr)
 std_ltr = np.std(long_term_rates_T, axis = 0)
 ltr_bounds = np.array([abs(mean_ltr - (np.percentile(long_term_rates_T, 2.5, axis=0))),
                        abs(mean_ltr - (np.percentile(long_term_rates_T, 97.5, axis=0)))])
@@ -375,6 +376,7 @@ mean_mems = []
 #mean_ltrs = []
 for i, mem_set in enumerate(memory_coefficients):
     mean_mem = np.mean(mem_set)
+#    print('Mean memory coefficient combined', mean_mem)
     mean_mems.append(mean_mem)
 colours = []
 for mean_mem in mean_mems:
