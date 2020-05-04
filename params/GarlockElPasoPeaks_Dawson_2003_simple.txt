@@ -1,4 +1,4 @@
-filename = '../data/Garlock_Dawson_2003_simple.txt'
+filename = '../data/GarlockElPasoPeaks_Dawson_2003_simple.txt'
 chron_type = 'Age2Sigma'
 sigma_level = 2
 event_order = 'Backwards'
