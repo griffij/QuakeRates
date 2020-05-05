@@ -18,7 +18,7 @@ from QuakeRates.dataman.parse_params import parse_param_file, \
     get_event_sets, file_len
 
 filepath = '../params'
-param_file_list = glob(os.path.join(filepath, '*Coachella*.txt'))
+param_file_list = glob(os.path.join(filepath, '*.txt'))
 n_samples = 500  # Number of Monte Carlo samples of the eq chronologies
 half_n = int(n_samples/2)
 print(half_n)
@@ -29,9 +29,9 @@ if not os.path.exists(plot_folder):
 
 # Define subset to take
 #faulting_styles = ['Reverse']
-#faulting_styles = ['Normal']
+faulting_styles = ['Normal']
 #faulting_styles = ['Strike_slip'] 
-faulting_styles = ['all']
+#faulting_styles = ['all']
 tectonic_regions = ['all']
 #tectonic_regions = ['Intraplate_noncratonic', 'Intraplate_cratonic']
 #tectonic_regions = ['Plate_boundary_master', 'Plate_boundary_network']
@@ -39,7 +39,7 @@ tectonic_regions = ['all']
 #tectonic_regions = ['Plate_boundary_master']
 #tectonic_regions = ['Subduction']
 #tectonic_regions = ['Near_plate_boundary']
-min_number_events = 4
+min_number_events = 5
 
 #Summarise for comment to add to figure filename
 fig_comment = ''
@@ -51,6 +51,7 @@ for t in tectonic_regions:
     fig_comment += '_'
 fig_comment += str(min_number_events)
 
+plot_colours = []
 covs = []
 cov_bounds = []
 burstinesses = []
@@ -104,8 +105,8 @@ for i, event_set in enumerate(event_sets):
     std_min_interevent_times.append(event_set.std_minimum_interevent_time)
     std_max_interevent_times.append(event_set.std_maximum_interevent_time)
     if event_set.std_maximum_interevent_time == 0:
-        print(name)
-        sys.exit()
+        print('Zero std_maximum_interevent_time for ', names[i])
+#        sys.exit()
     max_interevent_times_bounds.append([abs(event_set.mean_maximum_interevent_time -
                                             event_set.maximum_interevent_time_lb),
                                         abs(event_set.mean_maximum_interevent_time -
@@ -208,6 +209,16 @@ for i, event_set in enumerate(event_sets):
                                         abs(event_set.mean_rho - event_set.rho_ub)])
         memory_spearman_lag2_bounds.append([abs(event_set.mean_rho2 - event_set.rho2_lb),
                                             abs(event_set.mean_rho2 - event_set.rho2_ub)])
+    # Get colours for plotting later
+    if event_set.faulting_style == 'Normal':
+        plot_colours.append('r')
+    elif event_set.faulting_style == 'Reverse':
+        plot_colours.append('b')
+    elif event_set.faulting_style == 'Strike_slip':
+        plot_colours.append('g')
+    else:
+        plot_colours.append('k')
+
 # Convert to numpy arrays and transpose where necessary
 num_events = np.array(num_events)
 max_interevent_times = np.array(max_interevent_times)
@@ -310,13 +321,15 @@ for mean_cov in mean_covs:
         colours.append('r')
 pyplot.errorbar(mean_ltr, mean_covs,
                 xerr = ltr_bounds,
-                ecolor = '0.4',
+                ecolor = '0.3',
+                elinewidth=0.7,
                 linestyle="None")
 pyplot.errorbar(mean_ltr, mean_covs,
                 yerr = cov_bounds,
-                ecolor = '0.6',
+                ecolor = '0.3',
+                elinewidth=0.7,
                 linestyle="None")
-pyplot.scatter(mean_ltr, mean_covs, marker = 's', c=colours, s=25)
+pyplot.scatter(mean_ltr, mean_covs, marker = 's', c=plot_colours, s=25)
 for i, txt in enumerate(names):
     if max_interevent_times[i] > 10:
         ax.annotate(txt[:4],
@@ -349,13 +362,15 @@ for mean_b in mean_bs:
 
 pyplot.errorbar(mean_ltr, mean_bs,
                 xerr = ltr_bounds,
-                ecolor = '0.4',
+                ecolor = '0.3',
+                elinewidth=0.7,
                 linestyle="None")
 pyplot.errorbar(mean_ltr, mean_bs,
-                   yerr = burstiness_bounds,
-                   ecolor = '0.6',
-                   linestyle="None")
-pyplot.scatter(mean_ltr, mean_bs, marker = 's', c=colours, s=25)
+                yerr = burstiness_bounds,
+                ecolor = '0.3',
+                elinewidth=0.7,
+                linestyle="None")
+pyplot.scatter(mean_ltr, mean_bs, marker = 's', c=plot_colours, s=25)
 for i, txt in enumerate(names):
     if max_interevent_times[i] > 10:
         ax.annotate(txt[:4],
@@ -389,13 +404,15 @@ for mean_mem in mean_mems:
 
 pyplot.errorbar(mean_ltr, mean_mems,
                 xerr = ltr_bounds,
-                ecolor = '0.4',
+                ecolor = '0.3',
+                elinewidth=0.7,
                 linestyle="None")
 pyplot.errorbar(mean_ltr, mean_mems,
-                   yerr = memory_bounds,
-                   ecolor = '0.6',
-                   linestyle="None")
-pyplot.scatter(mean_ltr, mean_mems, marker = 's', c=colours, s=25)
+                yerr = memory_bounds,
+                ecolor = '0.3',
+                elinewidth=0.7,
+                linestyle="None")
+pyplot.scatter(mean_ltr, mean_mems, marker = 's', c=plot_colours, s=25)
 for i, txt in enumerate(names):
     if max_interevent_times[i] > 10:
         ax.annotate(txt[:4],
@@ -412,32 +429,34 @@ pyplot.savefig(figname)
 # Plot Spearman Rank coefficients against long term rates
 pyplot.clf()
 ax = pyplot.subplot(111)
-mean_mems = []
+mean_mems_L1 = []
 #mean_ltrs = []
 for i, mem_set in enumerate(memory_spearman_coefficients):
     mean_mem = np.mean(mem_set)
-    mean_mems.append(mean_mem)
+    mean_mems_L1.append(mean_mem)
 colours = []
-for mean_mem in mean_mems:
+for mean_mem in mean_mems_L1:
     if mean_mem <= -0.05:
         colours.append('b')
     elif mean_mem > -0.05 and mean_mem <= 0.05:
         colours.append('g')
     else:
         colours.append('r')
-pyplot.errorbar(mean_ltr, mean_mems,
+pyplot.errorbar(mean_ltr, mean_mems_L1,
                 xerr = ltr_bounds,
-                ecolor = '0.4',
+                ecolor = '0.3',
+                elinewidth=0.7,
                 linestyle="None")
-pyplot.errorbar(mean_ltr, mean_mems,
-                   yerr = memory_spearman_bounds,
-                   ecolor = '0.6',
-                   linestyle="None")
-pyplot.scatter(mean_ltr, mean_mems, marker = 's', c=colours, s=25)
+pyplot.errorbar(mean_ltr, mean_mems_L1,
+                yerr = memory_spearman_bounds,
+                elinewidth=0.7,
+                ecolor = '0.3',
+                linestyle="None")
+pyplot.scatter(mean_ltr, mean_mems_L1, marker = 's', c=plot_colours, s=25)
 for i, txt in enumerate(names):
     if max_interevent_times[i] > 10:
         ax.annotate(txt[:4],
-                    (mean_ltr[i], mean_mems[i]),
+                    (mean_ltr[i], mean_mems_L1[i]),
                     fontsize=8)
 ax.set_xlim([1./1000000, 1./40])
 ax.set_xscale('log')
@@ -450,32 +469,34 @@ pyplot.savefig(figname)
 # Plot Spearman Rank (Lag-2) coefficients against long term rates
 pyplot.clf()
 ax = pyplot.subplot(111)
-mean_mems = []
+mean_mems_L2 = []
 #mean_ltrs = []
 for i, mem_set in enumerate(memory_spearman_lag2_coef):
     mean_mem = np.mean(mem_set)
-    mean_mems.append(mean_mem)
+    mean_mems_L2.append(mean_mem)
 colours = []
-for mean_mem in mean_mems:
+for mean_mem in mean_mems_L2:
     if mean_mem <= -0.05:
         colours.append('b')
     elif mean_mem > -0.05 and mean_mem <= 0.05:
         colours.append('g')
     else:
         colours.append('r')
-pyplot.errorbar(mean_ltr, mean_mems,
+pyplot.errorbar(mean_ltr, mean_mems_L2,
                 xerr = ltr_bounds,
-                ecolor = '0.4',
+                ecolor = '0.3',
+                elinewidth=0.7,
                 linestyle="None")
-pyplot.errorbar(mean_ltr, mean_mems,
-                   yerr = memory_spearman_lag2_bounds,
-                   ecolor = '0.6',
-                   linestyle="None")
-pyplot.scatter(mean_ltr, mean_mems, marker = 's', c=colours, s=25)
+pyplot.errorbar(mean_ltr, mean_mems_L2,
+                yerr = memory_spearman_lag2_bounds,
+                ecolor = '0.3',
+                elinewidth=0.7,
+                linestyle="None")
+pyplot.scatter(mean_ltr, mean_mems_L2, marker = 's', c=plot_colours, s=25)
 for i, txt in enumerate(names):
     if max_interevent_times[i] > 10:
         ax.annotate(txt[:4],
-                    (mean_ltr[i], mean_mems[i]),
+                    (mean_ltr[i], mean_mems_L2[i]),
                     fontsize=8)
 ax.set_xlim([1./1000000, 1./40])
 ax.set_xscale('log')
@@ -488,35 +509,37 @@ pyplot.savefig(figname)
 # Plot Spearman Rank coefficients against long term rates
 pyplot.clf()
 ax = pyplot.subplot(111)
-mean_mems = []
-mean_mems_l2 = []
+#mean_mems = []
+#mean_mems_l2 = []
 #mean_ltrs = []
-for i, mem_set in enumerate(memory_spearman_coefficients):
-    mean_mem = np.mean(mem_set)
-    mean_mem_l2 = np.mean(memory_spearman_lag2_coef[i])
-    mean_mems.append(mean_mem)
-    mean_mems_l2.append(mean_mem_l2)
+#for i, mem_set in enumerate(memory_spearman_coefficients):
+#    mean_mem = np.mean(mem_set)
+#    mean_mem_l2 = np.mean(memory_spearman_lag2_coef[i])
+#    mean_mems.append(mean_mem)
+#    mean_mems_l2.append(mean_mem_l2)
 colours = []
-for mean_mem in mean_mems:
+for mean_mem in mean_mems_L1:
     if mean_mem <= -0.05:
         colours.append('b')
     elif mean_mem > -0.05 and mean_mem <= 0.05:
         colours.append('g')
     else:
         colours.append('r')
-pyplot.errorbar(mean_mems, mean_mems_l2,
+pyplot.errorbar(mean_mems_L1, mean_mems_L2,
                 xerr = memory_spearman_bounds,
-                ecolor = '0.4',
+                ecolor = '0.3',
+                elinewidth=0.7,
                 linestyle="None")
-pyplot.errorbar(mean_mems, mean_mems_l2,
-                   yerr = memory_spearman_lag2_bounds,
-                   ecolor = '0.6',
-                   linestyle="None")
-pyplot.scatter(mean_mems, mean_mems_l2, marker = 's', c=colours, s=25)
+pyplot.errorbar(mean_mems_L1, mean_mems_L2,
+                yerr = memory_spearman_lag2_bounds,
+                ecolor = '0.3',
+                elinewidth=0.7,
+                linestyle="None")
+pyplot.scatter(mean_mems_L1, mean_mems_L2, marker = 's', c=plot_colours, s=25)
 for i, txt in enumerate(names):
     if max_interevent_times[i] > 10:
         ax.annotate(txt[:4],
-                    (mean_mems[i], mean_mems_l2[i]),
+                    (mean_mems_L1[i], mean_mems_L2[i]),
                     fontsize=8)
 #ax.set_xlim([1./1000000, 1./40])
 #ax.set_xscale('log')
@@ -539,20 +562,25 @@ for mean_b in mean_bs:
         colours.append('r')
 pyplot.errorbar(mean_bs, mean_mems,
                 yerr = memory_bounds,
-                ecolor = '0.4',
+                ecolor = '0.3',
+                elinewidth=0.7,
                 linestyle="None")
 pyplot.errorbar(mean_bs, mean_mems,
-                   xerr = burstiness_bounds,
-                   ecolor = '0.6',
-                   linestyle="None")
-pyplot.scatter(mean_bs, mean_mems, marker = 's', c=colours, s=25)
+                xerr = burstiness_bounds,
+                ecolor = '0.3',
+                elinewidth=0.7,
+                linestyle="None")
+pyplot.scatter(mean_bs, mean_mems, marker = 's', c=plot_colours, s=25)
 for i, txt in enumerate(names):
     if max_interevent_times[i] > 10:
         ax.annotate(txt[:4],
                     (mean_bs[i], mean_mems[i]),
                     fontsize=8)
-#ax.set_xlim([-1, 1])
-#ax.set_ylim([1./1000000, 1./40])
+ax.set_xlim([-1, 1])
+ax.set_ylim([-1, 1])
+# Add y = 0, x=0 lines
+pyplot.plot([0,0],[-1, 1], linestyle='dashed', linewidth=1, c='0.5')
+pyplot.plot([-1,1],[0, 0], linestyle='dashed', linewidth=1, c='0.5')
 #ax.set_yscale('log')
 ax.set_xlabel('B')
 ax.set_ylabel('M')
@@ -581,7 +609,7 @@ pyplot.errorbar(mean_covs, num_events,
                    xerr = cov_bounds,
                    ecolor = '0.6',
                    linestyle="None")
-pyplot.scatter(mean_covs, num_events, marker = 's', c=colours, s=25)
+pyplot.scatter(mean_covs, num_events, marker = 's', c=plot_colours, s=25)
 for i, txt in enumerate(names):
     if max_interevent_times[i] > 10:
         ax.annotate(txt[:4],
@@ -600,12 +628,14 @@ pyplot.clf()
 ax = pyplot.subplot(111)
 pyplot.errorbar(max_interevent_times, min_interevent_times,
                 yerr = min_interevent_times_bounds,
-                ecolor = '0.4',
+                ecolor = '0.3',
+                elinewidth=0.7,
                 linestyle="None")
 pyplot.errorbar(max_interevent_times, min_interevent_times,
-                   xerr = max_interevent_times_bounds,
-                   ecolor = '0.6',
-                   linestyle="None")
+                xerr = max_interevent_times_bounds,
+                ecolor = '0.3',
+                elinewidth=0.7,
+                linestyle="None")
 pyplot.scatter(max_interevent_times, min_interevent_times,
                marker = 's', c=colours, s=25)
 ax.set_xlabel('Maximum interevent time')
@@ -640,11 +670,13 @@ pyplot.clf()
 ax = pyplot.subplot(111)
 pyplot.errorbar(max_interevent_times, min_paired_interevent_times,
                 yerr = min_paired_interevent_times_bounds,
-                ecolor = '0.4',
+                ecolor = '0.3',
+                elinewidth=0.7,
                 linestyle="None")
 pyplot.errorbar(max_interevent_times, min_paired_interevent_times,
                 xerr = max_interevent_times_bounds,
-                ecolor = '0.6',
+                ecolor = '0.3',
+                elinewidth=0.7,
                 linestyle="None")
 pyplot.scatter(max_interevent_times, min_paired_interevent_times,
                marker = 's', c=colours, s=25)
@@ -695,28 +727,28 @@ pyplot.plot(xvals, yvals)
 #    return c0 + x**m * c
 #target_func = func_powerlaw
 # Linear fit with data uncertainties
-def linear_func(B, x):
-    return B[0]*x + B[1]
-linear_model = Model(linear_func)
-data = RealData(np.log10(max_interevent_times[indices]),
-                np.log10(min_paired_interevent_times[indices]),
-                sx = np.log10(std_max_interevent_times[indices]),
-                sy = np.log10(std_min_paired_interevent_times[indices]))
+#def linear_func(B, x):
+#    return B[0]*x + B[1]
+#linear_model = Model(linear_func)
+#data = RealData(np.log10(max_interevent_times[indices]),
+#                np.log10(min_paired_interevent_times[indices]),
+#                sx = np.log10(std_max_interevent_times[indices]),
+#                sy = np.log10(std_min_paired_interevent_times[indices]))
 # Set up ODR with the model and data
-odr = ODR(data, linear_model, beta0=[1., 1.])
+#odr = ODR(data, linear_model, beta0=[1., 1.])
 # Run the regression.
-out = odr.run()
-print('Regression output')
-out.pprint()
+#out = odr.run()
+#print('Regression output')
+#out.pprint()
 
-log_y_fit = linear_func(out.beta, np.log10(xvals_short))
-y_fit = np.power(10, log_y_fit)
+#log_y_fit = linear_func(out.beta, np.log10(xvals_short))
+#y_fit = np.power(10, log_y_fit)
 #popt, pcov = curve_fit(target_func, max_interevent_times, min_paired_interevent_times)
 #print('popt', popt)
-pyplot.plot(xvals_short, y_fit, '--')
-txt = 'Log(Y) =  %.2fLog(x) + %.2f' % (out.beta[0], out.beta[1])
-print(txt)
-ax.annotate(txt, (100, 40000))
+#pyplot.plot(xvals_short, y_fit, '--')
+#txt = 'Log(Y) =  %.2fLog(x) + %.2f' % (out.beta[0], out.beta[1])
+#print(txt)
+#ax.annotate(txt, (100, 40000))
 figname = 'min_pair_vs_max_interevent_time_%s.png' % fig_comment
 pyplot.savefig(figname)
 
@@ -725,11 +757,13 @@ pyplot.clf()
 ax = pyplot.subplot(111)  
 pyplot.errorbar(mean_ltr, min_interevent_times,
                 yerr = min_interevent_times_bounds,
-                ecolor = '0.4',
+                ecolor = '0.3',
+                elinewidth=0.7,
                 linestyle="None")
 pyplot.errorbar(mean_ltr, min_interevent_times,
                 xerr = ltr_bounds,
-                ecolor = '0.6',
+                ecolor = '0.3',
+                elinewidth=0.7,
                 linestyle="None")
 pyplot.scatter(mean_ltr, min_interevent_times,
                marker='s', c=colours, s=25)
@@ -772,11 +806,13 @@ pyplot.clf()
 ax = pyplot.subplot(111)  
 pyplot.errorbar(mean_ltr, min_paired_interevent_times,
                 yerr = min_paired_interevent_times_bounds,
-                ecolor = '0.4',
+                ecolor = '0.3',
+                elinewidth=0.7,
                 linestyle="None")
 pyplot.errorbar(mean_ltr, min_paired_interevent_times,
                 xerr = ltr_bounds,
-                ecolor = '0.6',
+                ecolor = '0.3',
+                elinewidth=0.7,
                 linestyle="None")
 pyplot.scatter(mean_ltr, min_paired_interevent_times,
                marker='s', c=colours, s=25)
@@ -820,11 +856,13 @@ pyplot.clf()
 ax = pyplot.subplot(111)  
 pyplot.errorbar(mean_ltr, max_interevent_times,
                 yerr = max_interevent_times_bounds,
-                ecolor = '0.4',
+                ecolor = '0.3',
+                elinewidth=0.7,
                 linestyle="None")
 pyplot.errorbar(mean_ltr, max_interevent_times,
                 xerr = ltr_bounds,
-                ecolor = '0.6',
+                ecolor = '0.3',
+                elinewidth=0.7,
                 linestyle="None")
 pyplot.scatter(mean_ltr, max_interevent_times,
                marker='s', c=colours, s=25)
@@ -869,11 +907,13 @@ pyplot.clf()
 ax = pyplot.subplot(111)  
 pyplot.errorbar(mean_ltr, ratio_min_pair_max,
                 yerr = ratio_min_pair_max_bounds,
-                ecolor = '0.4',
+                ecolor = '0.3',
+                elinewidth=0.7,
                 linestyle="None")
 pyplot.errorbar(mean_ltr, ratio_min_pair_max,
                 xerr = ltr_bounds,
-                ecolor = '0.6',
+                ecolor = '0.3',
+                elinewidth=0.7,
                 linestyle="None")
 pyplot.scatter(mean_ltr, ratio_min_pair_max,
                marker='s', c=colours, s=25)
@@ -972,11 +1012,13 @@ pyplot.clf()
 ax = pyplot.subplot(111)  
 pyplot.errorbar(mean_ltr, ratio_min_max,
                 yerr = ratio_min_max_bounds,
-                ecolor = '0.4',
+                ecolor = '0.3',
+                elinewidth=0.7,
                 linestyle="None")
 pyplot.errorbar(mean_ltr, ratio_min_max,
                 xerr = ltr_bounds,
-                ecolor = '0.6',
+                ecolor = '0.3',
+                elinewidth=0.7,
                 linestyle="None")
 pyplot.scatter(mean_ltr, ratio_min_max,
                marker = 's', c=colours, s=25)

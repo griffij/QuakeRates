@@ -40,7 +40,7 @@ if not os.path.exists(plot_dir):
 faulting_styles = ['all']
 tectonic_regions = ['all']
 #tectonic_regions = ['Plate_boundary_master', 'Plate_boundary_network']
-min_number_events = 1
+min_number_events = 4
 plot_colours = []
 
 names, event_sets, event_certainties, num_events = \
@@ -163,7 +163,12 @@ for i, event_set in enumerate(event_sets):
     #    within_cluster_ie_times = np.array(within_cluster_ie_times).flatten(axis=0)
     if len(within_cluster_ie_times) > 1:
         within_cluster_ie_times = np.concatenate(within_cluster_ie_times)
-        max_wc_time = max(within_cluster_ie_times)
+        try:
+            max_wc_time = max(within_cluster_ie_times)
+        except ValueError:
+            print(within_cluster_ie_times)
+            print(names[i])
+            sys.exit()
         bins = np.arange(1, max_wc_time, 50) 
         plt.hist(within_cluster_ie_times, bins=bins,
                  facecolor='0.6', edgecolor='0.2', density=True)
