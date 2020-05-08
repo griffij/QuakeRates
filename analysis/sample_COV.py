@@ -22,16 +22,16 @@ param_file_list = glob(os.path.join(filepath, '*.txt'))
 n_samples = 500  # Number of Monte Carlo samples of the eq chronologies
 half_n = int(n_samples/2)
 print(half_n)
-
+annotate_plots = False # If True, lable each fault on the plot
 plot_folder = './plots'
 if not os.path.exists(plot_folder):
     os.makedirs(plot_folder)
 
 # Define subset to take
 #faulting_styles = ['Reverse']
-faulting_styles = ['Normal']
+#faulting_styles = ['Normal']
 #faulting_styles = ['Strike_slip'] 
-#faulting_styles = ['all']
+faulting_styles = ['all']
 tectonic_regions = ['all']
 #tectonic_regions = ['Intraplate_noncratonic', 'Intraplate_cratonic']
 #tectonic_regions = ['Plate_boundary_master', 'Plate_boundary_network']
@@ -323,15 +323,18 @@ pyplot.errorbar(mean_ltr, mean_covs,
                 xerr = ltr_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
+                linestyle="None",
+                zorder=1)
 pyplot.errorbar(mean_ltr, mean_covs,
                 yerr = cov_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
-pyplot.scatter(mean_ltr, mean_covs, marker = 's', c=plot_colours, s=25)
+                linestyle="None",
+                zorder=1)
+pyplot.scatter(mean_ltr, mean_covs, marker = 's', c=plot_colours,
+               s=25, zorder=2)
 for i, txt in enumerate(names):
-    if max_interevent_times[i] > 10:
+    if max_interevent_times[i] > 10 and annotate_plots:
         ax.annotate(txt[:4],
                     (mean_ltr[i], mean_covs[i]),
                     fontsize=8)
@@ -364,20 +367,25 @@ pyplot.errorbar(mean_ltr, mean_bs,
                 xerr = ltr_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
+                linestyle="None",
+                zorder=1)
 pyplot.errorbar(mean_ltr, mean_bs,
                 yerr = burstiness_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
-pyplot.scatter(mean_ltr, mean_bs, marker = 's', c=plot_colours, s=25)
+                linestyle="None",
+                zorder=1)
+pyplot.scatter(mean_ltr, mean_bs, marker = 's', c=plot_colours,
+               s=25, zorder=2)
 for i, txt in enumerate(names):
-    if max_interevent_times[i] > 10:
+    if max_interevent_times[i] > 10 and annotate_plots:
         ax.annotate(txt[:4],
                     (mean_ltr[i], mean_bs[i]),
                     fontsize=8)
 ax.set_ylim([-1, 1])
 ax.set_xlim([1./1000000, 1./40])
+# Add B=0 linear
+pyplot.plot([1./1000000, 1./40], [0, 0], linestyle='dashed', linewidth=1, c='0.5')
 ax.set_xscale('log')
 ax.set_xlabel('Long-term rate (events per year)')
 ax.set_ylabel('B')
@@ -406,15 +414,18 @@ pyplot.errorbar(mean_ltr, mean_mems,
                 xerr = ltr_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
+                linestyle="None",
+                zorder=1)
 pyplot.errorbar(mean_ltr, mean_mems,
                 yerr = memory_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
-pyplot.scatter(mean_ltr, mean_mems, marker = 's', c=plot_colours, s=25)
+                linestyle="None",
+                zorder=1)
+pyplot.scatter(mean_ltr, mean_mems, marker = 's', c=plot_colours,
+               s=25, zorder=2)
 for i, txt in enumerate(names):
-    if max_interevent_times[i] > 10:
+    if max_interevent_times[i] > 10 and annotate_plots:
         ax.annotate(txt[:4],
                     (mean_ltr[i], mean_mems[i]),
                     fontsize=8)
@@ -446,15 +457,18 @@ pyplot.errorbar(mean_ltr, mean_mems_L1,
                 xerr = ltr_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
+                linestyle="None",
+                zorder=1)
 pyplot.errorbar(mean_ltr, mean_mems_L1,
                 yerr = memory_spearman_bounds,
                 elinewidth=0.7,
                 ecolor = '0.3',
-                linestyle="None")
-pyplot.scatter(mean_ltr, mean_mems_L1, marker = 's', c=plot_colours, s=25)
+                linestyle="None",
+                zorder=1)
+pyplot.scatter(mean_ltr, mean_mems_L1, marker = 's', c=plot_colours,
+               s=25, zorder=2)
 for i, txt in enumerate(names):
-    if max_interevent_times[i] > 10:
+    if max_interevent_times[i] > 10 and annotate_plots:
         ax.annotate(txt[:4],
                     (mean_ltr[i], mean_mems_L1[i]),
                     fontsize=8)
@@ -486,15 +500,18 @@ pyplot.errorbar(mean_ltr, mean_mems_L2,
                 xerr = ltr_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
+                linestyle="None",
+                zorder=1)
 pyplot.errorbar(mean_ltr, mean_mems_L2,
                 yerr = memory_spearman_lag2_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
-pyplot.scatter(mean_ltr, mean_mems_L2, marker = 's', c=plot_colours, s=25)
+                linestyle="None",
+                zorder=1)
+pyplot.scatter(mean_ltr, mean_mems_L2, marker = 's', c=plot_colours,
+               s=25, zorder=2)
 for i, txt in enumerate(names):
-    if max_interevent_times[i] > 10:
+    if max_interevent_times[i] > 10 and annotate_plots:
         ax.annotate(txt[:4],
                     (mean_ltr[i], mean_mems_L2[i]),
                     fontsize=8)
@@ -529,15 +546,18 @@ pyplot.errorbar(mean_mems_L1, mean_mems_L2,
                 xerr = memory_spearman_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
+                linestyle="None",
+                zorder=1)
 pyplot.errorbar(mean_mems_L1, mean_mems_L2,
                 yerr = memory_spearman_lag2_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
-pyplot.scatter(mean_mems_L1, mean_mems_L2, marker = 's', c=plot_colours, s=25)
+                linestyle="None",
+                zorder=1)
+pyplot.scatter(mean_mems_L1, mean_mems_L2, marker = 's', c=plot_colours,
+               s=25, zorder=2)
 for i, txt in enumerate(names):
-    if max_interevent_times[i] > 10:
+    if max_interevent_times[i] > 10 and annotate_plots:
         ax.annotate(txt[:4],
                     (mean_mems_L1[i], mean_mems_L2[i]),
                     fontsize=8)
@@ -560,21 +580,24 @@ for mean_b in mean_bs:
         colours.append('g')
     else:
         colours.append('r')
-pyplot.errorbar(mean_bs, mean_mems,
-                yerr = memory_bounds,
+pyplot.errorbar(mean_mems, mean_bs,
+                xerr = memory_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
-pyplot.errorbar(mean_bs, mean_mems,
-                xerr = burstiness_bounds,
+                linestyle="None",
+                zorder=1)
+pyplot.errorbar(mean_mems, mean_bs,
+                yerr = burstiness_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
-pyplot.scatter(mean_bs, mean_mems, marker = 's', c=plot_colours, s=25)
+                linestyle="None",
+                zorder=1)
+pyplot.scatter(mean_mems, mean_bs, marker = 's', c=plot_colours,
+               s=25, zorder=2)
 for i, txt in enumerate(names):
-    if max_interevent_times[i] > 10:
+    if max_interevent_times[i] > 10 and annotate_plots:
         ax.annotate(txt[:4],
-                    (mean_bs[i], mean_mems[i]),
+                    (mean_mems[i], mean_bs[i]),
                     fontsize=8)
 ax.set_xlim([-1, 1])
 ax.set_ylim([-1, 1])
@@ -582,8 +605,8 @@ ax.set_ylim([-1, 1])
 pyplot.plot([0,0],[-1, 1], linestyle='dashed', linewidth=1, c='0.5')
 pyplot.plot([-1,1],[0, 0], linestyle='dashed', linewidth=1, c='0.5')
 #ax.set_yscale('log')
-ax.set_xlabel('B')
-ax.set_ylabel('M')
+ax.set_ylabel('B')
+ax.set_xlabel('M')
 figname = 'burstiness_vs_memory_coefficient_%s.png' % fig_comment 
 pyplot.savefig(figname)
 
@@ -611,7 +634,7 @@ pyplot.errorbar(mean_covs, num_events,
                    linestyle="None")
 pyplot.scatter(mean_covs, num_events, marker = 's', c=plot_colours, s=25)
 for i, txt in enumerate(names):
-    if max_interevent_times[i] > 10:
+    if max_interevent_times[i] > 10 and annotate_plots:
         ax.annotate(txt[:4],
                     (mean_covs[i], num_events[i]),
                     fontsize=8)
@@ -630,21 +653,23 @@ pyplot.errorbar(max_interevent_times, min_interevent_times,
                 yerr = min_interevent_times_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
+                linestyle="None",
+                zorder=1)
 pyplot.errorbar(max_interevent_times, min_interevent_times,
                 xerr = max_interevent_times_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
+                linestyle="None",
+                zorder=1)
 pyplot.scatter(max_interevent_times, min_interevent_times,
-               marker = 's', c=colours, s=25)
+               marker = 's', c=colours, s=25, zorder=2)
 ax.set_xlabel('Maximum interevent time')
 ax.set_ylabel('Minimum interevent time') 
 ax.set_xscale('log')
 ax.set_yscale('log')
 # Label low-slip rate faults
 for i, txt in enumerate(names):
-    if max_interevent_times[i] > 10:
+    if max_interevent_times[i] > 10 and annotate_plots:
         ax.annotate(txt[:4],
                     (max_interevent_times[i], min_interevent_times[i]),
                     fontsize=8)
@@ -672,21 +697,23 @@ pyplot.errorbar(max_interevent_times, min_paired_interevent_times,
                 yerr = min_paired_interevent_times_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
+                linestyle="None",
+                zorder=1)
 pyplot.errorbar(max_interevent_times, min_paired_interevent_times,
                 xerr = max_interevent_times_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
+                linestyle="None",
+                zorder=1)
 pyplot.scatter(max_interevent_times, min_paired_interevent_times,
-               marker = 's', c=colours, s=25)
+               marker = 's', c=colours, s=25, zorder=2)
 ax.set_xlabel('Maximum interevent time')
 ax.set_ylabel('Minimum interevent time \n(mean of two shortest consecutive interevent times)')
 ax.set_xscale('log')
 ax.set_yscale('log') 
 # Label low-slip rate faults
 for i, txt in enumerate(names):
-    if max_interevent_times[i] > 10:
+    if max_interevent_times[i] > 10 and annotate_plots:
         ax.annotate(txt[:4],
                     (max_interevent_times[i], min_paired_interevent_times[i]),
                     fontsize=8)
@@ -759,21 +786,23 @@ pyplot.errorbar(mean_ltr, min_interevent_times,
                 yerr = min_interevent_times_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
+                linestyle="None",
+                zorder=1)
 pyplot.errorbar(mean_ltr, min_interevent_times,
                 xerr = ltr_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
+                linestyle="None",
+                zorder=1)
 pyplot.scatter(mean_ltr, min_interevent_times,
-               marker='s', c=colours, s=25)
+               marker='s', c=colours, s=25, zorder=2)
 ax.set_xlabel('Long-term rate')
 ax.set_ylabel('Minimum interevent time')
 ax.set_xscale('log')
 ax.set_yscale('log') 
 # Label low-slip rate faults
 for i, txt in enumerate(names):
-    if max_interevent_times[i] > 10:
+    if max_interevent_times[i] > 10 and annotate_plots:
         ax.annotate(txt[:4],
                     (mean_ltr[i], min_interevent_times[i]),
                     fontsize=8)
@@ -808,14 +837,16 @@ pyplot.errorbar(mean_ltr, min_paired_interevent_times,
                 yerr = min_paired_interevent_times_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
+                linestyle="None",
+                zorder=1)
 pyplot.errorbar(mean_ltr, min_paired_interevent_times,
                 xerr = ltr_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
+                linestyle="None",
+                zorder=1)
 pyplot.scatter(mean_ltr, min_paired_interevent_times,
-               marker='s', c=colours, s=25)
+               marker='s', c=colours, s=25, zorder=2)
 #c='0.1', s=25)
 ax.set_xlabel('Long-term rate')
 ax.set_ylabel('Minimum interevent time \n(mean of two shortest consecutive interevent times)')
@@ -823,7 +854,7 @@ ax.set_xscale('log')
 ax.set_yscale('log') 
 # Label low-slip rate faults
 for i, txt in enumerate(names):
-    if max_interevent_times[i] > 10:
+    if max_interevent_times[i] > 10 and annotate_plots:
         ax.annotate(txt[:4],
                     (mean_ltr[i], min_paired_interevent_times[i]),
                     fontsize=8)
@@ -858,14 +889,16 @@ pyplot.errorbar(mean_ltr, max_interevent_times,
                 yerr = max_interevent_times_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
+                linestyle="None",
+                zorder=1)
 pyplot.errorbar(mean_ltr, max_interevent_times,
                 xerr = ltr_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
+                linestyle="None",
+                zorder=1)
 pyplot.scatter(mean_ltr, max_interevent_times,
-               marker='s', c=colours, s=25)
+               marker='s', c=colours, s=25, zorder=2)
 #c='0.1', s=25)
 ax.set_xlabel('Long-term rate')
 ax.set_ylabel('Maximum interevent time')
@@ -873,7 +906,7 @@ ax.set_xscale('log')
 ax.set_yscale('log') 
 # Label low-slip rate faults
 for i, txt in enumerate(names):
-    if max_interevent_times[i] > 10:
+    if max_interevent_times[i] > 10 and annotate_plots:
         ax.annotate(txt[:4],
                     (mean_ltr[i], max_interevent_times[i]),
                     fontsize=8)
@@ -909,21 +942,23 @@ pyplot.errorbar(mean_ltr, ratio_min_pair_max,
                 yerr = ratio_min_pair_max_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
+                linestyle="None",
+                zorder=1)
 pyplot.errorbar(mean_ltr, ratio_min_pair_max,
                 xerr = ltr_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
+                linestyle="None",
+                zorder=1)
 pyplot.scatter(mean_ltr, ratio_min_pair_max,
-               marker='s', c=colours, s=25)
+               marker='s', c=colours, s=25, zorder=2)
 ax.set_xlabel('Long-term rate')
 ax.set_ylabel('Minimum pair interevent time: maximum interevent time')
 ax.set_xscale('log')
 ax.set_yscale('log') 
 # Label low-slip rate faults
 for i, txt in enumerate(names):
-    if max_interevent_times[i] > 10:
+    if max_interevent_times[i] > 10 and annotate_plots:
         ax.annotate(txt[:4],
                     (mean_ltr[i], ratio_min_pair_max[i]),
                     fontsize=8)
@@ -1014,21 +1049,22 @@ pyplot.errorbar(mean_ltr, ratio_min_max,
                 yerr = ratio_min_max_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
+                linestyle="None",
+                zorder=1)
 pyplot.errorbar(mean_ltr, ratio_min_max,
                 xerr = ltr_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
-                linestyle="None")
+                linestyle="None", zorder=1)
 pyplot.scatter(mean_ltr, ratio_min_max,
-               marker = 's', c=colours, s=25)
+               marker = 's', c=colours, s=25, zorder=2)
 ax.set_xlabel('Long-term rate')
 ax.set_ylabel('Minimum interevent time: maximum interevent time')
 ax.set_xscale('log')
 ax.set_yscale('log') 
 # Label low-slip rate faults
 for i, txt in enumerate(names):
-    if max_interevent_times[i] > 10:
+    if max_interevent_times[i] > 10 and annotate_plots:
         ax.annotate(txt[:4],
                     (mean_ltr[i], ratio_min_max[i]),
                     fontsize=8)
