@@ -1,4 +1,4 @@
-filename = '../data/DeadSeaYammouneh_Daeron_2007_simple.txt'
+filename = '../data/AlpineHokuriCk_Berryman_2012_simple.txt'
 chron_type = 'Age2Sigma'
 sigma_level = 2
 event_order = 'Backwards'

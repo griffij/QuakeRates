@@ -1,4 +1,4 @@
-filename = '../data/Ohariu_Nicol_2016_simple.txt'
+filename = '../data/HopeConway_Hatem_2019_simple.txt'
 chron_type = 'Age2Sigma'
 sigma_level = 2
 event_order = 'Backwards'
