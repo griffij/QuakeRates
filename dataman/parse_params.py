@@ -43,17 +43,17 @@ def get_event_sets(param_file_list, tectonic_regions,
         print(name)
         params = parse_param_file(param_file)
         print(params)
-        # Now we want to take subsets of the data based on paremeters
+        # Now we want to take subsets of the data based on parameters
         if params['tectonic_region'] not in tectonic_regions:
             if tectonic_regions[0] == 'all':
                 pass
             else:
                 continue
-            if params['faulting_style'] not in faulting_styles:
-                if faulting_styles[0] == 'all':
-                    pass
-                else:
-                    continue
+        if params['faulting_style'] not in faulting_styles:
+            if faulting_styles[0] == 'all':
+                pass
+            else:
+                continue
         # Deal with OxCal output and lists of dates with uncertainties
         # separately
         # Check that data file exists
