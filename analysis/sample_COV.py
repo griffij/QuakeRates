@@ -10,6 +10,7 @@ from scipy.optimize import curve_fit
 from scipy.odr import Model, RealData, ODR
 from matplotlib import pyplot
 from matplotlib.patches import PathPatch
+import matplotlib.gridspec as gridspec
 from scipy.stats import kde
 from QuakeRates.dataman.event_dates import EventSet
 from QuakeRates.dataman.parse_oxcal import parse_oxcal
@@ -19,6 +20,22 @@ from QuakeRates.dataman.parse_params import parse_param_file, \
 
 filepath = '../params'
 param_file_list = glob(os.path.join(filepath, '*.txt'))
+
+param_file_list_NZ = ['Akatore4eventBdy_output.txt',
+                      'AlpineHokuriCk_Berryman_2012_simple.txt',
+                      'AlpineSouthWestland_Cochran_2017_simple.txt',
+                      'AwatereEast_Nicol_2016_simple.txt',
+                      'ClarenceEast_Nicol_2016_simple.txt',
+                      'Dunstan6_GNS_unpub_simple.txt',
+                      'HopeConway_Hatem_2019_simple.txt',
+                      'Hope_Khajavi_2016_simple.txt',
+                      'Ohariu_Nicol_2016_simple.txt',
+                      'WairarapaSouth_Nicol_2016_simple.txt',
+                      'Wairau_Nicol_2018_simple.txt',
+                      'Wellington_Langridge_2011_simple.txt']
+#param_file_list = []
+#for f in param_file_list_NZ:
+#    param_file_list.append(os.path.join(filepath, f))
 n_samples = 500  # Number of Monte Carlo samples of the eq chronologies
 half_n = int(n_samples/2)
 print(half_n)
@@ -35,7 +52,7 @@ faulting_styles = ['all']
 tectonic_regions = ['all']
 #tectonic_regions = ['Intraplate_noncratonic', 'Intraplate_cratonic']
 #tectonic_regions = ['Plate_boundary_master', 'Plate_boundary_network']
-#tectonic_regions = ['Plate_boundary_network'] 
+#tectonic_regions = ['Plate_boundary_network', 'Near_plate_boundary'] 
 #tectonic_regions = ['Plate_boundary_master']
 #tectonic_regions = ['Subduction']
 #tectonic_regions = ['Near_plate_boundary']
@@ -43,6 +60,7 @@ min_number_events = 5
 
 #Summarise for comment to add to figure filename
 fig_comment = ''
+#fig_comment = 'NZ_examples_'
 for f in faulting_styles:
     fig_comment += f
     fig_comment += '_'
@@ -596,7 +614,7 @@ pyplot.scatter(mean_mems, mean_bs, marker = 's', c=plot_colours,
                s=25, zorder=2)
 for i, txt in enumerate(names):
     if max_interevent_times[i] > 10 and annotate_plots:
-        ax.annotate(txt[:4],
+        ax.annotate(txt[:7],
                     (mean_mems[i], mean_bs[i]),
                     fontsize=8)
 ax.set_xlim([-1, 1])
@@ -898,7 +916,7 @@ pyplot.errorbar(mean_ltr, max_interevent_times,
                 linestyle="None",
                 zorder=1)
 pyplot.scatter(mean_ltr, max_interevent_times,
-               marker='s', c=colours, s=25, zorder=2)
+               marker='s', c=plot_colours, s=25, zorder=2)
 #c='0.1', s=25)
 ax.set_xlabel('Long-term rate')
 ax.set_ylabel('Maximum interevent time')
@@ -930,7 +948,7 @@ pyplot.plot(xvals_short, yvals)
 # Add formula for linear fit to low-end of data
 txt = 'Log(Y) = %.2fLog(x) + %.2f' % (lf[0], lf[1])
 print(txt)
-ax.annotate(txt, (1e-4, 10000))
+ax.annotate(txt, (1e-4, 100000))
 figname = 'max_interevent_time_vs_ltr_%s.png' % fig_comment
 pyplot.savefig(figname)
 
@@ -951,7 +969,7 @@ pyplot.errorbar(mean_ltr, ratio_min_pair_max,
                 linestyle="None",
                 zorder=1)
 pyplot.scatter(mean_ltr, ratio_min_pair_max,
-               marker='s', c=colours, s=25, zorder=2)
+               marker='s', c=plot_colours, s=25, zorder=2)
 ax.set_xlabel('Long-term rate')
 ax.set_ylabel('Minimum pair interevent time: maximum interevent time')
 ax.set_xscale('log')
@@ -1057,7 +1075,7 @@ pyplot.errorbar(mean_ltr, ratio_min_max,
                 elinewidth=0.7,
                 linestyle="None", zorder=1)
 pyplot.scatter(mean_ltr, ratio_min_max,
-               marker = 's', c=colours, s=25, zorder=2)
+               marker = 's', c=plot_colours, s=25, zorder=2)
 ax.set_xlabel('Long-term rate')
 ax.set_ylabel('Minimum interevent time: maximum interevent time')
 ax.set_xscale('log')
@@ -1086,4 +1104,142 @@ txt = 'Log(Y) = %.2fLog(x) + %.2f' % (lf[0], lf[1])
 print(txt)
 ax.annotate(txt, (1e-4, 1e-3))
 figname = 'min_max_ratio_vs_ltr_%s.png' % fig_comment
+pyplot.savefig(figname)
+
+#############################################
+# Make multipanel figure plot
+pyplot.clf()
+fig = pyplot.figure(1)
+# set up subplot grid
+gridspec.GridSpec(2, 2)
+#First plot
+pyplot.subplot2grid((2, 2), (0,0), colspan=1, rowspan=1)
+ax = pyplot.gca()
+# Plot burstiness against mean ltr
+pyplot.errorbar(mean_ltr, mean_bs,
+                xerr = ltr_bounds,
+                ecolor = '0.3',
+                elinewidth=0.5,
+                linestyle="None",
+                zorder=1)
+pyplot.errorbar(mean_ltr, mean_bs,
+                yerr = burstiness_bounds,
+                ecolor = '0.3',
+                elinewidth=0.5,
+                linestyle="None",
+                zorder=1)
+pyplot.scatter(mean_ltr, mean_bs, marker = 's', c=plot_colours,
+               s=18, zorder=2)
+ax.set_ylim([-1, 1])
+ax.set_xlim([1./1000000, 1./40])
+pyplot.plot([1./1000000, 1./40], [0, 0], linestyle='dashed', linewidth=1, c='0.5')
+ax.set_xscale('log')
+ax.set_xlabel('Long-term rate (events per year)')
+ax.set_ylabel('B')
+# Add a legend using some dummy data
+line1 = ax.scatter([1], [100], marker = 's', c = 'r', s=18)
+line2 = ax.scatter([1], [100], marker = 's', c = 'g', s=18)
+line3 = ax.scatter([1], [100], marker = 's', c = 'b', s=18)
+pyplot.legend((line1, line2, line3), ('Normal', 'Strike slip', 'Reverse'))
+# Add second plot
+pyplot.subplot2grid((2, 2), (0,1), colspan=1, rowspan=1)
+ax = pyplot.gca()
+pyplot.errorbar(mean_mems, mean_bs,
+                xerr = memory_bounds,
+                ecolor = '0.3',
+                elinewidth=0.5,
+                linestyle="None",
+                zorder=1)
+pyplot.errorbar(mean_mems, mean_bs,
+                yerr = burstiness_bounds,
+                ecolor = '0.3',
+                elinewidth=0.5,
+                linestyle="None",
+                zorder=1)
+pyplot.scatter(mean_mems, mean_bs, marker = 's', c=plot_colours,
+               s=18, zorder=2)
+for i, txt in enumerate(names):
+    if max_interevent_times[i] > 10 and annotate_plots:
+        ax.annotate(txt[:7],
+                    (mean_mems[i], mean_bs[i]),
+                    fontsize=8)
+ax.set_xlim([-1, 1])
+ax.set_ylim([-1, 1])
+# Add y = 0, x=0 lines
+pyplot.plot([0,0],[-1, 1], linestyle='dashed', linewidth=1, c='0.5')
+pyplot.plot([-1,1],[0, 0], linestyle='dashed', linewidth=1, c='0.5')
+#ax.set_yscale('log')
+ax.set_ylabel('B')
+ax.set_xlabel('M')
+
+# Add third plot
+pyplot.subplot2grid((2, 2), (1,0), colspan=1, rowspan=1)
+ax = pyplot.gca()
+pyplot.errorbar(mean_ltr, max_interevent_times,
+                yerr = max_interevent_times_bounds,
+                ecolor = '0.3',
+                elinewidth=0.5,
+                linestyle="None",
+                zorder=1)
+pyplot.errorbar(mean_ltr, max_interevent_times,
+                xerr = ltr_bounds,
+                ecolor = '0.3',
+                elinewidth=0.5,
+                linestyle="None",
+                zorder=1)
+pyplot.scatter(mean_ltr, max_interevent_times,
+               marker='s', c=plot_colours, s=18, zorder=2)
+#c='0.1', s=25)
+ax.set_xlabel('Long-term rate (events per year)')
+ax.set_ylabel(r'$\tau_{max}$')
+ax.set_xscale('log')
+ax.set_yscale('log') 
+# Label low-slip rate faults
+for i, txt in enumerate(names):
+    if max_interevent_times[i] > 10 and annotate_plots:
+        ax.annotate(txt[:4],
+                    (mean_ltr[i], max_interevent_times[i]),
+                    fontsize=8)
+indices = np.argwhere(mean_ltr > 2e-10).flatten() # All data for now
+lf = np.polyfit(np.log10(mean_ltr[indices]),
+                np.log10(max_interevent_times[indices]), 1)
+xvals_short = np.arange(2e-6, 2e-2, 1e-6)
+log_yvals = lf[0]*np.log10(xvals_short) + lf[1]
+yvals = np.power(10, log_yvals)
+pyplot.plot(xvals_short, yvals, c='k')
+# Add formula for linear fit to low-end of data
+txt = 'Log(Y) = %.2fLog(x) + %.2f' % (lf[0], lf[1])
+print(txt)
+ax.annotate(txt, (1e-5, 2000000), fontsize=8)
+
+# Add fourth plot
+pyplot.subplot2grid((2, 2), (1,1), colspan=1, rowspan=1)
+ax = pyplot.gca()
+pyplot.errorbar(mean_ltr, ratio_min_max,
+                yerr = ratio_min_max_bounds,
+                ecolor = '0.3',
+                elinewidth=0.5,
+                linestyle="None",
+                zorder=1)
+pyplot.errorbar(mean_ltr, ratio_min_max,
+                xerr = ltr_bounds,
+                ecolor = '0.3',
+                elinewidth=0.5,
+                linestyle="None",
+                zorder=1)
+pyplot.scatter(mean_ltr, ratio_min_max,
+               marker='s', c=plot_colours, s=18, zorder=2)
+ax.set_xlabel('Long-term rate  (events per year)')
+ax.set_ylabel(r'$\tau_{min}$ / $\tau_{max}$')
+ax.set_xscale('log')
+ax.set_yscale('log') 
+# Label low-slip rate faults
+for i, txt in enumerate(names):
+    if max_interevent_times[i] > 10 and annotate_plots:
+        ax.annotate(txt[:4],
+                    (mean_ltr[i], ratio_min_pair_max[i]),
+                    fontsize=8)
+fig.tight_layout(pad=1.2, w_pad=1.0, h_pad=0)
+fig.set_size_inches(w=7,h=7.)
+figname = 'combined_plot_%s.png' % fig_comment
 pyplot.savefig(figname)
