@@ -22,9 +22,9 @@ labels = []
 plt.clf() 
 fig = plt.figure(1)#, figsize=(6., 24.))
 # set up subplot grid
-gridspec.GridSpec(6, 2)
+gridspec.GridSpec(7, 2)
 #First plot
-plt.subplot2grid((6, 2), (0,0), colspan=1, rowspan=1)
+plt.subplot2grid((7, 2), (0,0), colspan=1, rowspan=1)
 #ax = plt.subplot(111)
 ax = plt.gca()
 ax.set_xlim([0, sum(ie_times)+50])
@@ -45,7 +45,7 @@ bursts.append(burst)
 labels.append('a')
 
 # Next subplot
-plt.subplot2grid((6, 2), (1,0), colspan=1, rowspan=1)
+plt.subplot2grid((7, 2), (1,0), colspan=1, rowspan=1)
 sorted_ie = np.sort(ie_times)
 sorted_ie = np.concatenate(([sorted_ie[-2]], [sorted_ie[-3]], sorted_ie[0:-3],[sorted_ie[-1]]))
 time_sum = 0
@@ -68,7 +68,7 @@ labels.append('b')
 
 
 # Next subplot
-plt.subplot2grid((6, 2), (2,0), colspan=1, rowspan=1)
+plt.subplot2grid((7, 2), (2,0), colspan=1, rowspan=1)
 ies = np.sort(ie_times)
 sorted_ie = np.array([ies[0], ies[-1], ies[1], ies[-2], ies[2], ies[-3], ies[3], ies[-4], ies[4], ies[-5]])
 #sorted_ie = np.concatenate(([sorted_ie[-2]], [sorted_ie[-3]], sorted_ie[0:-3],[sorted_ie[-1]]))
@@ -81,7 +81,7 @@ ax = plt.gca()
 ax.set_ylim([0, 1]) 
 ax.annotate('c)', (-0.13, 0.9), xycoords = 'axes fraction', fontsize=10) 
 ax.set_title('Shuffled, negative $M$', fontsize=10)
-ax.set_xlabel('Time (years)')
+#ax.set_xlabel('Time (years)')
 burst = burstiness(sorted_ie)
 memory = memory_coefficient(sorted_ie)
 print(burst)
@@ -91,7 +91,29 @@ bursts.append(burst)
 labels.append('c')
 
 # Next subplot
-plt.subplot2grid((6, 2), (0,1), colspan=1, rowspan=1)
+# Generate Gamma distribution
+ie_times = gamma(2.0, scale=100).rvs(size=10)
+plt.subplot2grid((7, 2), (3,0), colspan=1, rowspan=1)
+time_sum = 0
+for i, ie_time in enumerate(ie_times):
+    time_sum += ie_time
+    plt.plot([time_sum, time_sum], [0, 1], c='k')
+#plt.show()
+ax = plt.gca()
+ax.set_ylim([0, 1]) 
+ax.annotate('d)', (-0.13, 0.9), xycoords = 'axes fraction', fontsize=10) 
+ax.set_title(r'Gamma $(\alpha = 2, \lambda = 100)$', fontsize=10)
+ax.set_xlabel('Time (years)')
+burst = burstiness(ie_times)
+memory = memory_coefficient(ie_times)
+print(burst)
+print(memory)
+mems.append(memory)
+bursts.append(burst)
+labels.append('d')
+
+# Next subplot
+plt.subplot2grid((7, 2), (0,1), colspan=1, rowspan=1)
 # Based on alpine fault
 af = [300, 500, 705, 860, 1155, 1364, 1777]
 af_ie_times = []
@@ -102,7 +124,7 @@ for i, date in enumerate(af):
         af_ie_times.append(ie_times)
 ax = plt.gca()
 ax.set_ylim([0, 1])
-ax.annotate('d)', (-0.13, 0.9), xycoords = 'axes fraction', fontsize=10)
+ax.annotate('e)', (-0.13, 0.9), xycoords = 'axes fraction', fontsize=10)
 ax.set_title('Alpine Fault (Hokuri Creek)', fontsize=10)
 burst = burstiness(af_ie_times)
 memory = memory_coefficient(af_ie_times)
@@ -113,7 +135,7 @@ bursts.append(burst)
 labels.append('AF')
 
 # Next subplot
-plt.subplot2grid((6, 2), (1,1), colspan=1, rowspan=1)
+plt.subplot2grid((7, 2), (1,1), colspan=1, rowspan=1)
 # Based on Mentawai
 sum_m = [1314, 1350, 1388, 1569, 1597, 1613, 1631, 1658, 1703, 1797, 1833, 2007, 2010]
 sum_m_ie_times = []
@@ -124,7 +146,7 @@ for i, date in enumerate(sum_m):
         sum_m_ie_times.append(ie_times)
 ax = plt.gca() 
 ax.set_ylim([0, 1])
-ax.annotate('e)', (-0.13, 0.9), xycoords = 'axes fraction', fontsize=10) 
+ax.annotate('f)', (-0.13, 0.9), xycoords = 'axes fraction', fontsize=10) 
 ax.set_title('Sunda Arc (Mentawai Segment)', fontsize=10) 
 burst = burstiness(sum_m_ie_times)
 memory = memory_coefficient(sum_m_ie_times)
@@ -135,7 +157,35 @@ bursts.append(burst)
 labels.append('SA')
 
 # Next subplot
-plt.subplot2grid((6, 2), (2,1), colspan=1, rowspan=1)
+plt.subplot2grid((7, 2), (2,1), colspan=1, rowspan=1)
+# Based on Wairarapa fault
+wf = [-4880, -3140, -1550, -260, 1030, 1855]
+# Hope Fault - Conway segment
+#hf = [500, 1355, 1553, 1750, 1820]
+#wf = hf
+wf_ie_times = []
+for i, date in enumerate(wf):
+    plt.plot([date, date], [0, 1], c='k')
+    if i > 0:
+        ie_times = date - wf[i-1]
+        wf_ie_times.append(ie_times)
+ax = plt.gca()
+ax.set_ylim([0, 1])
+ax.annotate('g)', (-0.13, 0.9), xycoords = 'axes fraction', fontsize=10)
+ax.set_title('Wairarapa Fault', fontsize=10)
+#ax.set_xlabel('Year')
+#plt.xticks([-4000000, -2000000, 0])
+burst = burstiness(wf_ie_times)
+memory = memory_coefficient(wf_ie_times)
+print(burst)
+print(memory)
+mems.append(memory)
+bursts.append(burst)
+labels.append('W')
+
+
+# Next subplot
+plt.subplot2grid((7, 2), (3,1), colspan=1, rowspan=1)
 # Based on Cadell fault
 cf = [-4500000, -2000000, -1000000, -70000, -62500, -55000, -45000, -38500, -32000]
 cf_ie_times = []
@@ -146,7 +196,7 @@ for i, date in enumerate(cf):
         cf_ie_times.append(ie_times)
 ax = plt.gca()
 ax.set_ylim([0, 1])
-ax.annotate('f)', (-0.13, 0.9), xycoords = 'axes fraction', fontsize=10)
+ax.annotate('h)', (-0.13, 0.9), xycoords = 'axes fraction', fontsize=10)
 ax.set_title('Cadell Fault', fontsize=10)
 ax.set_xlabel('Year')
 plt.xticks([-4000000, -2000000, 0])
@@ -159,17 +209,17 @@ bursts.append(burst)
 labels.append('CF')
 
 # Now plot M_B phase diagram
-plt.subplot2grid((6, 2), (3,0), colspan=2, rowspan=3)
-#markers = ['s', 's', 's', '^', '^', '^']
-plt.scatter(mems[0:3], bursts[0:3], marker = 's', c='k', s=20)
-plt.scatter(mems[3:6], bursts[3:6], marker = '^', c='k', s=20)
+plt.subplot2grid((7, 2), (4, 0), colspan=2, rowspan=3)
+#markers = ['s', 's', 's', 's', '^', '^', '^', '^']
+plt.scatter(mems[0:4], bursts[0:4], marker = 's', c='k', s=20)
+plt.scatter(mems[4:8], bursts[4:8], marker = '^', c='k', s=20)
 #plt.show()
 ax = plt.gca()
 ax.set_xlabel('M')
 ax.set_ylabel('B')
 ax.set_xlim([-1, 1])
 ax.set_ylim([-1, 1])
-ax.annotate('g)', (-0.2, 0.98), xycoords = 'axes fraction', fontsize=10) 
+ax.annotate('i)', (-0.2, 0.98), xycoords = 'axes fraction', fontsize=10) 
 # Add y = 0, x=0 lines
 plt.plot([0,0],[-1, 1], linestyle='dashed', linewidth=1, c='0.5')
 plt.plot([-1,1],[0, 0], linestyle='dashed', linewidth=1, c='0.5')
@@ -177,13 +227,14 @@ for i, txt in enumerate(labels):
     ax.annotate(txt,
                 (mems[i]-0.05, bursts[i]+0.05),
                 fontsize=10)
-ax.annotate('Quasi-periodic', (-0.25, -0.8), fontsize=10, fontstyle='italic')
+ax.annotate('Quasi-periodic', (-0.32, -0.9), fontsize=10, fontstyle='italic')
 ax.annotate('Elastic \nrebound \ndominated', (-0.85, -0.70), fontsize=10, fontstyle='italic')
 ax.annotate('Supercycles', (-0.25, 0.12), fontsize=10, fontstyle='italic')
-ax.annotate('Poisson', (-0.25, -0.12), fontsize=10, fontstyle='italic')
-ax.annotate('Clusters', (0.25, 0.25), fontsize=10, fontstyle='italic') 
+#ax.annotate('Poisson', (-0.27, -0.14), fontsize=10, fontstyle='italic')
+ax.annotate('Clusters', (0.25, 0.35), fontsize=10, fontstyle='italic')
+ax.annotate('Rate \nvarying', (0.25, -0.4), fontsize=10, fontstyle='italic')
 ax.set_aspect('equal')
 
-fig.tight_layout(pad=1.5, w_pad=1.5, h_pad=-0.4)
-fig.set_size_inches(w=6,h=8) 
+fig.tight_layout(pad=1.2, w_pad=1.3, h_pad=-1.2)
+fig.set_size_inches(w=6,h=8.) 
 fig.savefig('B_M_phase_examples.png')#, bbox_inches='tight',pad_inches = 0)
