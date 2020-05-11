@@ -368,6 +368,11 @@ class EventSet(object):
         self.m2 = np.mean(self.interevent_times[1:], axis = 0)
         self.s1 = np.std(self.interevent_times[0:-1], axis=0)
         self.s2 = np.std(self.interevent_times[1:], axis = 0)
+        # Handle case for small number of interevent times (e.g. 2) where we
+        # can randomly generate identifical values and get a std=0
+        # Give this a small non-zero value to avoid divide by zero
+        self.s1[np.argwhere(self.s1==0)] = 1
+        self.s2[np.argwhere(self.s2==0)] = 1
         self.s1s2 = self.s1*self.s2
         # Loop over chronologies
         ie_min_m1 = self.interevent_times - self.m1
