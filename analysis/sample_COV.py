@@ -1141,6 +1141,8 @@ line1 = ax.scatter([1], [100], marker = 's', c = 'r', s=18)
 line2 = ax.scatter([1], [100], marker = 's', c = 'g', s=18)
 line3 = ax.scatter([1], [100], marker = 's', c = 'b', s=18)
 pyplot.legend((line1, line2, line3), ('Normal', 'Strike slip', 'Reverse'))
+ax.annotate('a)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
+
 # Add second plot
 pyplot.subplot2grid((2, 2), (0,1), colspan=1, rowspan=1)
 ax = pyplot.gca()
@@ -1171,6 +1173,7 @@ pyplot.plot([-1,1],[0, 0], linestyle='dashed', linewidth=1, c='0.5')
 #ax.set_yscale('log')
 ax.set_ylabel('B')
 ax.set_xlabel('M')
+ax.annotate('b)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
 
 # Add third plot
 pyplot.subplot2grid((2, 2), (1,0), colspan=1, rowspan=1)
@@ -1208,9 +1211,10 @@ log_yvals = lf[0]*np.log10(xvals_short) + lf[1]
 yvals = np.power(10, log_yvals)
 pyplot.plot(xvals_short, yvals, c='k')
 # Add formula for linear fit to low-end of data
-txt = 'Log(Y) = %.2fLog(x) + %.2f' % (lf[0], lf[1])
+txt = 'Log(y) = %.2fLog(x) + %.2f' % (lf[0], lf[1])
 print(txt)
 ax.annotate(txt, (1e-5, 2000000), fontsize=8)
+ax.annotate('c)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
 
 # Add fourth plot
 pyplot.subplot2grid((2, 2), (1,1), colspan=1, rowspan=1)
@@ -1239,6 +1243,8 @@ for i, txt in enumerate(names):
         ax.annotate(txt[:4],
                     (mean_ltr[i], ratio_min_pair_max[i]),
                     fontsize=8)
+ax.annotate('d)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
+
 fig.tight_layout(pad=1.2, w_pad=1.0, h_pad=0)
 fig.set_size_inches(w=7,h=7.)
 figname = 'combined_plot_%s.png' % fig_comment
