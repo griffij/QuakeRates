@@ -36,7 +36,7 @@ param_file_list_NZ = ['Akatore4eventBdy_output.txt',
 #param_file_list = []
 #for f in param_file_list_NZ:
 #    param_file_list.append(os.path.join(filepath, f))
-n_samples = 500  # Number of Monte Carlo samples of the eq chronologies
+n_samples = 100  # Number of Monte Carlo samples of the eq chronologies
 half_n = int(n_samples/2)
 print(half_n)
 annotate_plots = False # If True, lable each fault on the plot
@@ -1134,8 +1134,8 @@ ax.set_ylim([-1, 1])
 ax.set_xlim([1./1000000, 1./40])
 pyplot.plot([1./1000000, 1./40], [0, 0], linestyle='dashed', linewidth=1, c='0.5')
 ax.set_xscale('log')
-ax.set_xlabel('Long-term rate (events per year)')
-ax.set_ylabel('B')
+ax.set_xlabel('Long-term rate (events per year)', fontsize=8)
+ax.set_ylabel('B', fontsize=8)
 # Add a legend using some dummy data
 line1 = ax.scatter([1], [100], marker = 's', c = 'r', s=18)
 line2 = ax.scatter([1], [100], marker = 's', c = 'g', s=18)
@@ -1171,8 +1171,8 @@ ax.set_ylim([-1, 1])
 pyplot.plot([0,0],[-1, 1], linestyle='dashed', linewidth=1, c='0.5')
 pyplot.plot([-1,1],[0, 0], linestyle='dashed', linewidth=1, c='0.5')
 #ax.set_yscale('log')
-ax.set_ylabel('B')
-ax.set_xlabel('M')
+ax.set_ylabel('B', fontsize=8)
+ax.set_xlabel('M', fontsize=8)
 ax.annotate('b)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
 
 # Add third plot
@@ -1193,8 +1193,8 @@ pyplot.errorbar(mean_ltr, max_interevent_times,
 pyplot.scatter(mean_ltr, max_interevent_times,
                marker='s', c=plot_colours, s=18, zorder=2)
 #c='0.1', s=25)
-ax.set_xlabel('Long-term rate (events per year)')
-ax.set_ylabel(r'$\tau_{max}$')
+ax.set_xlabel('Long-term rate (events per year)', fontsize=8)
+ax.set_ylabel(r'$\tau_{max}$', fontsize=8)
 ax.set_xscale('log')
 ax.set_yscale('log') 
 # Label low-slip rate faults
@@ -1233,8 +1233,8 @@ pyplot.errorbar(mean_ltr, ratio_min_max,
                 zorder=1)
 pyplot.scatter(mean_ltr, ratio_min_max,
                marker='s', c=plot_colours, s=18, zorder=2)
-ax.set_xlabel('Long-term rate  (events per year)')
-ax.set_ylabel(r'$\tau_{min}$ / $\tau_{max}$')
+ax.set_xlabel('Long-term rate  (events per year)', fontsize=8)
+ax.set_ylabel(r'$\tau_{min}$ / $\tau_{max}$', fontsize=8)
 ax.set_xscale('log')
 ax.set_yscale('log') 
 # Label low-slip rate faults
