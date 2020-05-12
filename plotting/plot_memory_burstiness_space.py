@@ -125,7 +125,7 @@ for i, date in enumerate(af):
 ax = plt.gca()
 ax.set_ylim([0, 1])
 ax.annotate('e)', (-0.13, 0.9), xycoords = 'axes fraction', fontsize=10)
-ax.set_title('Alpine Fault (Hokuri Creek)', fontsize=10)
+ax.set_title("Alpine Fault (John O'Groats)", fontsize=10)
 burst = burstiness(af_ie_times)
 memory = memory_coefficient(af_ie_times)
 print(burst)
