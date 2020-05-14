@@ -36,7 +36,7 @@ param_file_list_NZ = ['Akatore4eventBdy_output.txt',
 #param_file_list = []
 #for f in param_file_list_NZ:
 #    param_file_list.append(os.path.join(filepath, f))
-n_samples = 100  # Number of Monte Carlo samples of the eq chronologies
+n_samples = 50  # Number of Monte Carlo samples of the eq chronologies
 half_n = int(n_samples/2)
 print(half_n)
 annotate_plots = False # If True, lable each fault on the plot
@@ -68,6 +68,9 @@ for t in tectonic_regions:
     fig_comment += t
     fig_comment += '_'
 fig_comment += str(min_number_events)
+
+def piecewise_linear(x, x0, y0, k1, k2):
+    return np.piecewise(x, [x < x0], [lambda x:k1*x + y0-k1*x0, lambda x:k2*x + y0-k2*x0])
 
 plot_colours = []
 covs = []
@@ -280,7 +283,12 @@ for i, cov_set in enumerate(covs):
     x, y = cov_samples
     # Evaluate a gaussian kde on a regular grid of nbins x nbins over
     # data extents
-    k = kde.gaussian_kde(cov_samples)
+    try:
+        k = kde.gaussian_kde(cov_samples)
+    except:
+        msg = 'Skipping %s' % names[i]
+        print(msg)
+        continue
     xi, yi = np.mgrid[0.98*x.min():1.02*x.max():nbins*1j, 0.98*y.min():1.02*y.max():nbins*1j]
     zi = k(np.vstack([xi.flatten(), yi.flatten()]))
     # Calculate percentiles
@@ -317,7 +325,7 @@ figname = 'cov_vs_lt_rate_%s.png' % fig_comment
 pyplot.savefig(figname)
 
 
-# Now just plot the means
+# Now just plot the means and 95% error bars
 pyplot.clf()
 ax = pyplot.subplot(111)
 mean_covs = []
@@ -407,6 +415,53 @@ pyplot.plot([1./1000000, 1./40], [0, 0], linestyle='dashed', linewidth=1, c='0.5
 ax.set_xscale('log')
 ax.set_xlabel('Long-term rate (events per year)')
 ax.set_ylabel('B')
+
+# Now do a bi-linear fit to the data
+#indices = np.argwhere(mean_ltr > 2e-4)#.flatten()
+mean_bs = np.array(mean_bs)
+indices = np.flatnonzero(mean_ltr > 3e-4)
+indices = indices.flatten()
+#print(indices, type(indices))
+
+indices_slow_faults = np.flatnonzero(mean_ltr <= 3e-4)
+indices_slow_faults = indices_slow_faults.flatten()
+# Fit fast rate faults
+lf = np.polyfit(np.log10(mean_ltr[indices]),
+                   mean_bs[indices], 1)
+# Now force to be a flat line1
+lf[0] = 0.
+lf[1] = np.mean(mean_bs[indices])
+std_lf = np.std(mean_bs[indices])
+xvals_short = np.arange(1.5e-4, 2e-2, 1e-4)
+yvals = lf[0]*np.log10(xvals_short) + lf[1]
+#yvals = np.power(10, log_yvals)
+pyplot.plot(xvals_short, yvals, c='0.2')
+# Fit slow faults
+lf_slow = np.polyfit(np.log10(mean_ltr[indices_slow_faults]),
+                   mean_bs[indices_slow_faults], 1)
+xvals_short = np.arange(1e-6, 1.5e-4, 1e-6)
+yvals = lf_slow[0]*np.log10(xvals_short) + lf_slow[1]
+#print(yvals)
+#print(xvals)
+#yvals = np.power(10, log_yvals)
+pyplot.plot(xvals_short, yvals, c='0.2')
+# Add formula for linear fits of data
+print('Fits for B vs LTR')
+#txt = 'Y = %.2fLog(x) + %.2f +/- %.2f' % (lf[0], lf[1], std_lf)
+txt = 'Y = {:=+6.2f} +/- {:4.2f}'.format(lf[1], std_lf)
+print(txt)
+ax.annotate(txt, (2e-4, 0.2), fontsize=8)
+#txt = 'Y = %.2fLog(x) + %.2f' % (lf_slow[0], lf_slow[1])
+txt = 'Y = {:4.2f}Log(x) {:=+6.2f}'.format(lf[0], lf[1]) 
+print(txt)
+ax.annotate(txt, (1.5e-6, 0.75), fontsize=8)
+
+# Now try piecewise linear fit
+#p , e = curve_fit(piecewise_linear, np.log10(mean_ltr), mean_bs)
+#xd = np.arange(1e-6, 2e-2, 1e-6)
+#plt.plot(x, y, "o")
+#pyplot.plot(xd, piecewise_linear(np.log10(xd), *p), c='b')
+
 figname = 'burstiness_vs_lt_rate_%s.png' % fig_comment 
 pyplot.savefig(figname)
 
@@ -427,7 +482,6 @@ for mean_mem in mean_mems:
         colours.append('g')
     else:
         colours.append('r')
-
 pyplot.errorbar(mean_ltr, mean_mems,
                 xerr = ltr_bounds,
                 ecolor = '0.3',
@@ -986,27 +1040,29 @@ for i, txt in enumerate(names):
 #pyplot.plot(xvals, yvals)
 
 # Linear fit high and low long term rate data separately
-indices = np.argwhere(mean_ltr > 2e-4).flatten()
-indices_slow_faults = np.argwhere(mean_ltr <= 2e-4).flatten()
+indices = np.argwhere(mean_ltr > 4e-4).flatten()
+indices_slow_faults = np.argwhere(mean_ltr <= 4e-4).flatten()
 lf = np.polyfit(np.log10(mean_ltr[indices]),
                                 np.log10(ratio_min_pair_max[indices]), 1)
 xvals_short = np.arange(2e-4, 5e-2, 1e-4)
 log_yvals = lf[0]*np.log10(xvals_short) + lf[1]
 yvals = np.power(10, log_yvals)
-pyplot.plot(xvals_short, yvals)
+pyplot.plot(xvals_short, yvals, c='k')
 # Add formula for linear fit to low-end of data
 txt = 'Log(Y) = %.2fLog(x) + %.2f' % (lf[0], lf[1])
 print(txt)
 ax.annotate(txt, (5e-4, 1e-2))
 
 # Slow long-term rates
+print('At if statement')
 if len(indices_slow_faults) > 0:
+    print('Plotting slow faults')
     lf = np.polyfit(np.log10(mean_ltr[indices_slow_faults]),
                     np.log10(ratio_min_pair_max[indices_slow_faults]), 1)
-    xvals_short = np.arange(2e-6, 2e-4, 1e-6)
+    xvals_short = np.arange(2e-6, 4e-4, 1e-6)
     log_yvals = lf[0]*np.log10(xvals_short) + lf[1]
     yvals = np.power(10, log_yvals)
-    pyplot.plot(xvals_short, yvals)
+    pyplot.plot(xvals_short, yvals, c='k')
     # Add formula for linear fit to low-end of data
     txt = 'Log(Y) = %.2fLog(x) + %.2f' % (lf[0], lf[1])
     print(txt)
@@ -1092,17 +1148,36 @@ for i, txt in enumerate(names):
 #pyplot.plot(xvals, yvals)
 
 # Linear fit only bottom end of data
-indices = np.argwhere(mean_ltr > 5e-4).flatten()
+indices = np.argwhere(mean_ltr > 9e-5).flatten()
+indices_slow_faults = np.argwhere(mean_ltr <= 9e-5).flatten()
 lf = np.polyfit(np.log10(mean_ltr[indices]),
                                 np.log10(ratio_min_max[indices]), 1)
-xvals_short = np.arange(5e-4, 1e-2, 1e-4)
+# Now just plot as constant mean value
+lf[0] = 0
+lf[1] = np.mean(np.log10(ratio_min_max[indices]))
+xvals_short = np.arange(3.46e-5, 1e-2, 1e-4)
 log_yvals = lf[0]*np.log10(xvals_short) + lf[1]
 yvals = np.power(10, log_yvals)
-pyplot.plot(xvals_short, yvals)
+pyplot.plot(xvals_short, yvals, c='k')
 # Add formula for linear fit to low-end of data
-txt = 'Log(Y) = %.2fLog(x) + %.2f' % (lf[0], lf[1])
+#txt = 'Log(Y) = %.2fLog(x) %+.2f' % (lf[0], lf[1])
+txt = 'Log(Y) = {:4.2f}Log(x) {:=+6.2f}'.format(lf[0], lf[1])
 print(txt)
 ax.annotate(txt, (1e-4, 1e-3))
+# Slow long-term rates
+if len(indices_slow_faults) > 0:
+    lf = np.polyfit(np.log10(mean_ltr[indices_slow_faults]),
+                    np.log10(ratio_min_max[indices_slow_faults]), 1)
+    xvals_short = np.arange(2e-6, 3.47e-5, 1e-6)
+    log_yvals = lf[0]*np.log10(xvals_short) + lf[1]
+    yvals = np.power(10, log_yvals)
+    pyplot.plot(xvals_short, yvals, c='k')
+    # Add formula for linear fit to low-end of data
+#    txt = 'Log(Y) = %.2fLog(x) %+.2f' % (lf[0], lf[1])
+    txt = 'Log(Y) = {:4.2f} {:=+6.2f}'.format(lf[0], lf[1])
+    print(txt)
+    ax.annotate(txt, (3e-6, 8e-1))
+
 figname = 'min_max_ratio_vs_ltr_%s.png' % fig_comment
 pyplot.savefig(figname)
 
@@ -1134,13 +1209,46 @@ ax.set_ylim([-1, 1])
 ax.set_xlim([1./1000000, 1./40])
 pyplot.plot([1./1000000, 1./40], [0, 0], linestyle='dashed', linewidth=1, c='0.5')
 ax.set_xscale('log')
-ax.set_xlabel('Long-term rate (events per year)', fontsize=8)
-ax.set_ylabel('B', fontsize=8)
+ax.set_xlabel('Long-term rate (events per year)', fontsize=10)
+ax.set_ylabel('B', fontsize=10)
 # Add a legend using some dummy data
 line1 = ax.scatter([1], [100], marker = 's', c = 'r', s=18)
 line2 = ax.scatter([1], [100], marker = 's', c = 'g', s=18)
 line3 = ax.scatter([1], [100], marker = 's', c = 'b', s=18)
 pyplot.legend((line1, line2, line3), ('Normal', 'Strike slip', 'Reverse'))
+
+# Now do a bi-linear fit to the data
+mean_bs = np.array(mean_bs)
+indices = np.flatnonzero(mean_ltr > 3e-4)
+indices = indices.flatten()
+indices_slow_faults = np.flatnonzero(mean_ltr <= 3e-4)
+indices_slow_faults = indices_slow_faults.flatten()
+# Fit fast rate faults
+lf = np.polyfit(np.log10(mean_ltr[indices]),
+                   mean_bs[indices], 1)
+# Now force to be a flat line1
+lf[0] = 0.
+lf[1] = np.mean(mean_bs[indices])
+std_lf = np.std(mean_bs[indices])
+xvals_short = np.arange(1.5e-4, 2e-2, 1e-4)
+yvals = lf[0]*np.log10(xvals_short) + lf[1]
+pyplot.plot(xvals_short, yvals, c='0.4')
+# Fit slow faults
+lf_slow = np.polyfit(np.log10(mean_ltr[indices_slow_faults]),
+                   mean_bs[indices_slow_faults], 1)
+xvals_short = np.arange(1e-6, 1.5e-4, 1e-6)
+yvals = lf_slow[0]*np.log10(xvals_short) + lf_slow[1]
+pyplot.plot(xvals_short, yvals, c='0.4')
+# Add formula for linear fits of data
+print('Fits for B vs LTR')
+txt = 'Y = {:=+6.2f} +/- {:4.2f}'.format(lf[1], std_lf)
+print(txt)
+ax.annotate(txt, (2e-4, 0.2), fontsize=8)
+txt = 'Y = {:4.2f}Log(x) {:=+6.2f}'.format(lf_slow[0], lf_slow[1]) 
+print(txt)
+ax.annotate(txt, (1.6e-6, -0.75), fontsize=8)
+
+
 ax.annotate('a)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
 
 # Add second plot
@@ -1171,8 +1279,8 @@ ax.set_ylim([-1, 1])
 pyplot.plot([0,0],[-1, 1], linestyle='dashed', linewidth=1, c='0.5')
 pyplot.plot([-1,1],[0, 0], linestyle='dashed', linewidth=1, c='0.5')
 #ax.set_yscale('log')
-ax.set_ylabel('B', fontsize=8)
-ax.set_xlabel('M', fontsize=8)
+ax.set_ylabel('B', fontsize=10)
+ax.set_xlabel('M', fontsize=10)
 ax.annotate('b)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
 
 # Add third plot
@@ -1193,8 +1301,8 @@ pyplot.errorbar(mean_ltr, max_interevent_times,
 pyplot.scatter(mean_ltr, max_interevent_times,
                marker='s', c=plot_colours, s=18, zorder=2)
 #c='0.1', s=25)
-ax.set_xlabel('Long-term rate (events per year)', fontsize=8)
-ax.set_ylabel(r'$\tau_{max}$', fontsize=8)
+ax.set_xlabel('Long-term rate (events per year)', fontsize=10)
+ax.set_ylabel(r'$\tau_{max}$', fontsize=10)
 ax.set_xscale('log')
 ax.set_yscale('log') 
 # Label low-slip rate faults
@@ -1209,7 +1317,7 @@ lf = np.polyfit(np.log10(mean_ltr[indices]),
 xvals_short = np.arange(2e-6, 2e-2, 1e-6)
 log_yvals = lf[0]*np.log10(xvals_short) + lf[1]
 yvals = np.power(10, log_yvals)
-pyplot.plot(xvals_short, yvals, c='k')
+pyplot.plot(xvals_short, yvals, c='0.4')
 # Add formula for linear fit to low-end of data
 txt = 'Log(y) = %.2fLog(x) + %.2f' % (lf[0], lf[1])
 print(txt)
@@ -1233,10 +1341,42 @@ pyplot.errorbar(mean_ltr, ratio_min_max,
                 zorder=1)
 pyplot.scatter(mean_ltr, ratio_min_max,
                marker='s', c=plot_colours, s=18, zorder=2)
-ax.set_xlabel('Long-term rate  (events per year)', fontsize=8)
-ax.set_ylabel(r'$\tau_{min}$ / $\tau_{max}$', fontsize=8)
+ax.set_xlabel('Long-term rate  (events per year)', fontsize=10)
+ax.set_ylabel(r'$\tau_{min}$ / $\tau_{max}$', fontsize=10)
 ax.set_xscale('log')
-ax.set_yscale('log') 
+ax.set_yscale('log')
+
+# Linear fit only bottom end of data
+indices = np.argwhere(mean_ltr > 9e-5).flatten()
+indices_slow_faults = np.argwhere(mean_ltr <= 9e-5).flatten()
+lf = np.polyfit(np.log10(mean_ltr[indices]),
+                                np.log10(ratio_min_max[indices]), 1)
+# Now just plot as constant mean value
+lf[0] = 0
+lf[1] = np.mean(np.log10(ratio_min_max[indices]))
+xvals_short = np.arange(3.46e-5, 1e-2, 1e-4)
+log_yvals = lf[0]*np.log10(xvals_short) + lf[1]
+yvals = np.power(10, log_yvals)
+pyplot.plot(xvals_short, yvals, c='0.4')
+# Add formula for linear fit to low-end of data
+#txt = 'Log(Y) = %.2fLog(x) %+.2f' % (lf[0], lf[1])
+txt = 'Log(Y) = {:=+6.2f}'.format(lf[1])
+print(txt)
+ax.annotate(txt, (2e-4, 1e-3), fontsize=8)
+# Slow long-term rates
+if len(indices_slow_faults) > 0:
+    lf = np.polyfit(np.log10(mean_ltr[indices_slow_faults]),
+                    np.log10(ratio_min_max[indices_slow_faults]), 1)
+    xvals_short = np.arange(2e-6, 3.47e-5, 1e-6)
+    log_yvals = lf[0]*np.log10(xvals_short) + lf[1]
+    yvals = np.power(10, log_yvals)
+    pyplot.plot(xvals_short, yvals, c='0.4')
+    # Add formula for linear fit to low-end of data
+#    txt = 'Log(Y) = %.2fLog(x) %+.2f' % (lf[0], lf[1])
+    txt = 'Log(Y) = {:4.2f} {:=+6.2f}'.format(lf[0], lf[1])
+    print(txt)
+    ax.annotate(txt, (2e-6, 8e-1), fontsize=8)
+
 # Label low-slip rate faults
 for i, txt in enumerate(names):
     if max_interevent_times[i] > 10 and annotate_plots:
