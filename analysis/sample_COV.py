@@ -5,6 +5,7 @@ import os, sys
 import ast
 from glob import glob
 from operator import itemgetter 
+from re import finditer
 import numpy as np
 from scipy.optimize import curve_fit
 from scipy.odr import Model, RealData, ODR
@@ -12,6 +13,7 @@ from matplotlib import pyplot
 from matplotlib.patches import PathPatch
 import matplotlib.gridspec as gridspec
 from scipy.stats import kde
+from adjustText import adjust_text
 from QuakeRates.dataman.event_dates import EventSet
 from QuakeRates.dataman.parse_oxcal import parse_oxcal
 from QuakeRates.dataman.parse_age_sigma import parse_age_sigma
@@ -36,10 +38,10 @@ param_file_list_NZ = ['Akatore4eventBdy_output.txt',
 #param_file_list = []
 #for f in param_file_list_NZ:
 #    param_file_list.append(os.path.join(filepath, f))
-n_samples = 50  # Number of Monte Carlo samples of the eq chronologies
+n_samples = 10000  # Number of Monte Carlo samples of the eq chronologies
 half_n = int(n_samples/2)
 print(half_n)
-annotate_plots = False # If True, lable each fault on the plot
+annotate_plots = True # If True, lable each fault on the plot
 plot_folder = './plots'
 if not os.path.exists(plot_folder):
     os.makedirs(plot_folder)
@@ -56,7 +58,7 @@ tectonic_regions = ['all']
 #tectonic_regions = ['Plate_boundary_master']
 #tectonic_regions = ['Subduction']
 #tectonic_regions = ['Near_plate_boundary']
-min_number_events = 5
+min_number_events = 8
 
 #Summarise for comment to add to figure filename
 fig_comment = ''
@@ -71,6 +73,9 @@ fig_comment += str(min_number_events)
 
 def piecewise_linear(x, x0, y0, k1, k2):
     return np.piecewise(x, [x < x0], [lambda x:k1*x + y0-k1*x0, lambda x:k2*x + y0-k2*x0])
+def camel_case_split(identifier):
+    matches = finditer('.+?(?:(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|$)', identifier)
+    return [m.group(0) for m in matches]
 
 plot_colours = []
 covs = []
@@ -1354,15 +1359,16 @@ lf = np.polyfit(np.log10(mean_ltr[indices]),
 # Now just plot as constant mean value
 lf[0] = 0
 lf[1] = np.mean(np.log10(ratio_min_max[indices]))
+std_lf = np.std(np.log10(ratio_min_max[indices]))
 xvals_short = np.arange(3.46e-5, 1e-2, 1e-4)
 log_yvals = lf[0]*np.log10(xvals_short) + lf[1]
 yvals = np.power(10, log_yvals)
 pyplot.plot(xvals_short, yvals, c='0.4')
 # Add formula for linear fit to low-end of data
 #txt = 'Log(Y) = %.2fLog(x) %+.2f' % (lf[0], lf[1])
-txt = 'Log(Y) = {:=+6.2f}'.format(lf[1])
+txt = 'Log(Y) = {:=+6.2f} +/- {:4.2f}'.format(lf[1], std_lf)
 print(txt)
-ax.annotate(txt, (2e-4, 1e-3), fontsize=8)
+ax.annotate(txt, (1e-4, 1e-3), fontsize=8)
 # Slow long-term rates
 if len(indices_slow_faults) > 0:
     lf = np.polyfit(np.log10(mean_ltr[indices_slow_faults]),
@@ -1389,3 +1395,109 @@ fig.tight_layout(pad=1.2, w_pad=1.0, h_pad=0)
 fig.set_size_inches(w=7,h=7.)
 figname = 'combined_plot_%s.png' % fig_comment
 pyplot.savefig(figname)
+
+# Plot M-B phase diagram with stuff over the top
+pyplot.clf()
+ax = pyplot.subplot(111)
+colours = []
+for mean_b in mean_bs:
+    if mean_b <= -0.05:
+        colours.append('b')
+    elif mean_b > -0.05 and mean_b <= 0.05:
+        colours.append('g')
+    else:
+        colours.append('r')
+pyplot.errorbar(mean_mems, mean_bs,
+                xerr = memory_bounds,
+                ecolor = '0.8',
+                elinewidth=0.7,
+                linestyle="None",
+                zorder=1)
+pyplot.errorbar(mean_mems, mean_bs,
+                yerr = burstiness_bounds,
+                ecolor = '0.8',
+                elinewidth=0.7,
+                linestyle="None",
+                zorder=1)
+pyplot.scatter(mean_mems, mean_bs, marker = 's', c=plot_colours,
+               s=25, zorder=2)
+texts = []
+for i, txt in enumerate(names):
+    sp = camel_case_split(txt)
+    # Handle special cases of two word fault names
+    if sp[0] == 'San' or sp[0] == 'Dead' or sp[0] == 'Loma':
+        flt_txt = sp[0] + ' '  + sp [1]
+    else:
+        flt_txt = sp[0]
+    text = ax.annotate(flt_txt,
+                        (mean_mems[i], mean_bs[i]),
+                        fontsize=8, zorder=3)
+    texts.append(text)
+
+ax.set_xlim([-1, 1])
+ax.set_ylim([-1, 1])
+# Add y = 0, x=0 lines
+pyplot.plot([0,0],[-1, 1], linestyle='dashed', linewidth=1, c='0.5')
+pyplot.plot([-1,1],[0, 0], linestyle='dashed', linewidth=1, c='0.5')
+#ax.set_yscale('log')
+ax.set_ylabel('B')
+ax.set_xlabel('M')
+
+# Now we add on some of the points from seismicity catalogs from Chen et al 2020
+# First regions
+mem_seis = [0.07, 0.25, -0.11, 0.35, -0.02, 0.31, 0.0, 0.21, -0.23]
+b_seis = [0.10, 0.23, 0.05, 0.08, 0.09, 0.12, 0.31, 0.06, 0.03]
+labels = ['Global', 'Japan', 'Taiwan','California', 'New Zealand',
+          'North China', 'East Africa', 'Tibet', 'Xinjiang']
+pyplot.scatter(mem_seis, b_seis, marker = '^', s=25, zorder=2, c='k')
+for i, txt in enumerate(labels):
+    text = ax.annotate(txt, (mem_seis[i], b_seis[i]), fontsize=8, zorder=3, style='italic')
+    texts.append(text)
+# Now individual faults from Chen et al 2020
+mem_seis = [-0.15, -0.06, 0.23, -0.34]
+b_seis = [-0.05, 0.07, 0.01, 0.02]
+labels = ['Great Sumatran', 'North Anatolian', 'Sagaing', 'Xianshuihe']
+pyplot.scatter(mem_seis, b_seis, marker = 'v', s=25, zorder=2, c='k')
+for i, txt in enumerate(labels):
+    text = ax.annotate(txt, (mem_seis[i], b_seis[i]), fontsize=8, zorder=3, style='italic',
+                       fontweight='bold')
+    texts.append(text)
+
+print('Adjusting label locations')
+adjust_text(texts, arrowprops=dict(arrowstyle='->', color='k', linewidth=0.5))
+
+# Now we add 95% limits from synthetically generated datasets
+for p in [68, 95]:
+    if p == 95:
+        ls = 'solid'
+    elif p == 68:
+        ls = 'dashed'
+    data = np.genfromtxt(('../plotting/Exponential_B_M_%iper_contour_nsim_100000_nevents_%i.txt' % (p, min_number_events)),
+                         delimiter=',')
+    lb = 'Exponential %i%%' % p
+    pyplot.plot(data[:,0], data[:,1], c='orangered', linestyle = ls, linewidth=1, zorder=1, label=lb)
+    data = np.genfromtxt(('../plotting/Gamma_B_M_%iper_contour_nsim_100000_nevents_%i.txt' % (p, min_number_events)),
+                         delimiter=',')
+    lb = 'Gamma %i%%' % p 
+    pyplot.plot(data[:,0], data[:,1], c='orange', linestyle = ls, linewidth=1, zorder=1, label=lb)
+    data = np.genfromtxt(('../plotting/Weibull_B_M_%iper_contour_nsim_100000_nevents_%i.txt' % (p, min_number_events)),
+                         delimiter=',')
+    lb = 'Weibull %i%%' % p 
+    pyplot.plot(data[:,0], data[:,1], c='yellow', linestyle = ls, linewidth=1, zorder=1, label=lb)
+pyplot.legend()
+# Add a legend using some dummy data
+line1 = ax.scatter([1], [100], marker = 's', c = 'r', s=25)
+line2 = ax.scatter([1], [100], marker = 's', c = 'g', s=25)
+line3 = ax.scatter([1], [100], marker = 's', c = 'b', s=25)
+line4 = ax.scatter([1], [100], marker = '^', c = 'k', s=25)
+line5 = ax.scatter([1], [100], marker = 'v', c = 'k', s=25)
+line6, = ax.plot([1, 2], [100, 101], c='orangered', linewidth=1)
+line7, = ax.plot([1, 2], [100, 101], c='orange', linewidth=1)
+line8, = ax.plot([1, 2], [100, 101], c='yellow', linewidth=1)
+pyplot.legend((line1, line2, line3, line4, line5, line6, line7, line8),
+              ('Normal', 'Strike slip', 'Reverse', 'Instrumental - regional',
+               'Instrumental - single fault', 'Exponential', 'Gamma', 'Weibull'))
+figname = 'B_M_phase_comparison_%s.png' % fig_comment 
+fig.set_size_inches(w=8,h=8.)
+pyplot.savefig(figname)
+
