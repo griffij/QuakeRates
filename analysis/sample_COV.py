@@ -28,17 +28,34 @@ param_file_list_NZ = ['Akatore4eventBdy_output.txt',
                       'AlpineSouthWestland_Cochran_2017_simple.txt',
                       'AwatereEast_Nicol_2016_simple.txt',
                       'ClarenceEast_Nicol_2016_simple.txt',
+                      'CloudyFault_Nicol_2016_simple.txt',
                       'Dunstan6_GNS_unpub_simple.txt',
                       'HopeConway_Hatem_2019_simple.txt',
                       'Hope_Khajavi_2016_simple.txt',
+                      'Ihaia_Nicol_2016_simple.txt',
+                      'Oaonui_Nicol_2016_simple.txt',
                       'Ohariu_Nicol_2016_simple.txt',
+                      'Paeroa_Nicol_2016_simple.txt',
+                      'Pihama_Nicol_2016_simple.txt',
+                      'PortersPassEast_Nicol_2016_simple.txt',
+                      'Ngakuru_Nicol_2016_simple.txt',
+                      'Mangatete_Nicol_2016_simple.txt',
+                      'Rangipo_Nicol_2016_simple.txt',
+                      'Rotoitipakau_Nicol_2016_simple.txt',
+                      'Rotohauhau_Nicol_2016_simple.txt',
+                      'Snowden_Nicol_2016_simple.txt',
+                      'Vernon_Nicol_2016_simple.txt',
                       'WairarapaSouth_Nicol_2016_simple.txt',
                       'Wairau_Nicol_2018_simple.txt',
-                      'Wellington_Langridge_2011_simple.txt']
-#param_file_list = []
-#for f in param_file_list_NZ:
-#    param_file_list.append(os.path.join(filepath, f))
-n_samples = 10000  # Number of Monte Carlo samples of the eq chronologies
+                      'Waimana_Nicol_2016_simple.txt',
+                      'Wellington_Langridge_2011_simple.txt',
+                      'Waitangi_simple.txt',
+                      'Whakatane_Nicol_2016_simple.txt',
+                      'Whirinaki_Nicol_2016_simple.txt']
+param_file_list = []
+for f in param_file_list_NZ:
+    param_file_list.append(os.path.join(filepath, f))
+n_samples = 100  # Number of Monte Carlo samples of the eq chronologies
 half_n = int(n_samples/2)
 print(half_n)
 annotate_plots = True # If True, lable each fault on the plot
@@ -52,17 +69,17 @@ if not os.path.exists(plot_folder):
 #faulting_styles = ['Strike_slip'] 
 faulting_styles = ['all']
 tectonic_regions = ['all']
-#tectonic_regions = ['Intraplate_noncratonic', 'Intraplate_cratonic']
+#tectonic_regions = ['Intraplate_noncratonic', 'Intraplate_cratonic', 'Near_plate_boundary']
 #tectonic_regions = ['Plate_boundary_master', 'Plate_boundary_network']
 #tectonic_regions = ['Plate_boundary_network', 'Near_plate_boundary'] 
 #tectonic_regions = ['Plate_boundary_master']
 #tectonic_regions = ['Subduction']
 #tectonic_regions = ['Near_plate_boundary']
-min_number_events = 8
+min_number_events = 6
 
 #Summarise for comment to add to figure filename
 fig_comment = ''
-#fig_comment = 'NZ_examples_'
+fig_comment = 'NZ_examples_'
 for f in faulting_styles:
     fig_comment += f
     fig_comment += '_'
@@ -442,24 +459,29 @@ yvals = lf[0]*np.log10(xvals_short) + lf[1]
 #yvals = np.power(10, log_yvals)
 pyplot.plot(xvals_short, yvals, c='0.2')
 # Fit slow faults
-lf_slow = np.polyfit(np.log10(mean_ltr[indices_slow_faults]),
-                   mean_bs[indices_slow_faults], 1)
-xvals_short = np.arange(1e-6, 1.5e-4, 1e-6)
-yvals = lf_slow[0]*np.log10(xvals_short) + lf_slow[1]
-#print(yvals)
-#print(xvals)
-#yvals = np.power(10, log_yvals)
-pyplot.plot(xvals_short, yvals, c='0.2')
-# Add formula for linear fits of data
+if len(indices_slow_faults > 1):
+    lf_slow = np.polyfit(np.log10(mean_ltr[indices_slow_faults]),
+                         mean_bs[indices_slow_faults], 1)
+    xvals_short = np.arange(1e-6, 1.5e-4, 1e-6)
+    yvals = lf_slow[0]*np.log10(xvals_short) + lf_slow[1]
+    #print(yvals)
+    #print(xvals)
+    #yvals = np.power(10, log_yvals)
+    pyplot.plot(xvals_short, yvals, c='0.2')
+    # Add formula for linear fits of data
 print('Fits for B vs LTR')
 #txt = 'Y = %.2fLog(x) + %.2f +/- %.2f' % (lf[0], lf[1], std_lf)
 txt = 'Y = {:=+6.2f} +/- {:4.2f}'.format(lf[1], std_lf)
 print(txt)
 ax.annotate(txt, (2e-4, 0.2), fontsize=8)
 #txt = 'Y = %.2fLog(x) + %.2f' % (lf_slow[0], lf_slow[1])
-txt = 'Y = {:4.2f}Log(x) {:=+6.2f}'.format(lf[0], lf[1]) 
-print(txt)
-ax.annotate(txt, (1.5e-6, 0.75), fontsize=8)
+try:
+    txt = 'Y = {:4.2f}Log(x) {:=+6.2f}'.format(lf_slow[0], lf_slow[1]) 
+    print(txt)
+    ax.annotate(txt, (1.5e-6, 0.75), fontsize=8)
+except:
+    pass
+    
 
 # Now try piecewise linear fit
 #p , e = curve_fit(piecewise_linear, np.log10(mean_ltr), mean_bs)
@@ -672,8 +694,8 @@ pyplot.errorbar(mean_mems, mean_bs,
 pyplot.scatter(mean_mems, mean_bs, marker = 's', c=plot_colours,
                s=25, zorder=2)
 for i, txt in enumerate(names):
-    if max_interevent_times[i] > 10 and annotate_plots:
-        ax.annotate(txt[:7],
+    if annotate_plots:
+        ax.annotate(txt,
                     (mean_mems[i], mean_bs[i]),
                     fontsize=8)
 ax.set_xlim([-1, 1])
