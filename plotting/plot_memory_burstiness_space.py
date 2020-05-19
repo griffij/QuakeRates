@@ -29,6 +29,7 @@ plt.subplot2grid((7, 2), (0,0), colspan=1, rowspan=1)
 ax = plt.gca()
 ax.set_xlim([0, sum(ie_times)+50])
 ax.set_ylim([0, 1]) 
+ax.get_yaxis().set_visible(False)
 time_sum = 0
 for i, ie_time in enumerate(ie_times):
     time_sum += ie_time
@@ -56,6 +57,7 @@ for i, ie_time in enumerate(sorted_ie):
 ax = plt.gca()
 ax.set_xlim([0, sum(ie_times)+50])
 ax.set_ylim([0, 1])
+ax.get_yaxis().set_visible(False)
 ax.set_title('Shuffled, positive $M$', fontsize=10)
 ax.annotate('b)', (-0.13, 0.9), xycoords = 'axes fraction', fontsize=10) 
 burst = burstiness(sorted_ie)
@@ -78,7 +80,8 @@ for i, ie_time in enumerate(sorted_ie):
     plt.plot([time_sum, time_sum], [0, 1], c='k')
 #plt.show()
 ax = plt.gca()
-ax.set_ylim([0, 1]) 
+ax.set_ylim([0, 1])
+ax.get_yaxis().set_visible(False)
 ax.annotate('c)', (-0.13, 0.9), xycoords = 'axes fraction', fontsize=10) 
 ax.set_title('Shuffled, negative $M$', fontsize=10)
 #ax.set_xlabel('Time (years)')
@@ -100,7 +103,8 @@ for i, ie_time in enumerate(ie_times):
     plt.plot([time_sum, time_sum], [0, 1], c='k')
 #plt.show()
 ax = plt.gca()
-ax.set_ylim([0, 1]) 
+ax.set_ylim([0, 1])
+ax.get_yaxis().set_visible(False)
 ax.annotate('d)', (-0.13, 0.9), xycoords = 'axes fraction', fontsize=10) 
 ax.set_title(r'Gamma $(\alpha = 2, \lambda = 100)$', fontsize=10)
 ax.set_xlabel('Time (years)')
@@ -115,7 +119,7 @@ labels.append('d')
 # Next subplot
 plt.subplot2grid((7, 2), (0,1), colspan=1, rowspan=1)
 # Based on alpine fault
-af = [300, 500, 705, 860, 1155, 1364, 1777]
+af = [300, 500, 705, 860, 1155, 1364, 1717]
 af_ie_times = []
 for i, date in enumerate(af):
     plt.plot([date, date], [0, 1], c='k')
@@ -124,6 +128,7 @@ for i, date in enumerate(af):
         af_ie_times.append(ie_times)
 ax = plt.gca()
 ax.set_ylim([0, 1])
+ax.get_yaxis().set_visible(False)
 ax.annotate('e)', (-0.13, 0.9), xycoords = 'axes fraction', fontsize=10)
 ax.set_title("Alpine Fault (John O'Groats)", fontsize=10)
 burst = burstiness(af_ie_times)
@@ -133,6 +138,18 @@ print(memory)
 mems.append(memory)
 bursts.append(burst)
 labels.append('AF')
+
+# Try to generate a more bursty record
+af_b = [223, 626, 655, 937, 1103, 1394, 1717]
+af_b_ie_times = []
+for i, date in enumerate(af_b):
+    if i > 0:
+        ie_times = date - af_b[i-1]
+        af_b_ie_times.append(ie_times)
+burst = burstiness(af_b_ie_times)
+memory = memory_coefficient(af_b_ie_times)
+print('Alpine bursty', burst)
+print(memory)
 
 # Next subplot
 plt.subplot2grid((7, 2), (1,1), colspan=1, rowspan=1)
@@ -146,6 +163,7 @@ for i, date in enumerate(sum_m):
         sum_m_ie_times.append(ie_times)
 ax = plt.gca() 
 ax.set_ylim([0, 1])
+ax.get_yaxis().set_visible(False)
 ax.annotate('f)', (-0.13, 0.9), xycoords = 'axes fraction', fontsize=10) 
 ax.set_title('Sunda Arc (Mentawai Segment)', fontsize=10) 
 burst = burstiness(sum_m_ie_times)
@@ -171,6 +189,7 @@ for i, date in enumerate(wf):
         wf_ie_times.append(ie_times)
 ax = plt.gca()
 ax.set_ylim([0, 1])
+ax.get_yaxis().set_visible(False)
 ax.annotate('g)', (-0.13, 0.9), xycoords = 'axes fraction', fontsize=10)
 ax.set_title('Wairarapa Fault', fontsize=10)
 #ax.set_xlabel('Year')
@@ -196,6 +215,7 @@ for i, date in enumerate(cf):
         cf_ie_times.append(ie_times)
 ax = plt.gca()
 ax.set_ylim([0, 1])
+ax.get_yaxis().set_visible(False)
 ax.annotate('h)', (-0.13, 0.9), xycoords = 'axes fraction', fontsize=10)
 ax.set_title('Cadell Fault', fontsize=10)
 ax.set_xlabel('Year')
