@@ -11,7 +11,7 @@ from QuakeRates.utilities.memory_coefficient import memory_coefficient, burstine
 
 # Generate some random data from an exponential distirbution
 n_sim = 100000
-n_events = 8
+n_events = 5
 # We run nsim simulations, each with n_events
 # Do efficiently by doing all at once and then reshaping,
 # as simulations are independently distributed
