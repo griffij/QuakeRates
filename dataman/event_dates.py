@@ -85,13 +85,14 @@ class EventSet(object):
     This allows random samples of the event chronology to be drawn
     """
 
-    def __init__(self, event_list):
+    def __init__(self, event_list, name=None):
         """Intialise class
         :param event_list: List of EventDate objects ordered in forward
         running chronological order.
         """
         self.event_list = event_list
         self.num_events = len(event_list)
+        self.name = name
 
     def gen_chronologies(self, n, search_limit=500, min_separation=20,
                          observation_start=None, observation_end=2019):

@@ -12,14 +12,15 @@ from QuakeRates.dataman.event_dates import EventSet
 from QuakeRates.dataman.parse_oxcal import parse_oxcal
 from QuakeRates.dataman.parse_params import parse_param_file, \
     get_event_sets, file_len 
-
+from QuakeRates.utilities.memory_coefficient import burstiness, memory_coefficient
 
 def find_nearest(array, value):
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
     return idx, array[idx]
 
-def merge_event_sets(event_sets, n_samples, merge_tolerance = 1, order = None):
+def merge_event_sets(event_sets, n_samples, merge_tolerance = 1,
+                     order = None, start_year=-1e9):
     """Function to merge event sets.
     params event_sets: List of EventSet objects, one for each fault segement
     params n_samples: Number of chronology samples to create for each segment.
@@ -28,11 +29,15 @@ def merge_event_sets(event_sets, n_samples, merge_tolerance = 1, order = None):
                            the events are considered the same multi-sgement event.
     params order: List of names of each fault segment describing such that fault 
                   segments are listed from one end of the fault system to the other.
+    params start_year: Trim records before this year, to deal with completeness
     """
 
     # Create empty EventSet object for storing merged chronology
-    combined_event_set = EventSet([])
+    # Maybe not necessary - won't handle chronologies of difference lengths well
+#    combined_event_set = EventSet([])
     # Loop over list of fault segment event sets to generate chronologies
+    burstinesses = []
+    mems = []
     chron_dict = {}
     for event_set in event_sets:
         event_set.gen_chronologies(n_samples, observation_end=2019, min_separation=1)
@@ -71,6 +76,9 @@ def merge_event_sets(event_sets, n_samples, merge_tolerance = 1, order = None):
                 print(new_chron)
                 updated_chron += list(new_chron)
                 updated_chron.sort()
+                # Now just get events from complete record
+                updated_chron = np.array(updated_chron)
+                updated_chron = updated_chron[updated_chron > start_year]
                 print('Original chron', chron)
                 print('Second chron', chron_dict[name].T[j])
                 print ('Merged chron', updated_chron)
@@ -79,18 +87,29 @@ def merge_event_sets(event_sets, n_samples, merge_tolerance = 1, order = None):
             print('Merged_chrons combined', chrons)
 #            sys.exit()                   
     combined_event_set = chrons
-    print(combined_event_set)
+    # Now loop over merged chronologies and calculate memory and burstiness
+    for chron in combined_event_set:
+        ie_times = np.diff(np.array(chron))
+        b = burstiness(ie_times)
+        burstinesses.append(b)
+        mem = memory_coefficient(ie_times)
+        mems.append(mem)
+    print('Combined event set', combined_event_set)
+    print('Burstiness', burstinesses)
+    print('Memory coefficients', mems)
+    print('Mean B', np.mean(burstinesses))
+    print('Mean M', np.mean(mems))
     return combined_event_set
 
 if __name__ == "__main__":
     filepath = '../params'
-    n_samples = 100
+    n_samples = 10
     start_year = 0 # Year (positive AD, negative BC) for which record is complete
     # for all segements
     faulting_styles = ['all']
     tectonic_regions = ['all']
     min_number_events = 6
-    param_file_list = glob(os.path.join(filepath, 'SanAndreas*.txt')) 
+    param_file_list = glob(os.path.join(filepath, 'Dead*.txt')) 
     names, event_sets, event_certainties, num_events = \
         get_event_sets(param_file_list, tectonic_regions,
                        faulting_styles, min_number_events)
@@ -98,5 +117,5 @@ if __name__ == "__main__":
     print(names) # Test just using order the faults are read in as
     for i, name in enumerate(names):
         event_sets[i].name = name
-    merge_event_sets(event_sets, n_samples, merge_tolerance=5, order = names)
+    merge_event_sets(event_sets, n_samples, merge_tolerance=25, order = names, start_year=0)
     
