@@ -22,10 +22,10 @@ def find_nearest(array, value):
 def merge_event_sets(event_sets, n_samples, merge_tolerance = 1,
                      order = None, start_year=-1e9):
     """Function to merge event sets.
-    params event_sets: List of EventSet objects, one for each fault segement
+    params event_sets: List of EventSet objects, one for each fault segment
     params n_samples: Number of chronology samples to create for each segment.
     params merge_tolerance: If the number of years between simulated event dates is 
-                           less than this, and the fault segements are adjacent, then
+                           less than this, and the fault segments are adjacent, then
                            the events are considered the same multi-sgement event.
     params order: List of names of each fault segment describing such that fault 
                   segments are listed from one end of the fault system to the other.
@@ -47,26 +47,42 @@ def merge_event_sets(event_sets, n_samples, merge_tolerance = 1,
     for i, name in enumerate(order):
         if i == 0:
             chrons = chron_dict[name].T
+            r,c = np.shape(chrons)
+            # Store which fault seg ids belong with each event  
+            segment_ids = [[[0] for i in range(c)] for j in range(r)] 
         else:
             merged_chrons = []
             for j, chron in enumerate(chrons):
                 updated_chron = []
                 near_indices = []
                 for k, realisation in enumerate(chron):
+                    # First check if this event ruptured a neighbouring fault segment
+                    previous_seg_id = i - 1
+                    if previous_seg_id in segment_ids[j][k]:
+                        pass
+                    else:
+                        updated_chron.append(realisation) 
+                        continue
                     new_chron = chron_dict[name].T[j]
                     near_ind, nearest = find_nearest(new_chron, realisation)
                     if abs(nearest - realisation) < merge_tolerance:
                         if near_ind not in near_indices: # Ensure we don't use the same event twice
                             updated_chron.append(np.mean([nearest, realisation]))
-                            near_indices.append(near_ind) 
+                            near_indices.append(near_ind)
+                            segment_ids[j][k].append(i) # Add flt segment index to list associated with this event
                         else:
                             updated_chron.append(realisation)
+                #            segment_ids[j].append([i]) # Add flt segment index for new event
                     else:
                         updated_chron.append(realisation)
-                        # Now add in all other events that haven't been merged, and then sort
+                # Now add in all other events that haven't been merged, and then sort
                 new_chron = np.delete(new_chron, near_indices)
                 updated_chron += list(new_chron)
-                updated_chron.sort()
+                segment_ids[j] += [[i]]*len(new_chron) # Add flt segment index for new events
+                # Sort to be in chronological order
+                segment_ids[j] = [x for _,x in sorted(zip(updated_chron,segment_ids[j]))]
+                updated_chron_n = sorted(updated_chron)# [y for y,_ in sorted(zip(updated_chron,segment_ids))]
+                updated_chron = updated_chron_n
                 # Now just get events from complete record
                 updated_chron = np.array(updated_chron)
                 updated_chron = updated_chron[updated_chron > start_year]
@@ -103,14 +119,14 @@ if __name__ == "__main__":
     filepath = '../params'
     n_samples = 100
     start_year = 0 # Year (positive AD, negative BC) for which record is complete
-    # for all segements
+    # for all segments
     faulting_styles = ['all']
     tectonic_regions = ['all']
     min_number_events = 5
     param_file_list = glob(os.path.join(filepath, 'NorthA*.txt'))
     print(param_file_list)
     try:
-        # Remove northern segemnt studies from San Andreas
+        # Remove northern segment studies from San Andreas
         param_file_list.remove('../params/SanAndreasVedanta_Zhang_2005unpub_simple.txt')
         param_file_list.remove('../params/SanAndreasMendocino_Merritts_1996_simple.txt')
     except ValueError:
