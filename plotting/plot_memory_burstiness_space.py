@@ -5,7 +5,8 @@ import os, sys
 from matplotlib import pyplot as plt
 import matplotlib.gridspec as gridspec
 import numpy as np
-from scipy.stats import expon, gamma, weibull_min  
+from scipy.stats import expon, gamma, weibull_min
+from adjustText import adjust_text 
 from QuakeRates.utilities.memory_coefficient import memory_coefficient, burstiness
 
 np.random.seed(123)
@@ -243,17 +244,20 @@ ax.annotate('i)', (-0.2, 0.98), xycoords = 'axes fraction', fontsize=10)
 # Add y = 0, x=0 lines
 plt.plot([0,0],[-1, 1], linestyle='dashed', linewidth=1, c='0.5')
 plt.plot([-1,1],[0, 0], linestyle='dashed', linewidth=1, c='0.5')
+texts = []
 for i, txt in enumerate(labels):
-    ax.annotate(txt,
-                (mems[i]-0.05, bursts[i]+0.05),
-                fontsize=10)
+    text = ax.annotate(txt,
+                (mems[i]+0.01, bursts[i]+0.0),
+                       fontsize=10)
+    texts.append(text)
 ax.annotate('Quasi-periodic', (-0.32, -0.9), fontsize=10, fontstyle='italic')
-ax.annotate('Elastic \nrebound \ndominated', (-0.85, -0.70), fontsize=10, fontstyle='italic')
-ax.annotate('Supercycles', (-0.25, 0.12), fontsize=10, fontstyle='italic')
+ax.annotate('Earthquake \ncycles', (-0.70, -0.50), fontsize=10, fontstyle='italic')
+ax.annotate('Supercycles', (-0.15, -0.15), fontsize=10, fontstyle='italic')
 #ax.annotate('Poisson', (-0.27, -0.14), fontsize=10, fontstyle='italic')
-ax.annotate('Clusters', (0.25, 0.35), fontsize=10, fontstyle='italic')
-ax.annotate('Rate \nvarying', (0.25, -0.4), fontsize=10, fontstyle='italic')
+ax.annotate('Clusters', (0.3, 0.25), fontsize=10, fontstyle='italic')
+ax.annotate('Rate \nvarying', (0.25, -0.45), fontsize=10, fontstyle='italic')
 ax.set_aspect('equal')
+adjust_text(texts)#, arrowprops=dict(arrowstyle='->', color='k', linewidth=0.5))  
 
 fig.tight_layout(pad=1.2, w_pad=1.3, h_pad=-1.2)
 fig.set_size_inches(w=6,h=8.) 
