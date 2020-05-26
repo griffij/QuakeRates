@@ -123,7 +123,7 @@ if __name__ == "__main__":
     faulting_styles = ['all']
     tectonic_regions = ['all']
     min_number_events = 5
-    param_file_list = glob(os.path.join(filepath, 'NorthA*.txt'))
+    param_file_list = glob(os.path.join(filepath, 'Dead*.txt'))
     print(param_file_list)
     try:
         # Remove northern segment studies from San Andreas
@@ -164,5 +164,5 @@ if __name__ == "__main__":
     start_year_na = -1400
     for i, name in enumerate(names):
         event_sets[i].name = name
-    merge_event_sets(event_sets, n_samples, merge_tolerance=2, order = NorthAnatolian_order, start_year=start_year_na)
+    merge_event_sets(event_sets, n_samples, merge_tolerance=10, order = DeadSea_order, start_year=start_year_ds)
     
