@@ -18,18 +18,11 @@ def ivt_expon(lam, a=0, b=inf, n_samples=1):
     """Generate random samples from an exponential function defined
     by rate lambda and between points a and b.
     """
-    print(a)
     a_update = expon.cdf(a, scale=1/lam) # Convert to uniform distribution space
-    print(a_update)
     b_update = expon.cdf(b, scale=1/lam) # and here
-    print(b_update)
     # Get uniform distribution over [a, b] in transformed space
     rv_unif = uniform.rvs(loc=a_update, scale=(b_update-a_update), size=n_samples)
-    print(rv_unif)
     rv_exp = (-1/lam)*np.log(1-rv_unif)
-    print(rv_exp)
-    print(np.mean(rv_exp))
-#    print(1/rv_exp)
     return rv_exp
 
 
@@ -39,3 +32,4 @@ if __name__ == "__main__":
     a=10000
     b=inf
     ivt_exp = ivt_expon(1/mean_int, a=a, b=b, n_samples = n_samples)
+    print(ivt_exp)
