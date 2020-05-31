@@ -10,7 +10,7 @@ import matplotlib
 from matplotlib import pyplot
 from matplotlib.patches import Ellipse
 from scipy.stats import kde, spearmanr
-
+from QuakeRates.utilities.inverse_transform_sample import ivt_expon
 matplotlib.use('Agg')
 np.random.seed(23)
 
@@ -119,6 +119,8 @@ class EventSet(object):
         n_samples = 0
         n_tries = 0
         chron_samples = []
+        loop_counter = 0
+        add_events = False
         while n_samples < n:
             for i, event in enumerate(self.event_list):
                 event.random_sample(n, plot=False)
@@ -127,13 +129,43 @@ class EventSet(object):
                         (event.random_from_cdf.tolist())
                 except IndexError:
                     chron_samples.append(event.random_from_cdf.tolist())
+            if loop_counter == 0:
+                chron_tmp = np.vstack(chron_samples).T
+                    #            chron_tmp = np.array(chron_samples).T
+                # Now we add a future event as a random variable  using the conditional probability
+                # assuming exponentially distributed inter-event times based
+                # on mean of existing inter-event times
+                # Only do if open interval is large (1 times the mean ie time).
+                interevent_times = np.diff(chron_tmp.T, axis=0)
+                #            print('interevent_times', interevent_times)
+                mean_ie_time = np.mean(interevent_times)
+                std_ie_time = np.std(interevent_times)
+                #            print('mean_ie_time', mean_ie_time)
+                #            print('chronologies.T[-1]', chronologies.T[-1])
+                time_elapsed = observation_end - np.mean(chron_tmp.T[-1])
+                #            print('mean last event')
+                if (time_elapsed) > \
+                   (mean_ie_time + 2*std_ie_time):
+                    add_events = True
+                    if self.name.startswith('Alpine'):
+                        # Ignore records not complete until present
+                        add_events = False
+            if add_events:
+                future_events = ivt_expon(1/mean_ie_time, a=time_elapsed,
+                                          b=np.inf, n_samples=n)
+                future_events += observation_end
+                future_events = list(future_events)
+                if loop_counter == 0:
+                    chron_samples.append(future_events)
+                else:
+                    chron_samples[-1] = chron_samples[-1] + future_events
             # Now we check for chronological order
             chronologies = np.array(chron_samples).T
             c = chronologies[~np.any(np.diff(chronologies)<min_separation,
                                      axis=1)]
             chron_samples = c.T.tolist()
             n_samples = len(chron_samples[0])
-#            print(n_samples)
+            loop_counter += 1
             n_tries += n
 
             msg = 'Could not find ' + str(n) + ' samples in ' + \
