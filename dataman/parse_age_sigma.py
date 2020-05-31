@@ -38,7 +38,7 @@ def parse_age_sigma(filename, sigma_level, event_order, truncation=3,
         sigmas = data['Uncertainty']/sigma_level #Convert, e.g. 2 sigma to 1 sigma  
     elif data.dtype.names[0]=='Date1':
         dates = np.mean([data['Date1'],data['Date2']], axis=0)
-        sigmas = abs(data['Date1'] - data['Date2'])/4 
+        sigmas = abs(data['Date1'] - data['Date2'])/(2*sigma_level) 
     elif data.dtype.names[0]=='Age':
         # Conver to dates assuming age before 1950
         dates = 1950 - data['Age']
@@ -47,7 +47,7 @@ def parse_age_sigma(filename, sigma_level, event_order, truncation=3,
     # range covers 95% of the distirbution (i.e. +/- 2 sigma)
     elif data.dtype.names[0]=='Age1':
         dates = np.mean([(1950 - data['Age1']),(1950 - data['Age2'])], axis=0)
-        sigmas = abs(data['Age1'] - data['Age2'])/4
+        sigmas = abs(data['Age1'] - data['Age2'])/(2*sigma_level)
     print(dates)
     for i,mean_age in enumerate(dates):
         event_id = i
