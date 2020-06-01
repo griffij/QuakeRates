@@ -1,6 +1,7 @@
-filename = '../data/Waitangi_simple.txt'
+filename = '../data/Waitangi_GNSunpub_simple.txt'
 chron_type = 'Age2Sigma'
 sigma_level = 2
 event_order = 'Backwards'
 tectonic_region = 'Near_plate_boundary'
 faulting_style = 'Reverse'
+slip_rate_mean_lower_upper = [0.27,0.11,0.29]

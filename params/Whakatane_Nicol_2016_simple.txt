@@ -4,3 +4,4 @@ sigma_level = 2
 event_order = 'Backwards'
 tectonic_region = 'Near_plate_boundary'
 faulting_style = 'Strike_slip'
+slip_rate_mean_lower_upper = [2,1,3]

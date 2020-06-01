@@ -4,3 +4,4 @@ sigma_level = 2
 event_order = 'Backwards'
 tectonic_region = 'Intraplate_noncratonic'
 faulting_style = 'Normal'
+slip_rate_mean_lower_upper = [0.125,0.05,0.2]
