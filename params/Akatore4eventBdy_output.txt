@@ -4,3 +4,4 @@ events = {'D': ['Calculate', 'posterior'], 'C': ['Calculate', 'posterior'], 'B':
 event_order = ['D', 'C', 'B', 'A']      
 tectonic_region = 'Near_plate_boundary'
 faulting_style = 'Reverse'
+slip_rate_mean_lower_upper = [0.05, 0.04, 0.06]
