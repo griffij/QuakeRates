@@ -55,7 +55,7 @@ param_file_list_NZ = ['Akatore4eventBdy_output.txt',
 #param_file_list = []
 #for f in param_file_list_NZ:
 #    param_file_list.append(os.path.join(filepath, f))
-n_samples = 10000  # Number of Monte Carlo samples of the eq chronologies
+n_samples = 50  # Number of Monte Carlo samples of the eq chronologies
 half_n = int(n_samples/2)
 print(half_n)
 annotate_plots = False # If True, lable each fault on the plot
@@ -75,7 +75,7 @@ tectonic_regions = ['all']
 #tectonic_regions = ['Plate_boundary_master']
 #tectonic_regions = ['Subduction']
 #tectonic_regions = ['Near_plate_boundary']
-min_number_events = 5
+min_number_events = 4
 
 #Summarise for comment to add to figure filename
 fig_comment = ''
@@ -106,6 +106,8 @@ memory_spearman_bounds = []
 memory_spearman_lag2_coef = []
 memory_spearman_lag2_bounds = []
 long_term_rates = []
+slip_rates = []
+slip_rate_bounds = []
 max_interevent_times = []
 min_interevent_times = []
 min_paired_interevent_times = []
@@ -131,6 +133,7 @@ for i, event_set in enumerate(event_sets):
     # unsure, event_certainty is given a value of 0, compared with 1 for certain
     # events
     # First generate chronologies assuming all events are certain
+#    event_set.name = names[i]
     event_set.gen_chronologies(n_samples, observation_end=2019, min_separation=1)
     event_set.calculate_cov()
     event_set.cov_density()
@@ -149,7 +152,9 @@ for i, event_set in enumerate(event_sets):
     std_max_interevent_times.append(event_set.std_maximum_interevent_time)
     if event_set.std_maximum_interevent_time == 0:
         print('Zero std_maximum_interevent_time for ', names[i])
-#        sys.exit()
+
+    slip_rates.append(event_set.slip_rates[0])
+    slip_rate_bounds.append([event_set.slip_rates[1], event_set.slip_rates[2]])
     max_interevent_times_bounds.append([abs(event_set.mean_maximum_interevent_time -
                                             event_set.maximum_interevent_time_lb),
                                         abs(event_set.mean_maximum_interevent_time -
@@ -181,6 +186,7 @@ for i, event_set in enumerate(event_sets):
 #        print(indices[0], type(indices))
         events_subset = list(itemgetter(*indices)(event_set.event_list)) 
         event_set_certain = EventSet(events_subset)
+        event_set_certain.name = names[i] 
         event_set_certain.gen_chronologies(n_samples, observation_end=2019, min_separation=1)
         event_set_certain.calculate_cov()
         event_set_certain.cov_density()
@@ -277,6 +283,8 @@ min_interevent_times_bounds = np.array(min_interevent_times_bounds).T
 min_paired_interevent_times_bounds = np.array(min_paired_interevent_times_bounds).T
 long_term_rates_T = np.array(long_term_rates).T
 mean_ltr = np.mean(long_term_rates_T, axis = 0)
+slip_rates = np.array(slip_rates).T
+slip_rate_bounds = np.array(slip_rate_bounds).T
 print('Mean_ltr', mean_ltr)
 std_ltr = np.std(long_term_rates_T, axis = 0)
 ltr_bounds = np.array([abs(mean_ltr - (np.percentile(long_term_rates_T, 2.5, axis=0))),
@@ -491,6 +499,99 @@ except:
 
 figname = 'burstiness_vs_lt_rate_%s.png' % fig_comment 
 pyplot.savefig(figname)
+
+# Plot burstiness against slip rate
+pyplot.clf()
+ax = pyplot.subplot(111)
+#mean_bs = []
+#mean_ltrs = []
+#for i, b_set in enumerate(burstinesses):
+#    mean_b = np.mean(b_set)
+#    mean_bs.append(mean_b)
+#colours = []
+#for sr in slip_rates:
+#    if m <= -0.05:
+#        colours.append('b')
+#    elif mean_b > -0.05 and mean_b <= 0.05:
+#        colours.append('g')
+#    else:
+#        colours.append('r')
+
+pyplot.errorbar(slip_rates, mean_bs,
+                xerr = slip_rate_bounds,
+                ecolor = '0.3',
+                elinewidth=0.7,
+                linestyle="None",
+                zorder=1)
+pyplot.errorbar(slip_rates, mean_bs,
+                yerr = burstiness_bounds,
+                ecolor = '0.3',
+                elinewidth=0.7,
+                linestyle="None",
+                zorder=1)
+pyplot.scatter(slip_rates, mean_bs, marker = 's', c=plot_colours,
+               s=25, zorder=2)
+#for i, txt in enumerate(names):
+#    if max_interevent_times[i] > 10 and annotate_plots:
+#        ax.annotate(txt[:4],
+#                    (mean_ltr[i], mean_bs[i]),
+#                    fontsize=8)
+ax.set_ylim([-1, 1])
+ax.set_xlim([1./1000, 100])
+# Add B=0 linear
+pyplot.plot([1./1000, 100], [0, 0], linestyle='dashed', linewidth=1, c='0.5')
+ax.set_xscale('log')
+ax.set_xlabel('Long-term rate (events per year)')
+ax.set_ylabel('B')
+
+# Now do a bi-linear fit to the data
+#indices = np.argwhere(mean_ltr > 2e-4)#.flatten()
+mean_bs = np.array(mean_bs)
+indices = np.flatnonzero(slip_rates > 5)
+indices = indices.flatten()
+#print(indices, type(indices))
+
+indices_slow_faults = np.flatnonzero(slip_rates <= 5)
+indices_slow_faults = indices_slow_faults.flatten()
+# Fit fast rate faults
+lf = np.polyfit(np.log10(slip_rates[indices]),
+                   mean_bs[indices], 1)
+# Now force to be a flat line1
+lf[0] = 0.
+lf[1] = np.mean(mean_bs[indices])
+std_lf = np.std(mean_bs[indices])
+xvals_short = np.arange(5, 100, 1)
+yvals = lf[0]*np.log10(xvals_short) + lf[1]
+#yvals = np.power(10, log_yvals)
+pyplot.plot(xvals_short, yvals, c='0.2')
+# Fit slow faults
+if len(indices_slow_faults > 1):
+    lf_slow = np.polyfit(np.log10(slip_rates[indices_slow_faults]),
+                         mean_bs[indices_slow_faults], 1)
+    xvals_short = np.arange(1/1000., 5, 1e-3)
+    yvals = lf_slow[0]*np.log10(xvals_short) + lf_slow[1]
+    #print(yvals)
+    #print(xvals)
+    #yvals = np.power(10, log_yvals)
+    pyplot.plot(xvals_short, yvals, c='0.2')
+    # Add formula for linear fits of data
+print('Fits for B vs LTR')
+#txt = 'Y = %.2fLog(x) + %.2f +/- %.2f' % (lf[0], lf[1], std_lf)
+txt = 'Y = {:=+6.2f} +/- {:4.2f}'.format(lf[1], std_lf)
+print(txt)
+ax.annotate(txt, (10, 0.2), fontsize=8)
+#txt = 'Y = %.2fLog(x) + %.2f' % (lf_slow[0], lf_slow[1])
+try:
+    txt = 'Y = {:4.2f}Log(x) {:=+6.2f}'.format(lf_slow[0], lf_slow[1]) 
+    print(txt)
+    ax.annotate(txt, (1.e-2, 0.75), fontsize=8)
+except:
+    pass
+
+figname = 'burstiness_vs_slip_rate_%s.png' % fig_comment 
+pyplot.savefig(figname)    
+
+
 
 # Plot memory coefficients against long term rates
 pyplot.clf()
