@@ -1,0 +1,7 @@
+filename = '../data/Atotsugawa_Okada_1989_simple.txt'
+chron_type = 'Age2Sigma'
+sigma_level = 2
+event_order = 'Backwards'
+tectonic_region = 'Near_plate_boundary'
+faulting_style = 'Reverse'
+slip_rate_mean_lower_upper = [4.0,3.3,4.5]
