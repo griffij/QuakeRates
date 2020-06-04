@@ -1,4 +1,4 @@
-filename = '../data/Wharekuri_simple.txt'
+filename = '../data/Wharekuri_GNS_unpub_simple.txt'
 chron_type = 'Age2Sigma'
 sigma_level = 2
 event_order = 'Backwards'
