@@ -55,7 +55,7 @@ param_file_list_NZ = ['Akatore4eventBdy_output.txt',
 #param_file_list = []
 #for f in param_file_list_NZ:
 #    param_file_list.append(os.path.join(filepath, f))
-n_samples = 50  # Number of Monte Carlo samples of the eq chronologies
+n_samples = 10000  # Number of Monte Carlo samples of the eq chronologies
 half_n = int(n_samples/2)
 print(half_n)
 annotate_plots = False # If True, lable each fault on the plot
@@ -99,6 +99,7 @@ covs = []
 cov_bounds = []
 burstinesses = []
 burstiness_bounds = []
+burstiness_stds = []
 memory_coefficients = []
 memory_bounds = []
 memory_spearman_coefficients = []
@@ -106,6 +107,7 @@ memory_spearman_bounds = []
 memory_spearman_lag2_coef = []
 memory_spearman_lag2_bounds = []
 long_term_rates = []
+long_term_rate_stds = []
 slip_rates = []
 slip_rate_bounds = []
 max_interevent_times = []
@@ -127,6 +129,12 @@ ratio_min_max_bounds = []
 names, event_sets, event_certainties, num_events = \
     get_event_sets(param_file_list, tectonic_regions,
                    faulting_styles, min_number_events)
+references = []
+# Get citations for each dataset from filename
+for s in param_file_list:
+    sp = s.split('_')
+    if sp[0].split('/')[2] in names:
+        references.append(sp[1] + ' ' + sp[2])
 
 for i, event_set in enumerate(event_sets):
     # Handle cases with uncertain number of events. Where events identification is
@@ -239,8 +247,10 @@ for i, event_set in enumerate(event_sets):
         # Combine, taking n/2 samples from each set
         combined_ltrs = np.concatenate([event_set.long_term_rates[:half_n],
                                         event_set_certain.long_term_rates[:half_n]])
+        burstiness_stds.append(np.std(combined_burstiness))
         print(len(combined_ltrs))
         long_term_rates.append(combined_ltrs)
+        long_term_rate_stds.append(np.std(combined_ltrs))
     else:
         covs.append(event_set.covs)
         burstinesses.append(event_set.burstiness)
@@ -258,6 +268,8 @@ for i, event_set in enumerate(event_sets):
                                         abs(event_set.mean_rho - event_set.rho_ub)])
         memory_spearman_lag2_bounds.append([abs(event_set.mean_rho2 - event_set.rho2_lb),
                                             abs(event_set.mean_rho2 - event_set.rho2_ub)])
+        burstiness_stds.append(event_set.std_burstiness)
+        long_term_rate_stds.append(np.mean(long_term_rates)) 
     # Get colours for plotting later
     if event_set.faulting_style == 'Normal':
         plot_colours.append('r')
@@ -283,6 +295,7 @@ min_interevent_times_bounds = np.array(min_interevent_times_bounds).T
 min_paired_interevent_times_bounds = np.array(min_paired_interevent_times_bounds).T
 long_term_rates_T = np.array(long_term_rates).T
 mean_ltr = np.mean(long_term_rates_T, axis = 0)
+long_term_rate_stds = np.array(long_term_rate_stds)
 slip_rates = np.array(slip_rates).T
 slip_rate_bounds = np.array(slip_rate_bounds).T
 print('Mean_ltr', mean_ltr)
@@ -297,6 +310,7 @@ ratio_min_pair_max_bounds = np.array(ratio_min_pair_max_bounds).T
 ratio_min_max_bounds = np.array(ratio_min_max_bounds).T
 cov_bounds = np.array(cov_bounds).T
 burstiness_bounds = np.array(burstiness_bounds).T
+burstiness_stds = np.array(burstiness_stds)
 memory_bounds = np.array(memory_bounds).T 
 memory_spearman_bounds = np.array(memory_spearman_bounds).T
 memory_spearman_lag2_bounds = np.array(memory_spearman_lag2_bounds).T
@@ -359,14 +373,9 @@ pyplot.savefig(figname)
 pyplot.clf()
 ax = pyplot.subplot(111)
 mean_covs = []
-#mean_ltrs = []
 for i, cov_set in enumerate(covs):
     mean_cov = np.mean(cov_set)
     mean_covs.append(mean_cov)
-#    mean_ltr = np.mean(long_term_rates[i])
-#    mean_ltrs.append(mean_ltr)
-#print(mean_covs, type(mean_covs))
-#print(long_term_rates, type(long_term_rates))
 colours = []
 for mean_cov in mean_covs:
     if mean_cov <= 0.9:
@@ -491,11 +500,8 @@ except:
     pass
     
 
-# Now try piecewise linear fit
-#p , e = curve_fit(piecewise_linear, np.log10(mean_ltr), mean_bs)
-#xd = np.arange(1e-6, 2e-2, 1e-6)
-#plt.plot(x, y, "o")
-#pyplot.plot(xd, piecewise_linear(np.log10(xd), *p), c='b')
+# Now try bilinear ODR linear fit
+
 
 figname = 'burstiness_vs_lt_rate_%s.png' % fig_comment 
 pyplot.savefig(figname)
@@ -549,7 +555,6 @@ ax.set_ylabel('B')
 mean_bs = np.array(mean_bs)
 indices = np.flatnonzero(slip_rates > 5)
 indices = indices.flatten()
-#print(indices, type(indices))
 
 indices_slow_faults = np.flatnonzero(slip_rates <= 5)
 indices_slow_faults = indices_slow_faults.flatten()
@@ -562,7 +567,6 @@ lf[1] = np.mean(mean_bs[indices])
 std_lf = np.std(mean_bs[indices])
 xvals_short = np.arange(5, 100, 1)
 yvals = lf[0]*np.log10(xvals_short) + lf[1]
-#yvals = np.power(10, log_yvals)
 pyplot.plot(xvals_short, yvals, c='0.2')
 # Fit slow faults
 if len(indices_slow_faults > 1):
@@ -570,17 +574,12 @@ if len(indices_slow_faults > 1):
                          mean_bs[indices_slow_faults], 1)
     xvals_short = np.arange(1/1000., 5, 1e-3)
     yvals = lf_slow[0]*np.log10(xvals_short) + lf_slow[1]
-    #print(yvals)
-    #print(xvals)
-    #yvals = np.power(10, log_yvals)
     pyplot.plot(xvals_short, yvals, c='0.2')
-    # Add formula for linear fits of data
+# Add formula for linear fits of data
 print('Fits for B vs LTR')
-#txt = 'Y = %.2fLog(x) + %.2f +/- %.2f' % (lf[0], lf[1], std_lf)
 txt = 'Y = {:=+6.2f} +/- {:4.2f}'.format(lf[1], std_lf)
 print(txt)
 ax.annotate(txt, (10, 0.2), fontsize=8)
-#txt = 'Y = %.2fLog(x) + %.2f' % (lf_slow[0], lf_slow[1])
 try:
     txt = 'Y = {:4.2f}Log(x) {:=+6.2f}'.format(lf_slow[0], lf_slow[1]) 
     print(txt)
@@ -597,7 +596,6 @@ pyplot.savefig(figname)
 pyplot.clf()
 ax = pyplot.subplot(111)
 mean_mems = []
-#mean_ltrs = []
 for i, mem_set in enumerate(memory_coefficients):
     mean_mem = np.mean(mem_set)
 #    print('Mean memory coefficient combined', mean_mem)
@@ -726,14 +724,6 @@ pyplot.savefig(figname)
 # Plot Spearman Rank coefficients against long term rates
 pyplot.clf()
 ax = pyplot.subplot(111)
-#mean_mems = []
-#mean_mems_l2 = []
-#mean_ltrs = []
-#for i, mem_set in enumerate(memory_spearman_coefficients):
-#    mean_mem = np.mean(mem_set)
-#    mean_mem_l2 = np.mean(memory_spearman_lag2_coef[i])
-#    mean_mems.append(mean_mem)
-#    mean_mems_l2.append(mean_mem_l2)
 colours = []
 for mean_mem in mean_mems_L1:
     if mean_mem <= -0.05:
@@ -804,7 +794,6 @@ ax.set_ylim([-1, 1])
 # Add y = 0, x=0 lines
 pyplot.plot([0,0],[-1, 1], linestyle='dashed', linewidth=1, c='0.5')
 pyplot.plot([-1,1],[0, 0], linestyle='dashed', linewidth=1, c='0.5')
-#ax.set_yscale('log')
 ax.set_ylabel('B')
 ax.set_xlabel('M')
 figname = 'burstiness_vs_memory_coefficient_%s.png' % fig_comment 
@@ -815,7 +804,6 @@ pyplot.savefig(figname)
 pyplot.clf()
 ax = pyplot.subplot(111)
 mean_covs = []
-#mean_ltrs = []
 for i, cov_set in enumerate(covs):
     mean_cov = np.mean(cov_set)
     mean_covs.append(mean_cov)
@@ -838,9 +826,6 @@ for i, txt in enumerate(names):
         ax.annotate(txt[:4],
                     (mean_covs[i], num_events[i]),
                     fontsize=8)
-#ax.set_xlim([0, 2.5])
-#ax.set_ylim([1./1000000, 1./40])
-#ax.set_yscale('log')
 ax.set_xlabel('COV')
 ax.set_ylabel('Number of events in earthquake record')
 figname = 'mean_cov_vs_number_events_%s.png' % fig_comment
@@ -1754,3 +1739,19 @@ figname = 'B_M_phase_comparison_%s.png' % fig_comment
 fig.set_size_inches(w=8,h=8.)
 pyplot.savefig(figname)
 
+# Dump all results to a csv file
+results_filename = 'Results_summary_%s.csv' % fig_comment
+#print(mean_bs, len(mean_bs))
+#print(burstiness_bounds[:,0])
+#print(burstiness_bounds)
+#print(burstiness_bounds[0,:])
+#print(references, len(references))
+#print(names, len(names))
+
+all_results = np.vstack([names, references, mean_ltr, ltr_bounds[0,:], ltr_bounds[1,:],
+                         mean_bs, burstiness_bounds[0,:], burstiness_bounds[1,:],
+                         mean_mems, memory_bounds[0,:], memory_bounds[1,:]]).T
+header = 'Name, reference, mean long-term annual rate, long-term rate 2.5p, long-term rate 97.5p, mean burstiness,'\
+    'burstiness 2.5p, burstiness 97.5p, mean memory coefficient, memory coefficient 2.5p,' \
+    'memory coefficient 97.5p'
+np.savetxt(results_filename, all_results, header = header, delimiter=',', fmt="%s")
