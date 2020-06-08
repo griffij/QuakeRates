@@ -9,6 +9,7 @@ from re import finditer
 import numpy as np
 from scipy.optimize import curve_fit
 from scipy.odr import Model, RealData, ODR
+import scipy.odr.odrpack as odrpack
 from matplotlib import pyplot
 from matplotlib.patches import PathPatch
 import matplotlib.gridspec as gridspec
@@ -19,6 +20,8 @@ from QuakeRates.dataman.parse_oxcal import parse_oxcal
 from QuakeRates.dataman.parse_age_sigma import parse_age_sigma
 from QuakeRates.dataman.parse_params import parse_param_file, \
     get_event_sets, file_len
+from QuakeRates.utilities.bilinear import bilinear_reg_zero_slope, \
+    bilinear_reg_fix, bilinear_reg_fix_zero_slope
 
 filepath = '../params'
 param_file_list = glob(os.path.join(filepath, '*.txt'))
@@ -55,7 +58,7 @@ param_file_list_NZ = ['Akatore4eventBdy_output.txt',
 #param_file_list = []
 #for f in param_file_list_NZ:
 #    param_file_list.append(os.path.join(filepath, f))
-n_samples = 10000  # Number of Monte Carlo samples of the eq chronologies
+n_samples = 10  # Number of Monte Carlo samples of the eq chronologies
 half_n = int(n_samples/2)
 print(half_n)
 annotate_plots = False # If True, lable each fault on the plot
@@ -75,7 +78,7 @@ tectonic_regions = ['all']
 #tectonic_regions = ['Plate_boundary_master']
 #tectonic_regions = ['Subduction']
 #tectonic_regions = ['Near_plate_boundary']
-min_number_events = 4
+min_number_events = 5
 
 #Summarise for comment to add to figure filename
 fig_comment = ''
@@ -109,6 +112,7 @@ memory_spearman_lag2_bounds = []
 long_term_rates = []
 long_term_rate_stds = []
 slip_rates = []
+slip_rate_stds = []
 slip_rate_bounds = []
 max_interevent_times = []
 min_interevent_times = []
@@ -163,6 +167,8 @@ for i, event_set in enumerate(event_sets):
 
     slip_rates.append(event_set.slip_rates[0])
     slip_rate_bounds.append([event_set.slip_rates[1], event_set.slip_rates[2]])
+    slip_rate_stds.append(abs(np.log10(event_set.slip_rates[2]) - \
+                              np.log10(event_set.slip_rates[1]))/4) # Approx from 95% intervals
     max_interevent_times_bounds.append([abs(event_set.mean_maximum_interevent_time -
                                             event_set.maximum_interevent_time_lb),
                                         abs(event_set.mean_maximum_interevent_time -
@@ -298,6 +304,7 @@ mean_ltr = np.mean(long_term_rates_T, axis = 0)
 long_term_rate_stds = np.array(long_term_rate_stds)
 slip_rates = np.array(slip_rates).T
 slip_rate_bounds = np.array(slip_rate_bounds).T
+slip_rate_stds = np.array(slip_rate_stds).T
 print('Mean_ltr', mean_ltr)
 std_ltr = np.std(long_term_rates_T, axis = 0)
 ltr_bounds = np.array([abs(mean_ltr - (np.percentile(long_term_rates_T, 2.5, axis=0))),
@@ -415,7 +422,6 @@ pyplot.savefig(figname)
 pyplot.clf()
 ax = pyplot.subplot(111)
 mean_bs = []
-#mean_ltrs = []
 for i, b_set in enumerate(burstinesses):
     mean_b = np.mean(b_set)
     mean_bs.append(mean_b)
@@ -501,16 +507,84 @@ except:
     
 
 # Now try bilinear ODR linear fit
+data = odrpack.RealData(np.log10(mean_ltr), mean_bs,
+                        sx=np.log10(long_term_rate_stds), sy=burstiness_stds)
+bilin = odrpack.Model(bilinear_reg_zero_slope)
+odr = odrpack.ODR(data, bilin, beta0=[-3, -1.0, -4]) # array are starting values
+odr.set_job(fit_type=0)
+out = odr.run()
+out.pprint()
+a = out.beta[0]
+b = out.beta[1]
+hx = out.beta[2]
+xvals = np.arange(1.e-6, 2e-2, 1e-6)
+yrng = a*np.log10(xvals) + b #10**(b + a * xvals)
+ylevel = a*hx + b #10**(b + a * hx)
+print('ylevel', ylevel)
+print(10**ylevel)
+idx = xvals > 10**hx
+yrng[idx] = (ylevel)
+print('yrng', yrng)
+print('hx', hx)
+pyplot.plot(xvals, yrng, c='g')
 
+# Bilinear fixed hinge
+hxfix = np.log10(1e-4)
+#bilin_hxfix = odrpack.Model(bilinear_reg_fix)
+#odr = odrpack.ODR(data, bilin_hxfix, beta0=[-3, -1.0, -4])
+#odr.set_job(fit_type=0)
+#out = odr.run()
+#out.pprint()
+#a = out.beta[0]
+#b = out.beta[1]
+#a2 = out.beta[2]
+#yrng = a*np.log10(xvals) + b
+#ylevel = a*hxfix + b
+#print('ylevel', ylevel)
+#idx = xvals > 10**hxfix
+#x_trans = np.log10(xvals[idx]) - hxfix
+#print(x_trans)
+#yrng[idx] = a2*x_trans + ylevel
+#pyplot.plot(xvals, yrng, c='b')
 
+# Bilinear fixed hinge and constant slope
+#hxfix = -4
+bilin_hxfix_cons_slope = odrpack.Model(bilinear_reg_fix_zero_slope)
+odr = odrpack.ODR(data, bilin_hxfix_cons_slope, beta0=[-3, -1.0])
+odr.set_job(fit_type=0)
+out = odr.run()
+out.pprint()
+a = out.beta[0]
+b = out.beta[1]
+yrng = a*np.log10(xvals) + b
+ylevel = a*hxfix + b
+print('ylevel hxfix zero slope', ylevel)
+print(10**ylevel)
+idx = xvals > 10**hxfix
+yrng[idx] = (ylevel)
+print('yrng', yrng)
+print('hx', hxfix)
+pyplot.plot(xvals, yrng, c='r')
+
+# Get flat mean and std values
+idx = np.argwhere(long_term_rates_T > 10**(hxfix))
+mean_b = np.mean(np.array(burstinesses))
+print('mean b', mean_b)
+mean_b_fast = np.mean(np.array(burstinesses)[idx])
+print('mean_b_fast', mean_b_fast)
+std_b_fast = np.std(np.array(burstinesses)[idx])
+txt = 'Y = {:=+6.2f} +/- {:4.2f}'.format(mean_b_fast, std_b_fast)
+print(txt)
+ax.annotate(txt, (2e-4, 0.5), fontsize=8)                                                                                                 
 figname = 'burstiness_vs_lt_rate_%s.png' % fig_comment 
 pyplot.savefig(figname)
+
+#
 
 # Plot burstiness against slip rate
 pyplot.clf()
 ax = pyplot.subplot(111)
 #mean_bs = []
-#mean_ltrs = []
 #for i, b_set in enumerate(burstinesses):
 #    mean_b = np.mean(b_set)
 #    mean_bs.append(mean_b)
@@ -547,49 +621,75 @@ ax.set_xlim([1./1000, 100])
 # Add B=0 linear
 pyplot.plot([1./1000, 100], [0, 0], linestyle='dashed', linewidth=1, c='0.5')
 ax.set_xscale('log')
-ax.set_xlabel('Long-term rate (events per year)')
+ax.set_xlabel('Slip rate (mm/yr)')
 ax.set_ylabel('B')
 
 # Now do a bi-linear fit to the data
 #indices = np.argwhere(mean_ltr > 2e-4)#.flatten()
-mean_bs = np.array(mean_bs)
-indices = np.flatnonzero(slip_rates > 5)
-indices = indices.flatten()
+#mean_bs = np.array(mean_bs)
+#indices = np.flatnonzero(slip_rates > 5)
+#indices = indices.flatten()
 
-indices_slow_faults = np.flatnonzero(slip_rates <= 5)
-indices_slow_faults = indices_slow_faults.flatten()
+#indices_slow_faults = np.flatnonzero(slip_rates <= 5)
+#indices_slow_faults = indices_slow_faults.flatten()
 # Fit fast rate faults
-lf = np.polyfit(np.log10(slip_rates[indices]),
-                   mean_bs[indices], 1)
+#lf = np.polyfit(np.log10(slip_rates[indices]),
+#                   mean_bs[indices], 1)
 # Now force to be a flat line1
-lf[0] = 0.
-lf[1] = np.mean(mean_bs[indices])
-std_lf = np.std(mean_bs[indices])
-xvals_short = np.arange(5, 100, 1)
-yvals = lf[0]*np.log10(xvals_short) + lf[1]
-pyplot.plot(xvals_short, yvals, c='0.2')
+#lf[0] = 0.
+#lf[1] = np.mean(mean_bs[indices])
+#std_lf = np.std(mean_bs[indices])
+#xvals_short = np.arange(5, 100, 1)
+#yvals = lf[0]*np.log10(xvals_short) + lf[1]
+#pyplot.plot(xvals_short, yvals, c='0.2')
 # Fit slow faults
-if len(indices_slow_faults > 1):
-    lf_slow = np.polyfit(np.log10(slip_rates[indices_slow_faults]),
-                         mean_bs[indices_slow_faults], 1)
-    xvals_short = np.arange(1/1000., 5, 1e-3)
-    yvals = lf_slow[0]*np.log10(xvals_short) + lf_slow[1]
-    pyplot.plot(xvals_short, yvals, c='0.2')
+#if len(indices_slow_faults > 1):
+#    lf_slow = np.polyfit(np.log10(slip_rates[indices_slow_faults]),
+#                         mean_bs[indices_slow_faults], 1)
+#    xvals_short = np.arange(1/1000., 5, 1e-3)
+#    yvals = lf_slow[0]*np.log10(xvals_short) + lf_slow[1]
+#    pyplot.plot(xvals_short, yvals, c='0.2')
 # Add formula for linear fits of data
-print('Fits for B vs LTR')
-txt = 'Y = {:=+6.2f} +/- {:4.2f}'.format(lf[1], std_lf)
-print(txt)
-ax.annotate(txt, (10, 0.2), fontsize=8)
-try:
-    txt = 'Y = {:4.2f}Log(x) {:=+6.2f}'.format(lf_slow[0], lf_slow[1]) 
-    print(txt)
-    ax.annotate(txt, (1.e-2, 0.75), fontsize=8)
-except:
-    pass
+#print('Fits for B vs LTR')
+#txt = 'Y = {:=+6.2f} +/- {:4.2f}'.format(lf[1], std_lf)
+#print(txt)
+#ax.annotate(txt, (10, 0.2), fontsize=8)
+#try:
+#    txt = 'Y = {:4.2f}Log(x) {:=+6.2f}'.format(lf_slow[0], lf_slow[1]) 
+#    print(txt)
+#    ax.annotate(txt, (1.e-2, 0.75), fontsize=8)
+#except:
+#    pass
 
-figname = 'burstiness_vs_slip_rate_%s.png' % fig_comment 
-pyplot.savefig(figname)    
+# Now try bilinear ODR linear fit
+print(slip_rates)
+print(np.log10(slip_rates))
+print(slip_rate_stds)
+print(np.log10(slip_rate_stds))
+# Std dev already in log-space
+data = odrpack.RealData(np.log10(slip_rates), mean_bs,
+                        sx=slip_rate_stds, sy=burstiness_stds)
 
+bilin = odrpack.Model(bilinear_reg_zero_slope)
+odr = odrpack.ODR(data, bilin, beta0=[-1, -1.0, -1]) # array are starting values
+odr.set_job(fit_type=0)
+out = odr.run()
+out.pprint()
+a = out.beta[0]
+b = out.beta[1]
+hx = out.beta[2]
+xvals = np.arange(1.e-4, 1e2, 1e-6)
+yrng = a*np.log10(xvals) + b #10**(b + a * xvals)
+ylevel = a*hx + b #10**(b + a * hx)
+print('ylevel', ylevel)
+print(10**ylevel)
+idx = xvals > 10**hx
+yrng[idx] = (ylevel)
+print('yrng', yrng)
+print('hx', hx)
+pyplot.plot(xvals, yrng, c='0.2')
+figname = 'burstiness_vs_slip_rate_%s.png' % fig_comment   
+pyplot.savefig(figname)
 
 
 # Plot memory coefficients against long term rates
@@ -639,7 +739,6 @@ pyplot.savefig(figname)
 pyplot.clf()
 ax = pyplot.subplot(111)
 mean_mems_L1 = []
-#mean_ltrs = []
 for i, mem_set in enumerate(memory_spearman_coefficients):
     mean_mem = np.mean(mem_set)
     mean_mems_L1.append(mean_mem)
@@ -682,7 +781,6 @@ pyplot.savefig(figname)
 pyplot.clf()
 ax = pyplot.subplot(111)
 mean_mems_L2 = []
-#mean_ltrs = []
 for i, mem_set in enumerate(memory_spearman_lag2_coef):
     mean_mem = np.mean(mem_set)
     mean_mems_L2.append(mean_mem)
@@ -1368,7 +1466,6 @@ ax.annotate('a)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
 pyplot.subplot2grid((3, 2), (0,1), colspan=1, rowspan=1) 
 ax = pyplot.gca()
 mean_mems = []
-#mean_ltrs = []
 for i, mem_set in enumerate(memory_coefficients):
     mean_mem = np.mean(mem_set)
 #    print('Mean memory coefficient combined', mean_mem)
