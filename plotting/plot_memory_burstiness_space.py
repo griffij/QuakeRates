@@ -218,6 +218,10 @@ ax = plt.gca()
 ax.set_ylim([0, 1])
 ax.get_yaxis().set_visible(False)
 ax.annotate('h)', (-0.13, 0.9), xycoords = 'axes fraction', fontsize=10)
+ax.annotate('  6 \nevents', xy=(0.77, 0.2), xycoords='axes fraction', fontsize=8)#, xytext=(0.77, 0.2), 
+ax.annotate("", xy=(0.95, 0.8), xycoords='axes fraction', xytext=(0.85, 0.7),
+            textcoords = 'axes fraction', fontsize=8,
+            arrowprops=dict(arrowstyle="->", connectionstyle="arc3"))
 ax.set_title('Cadell Fault', fontsize=10)
 ax.set_xlabel('Year')
 plt.xticks([-4000000, -2000000, 0])
