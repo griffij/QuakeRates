@@ -43,7 +43,7 @@ def bilinear_reg_zero_slope(c, x):
 
 def bilinear_reg_fix(c, x):
     from numpy import zeros_like
-    hxfix = np.log10(2e-4) #4.0 # hinge magnitude
+    hxfix = np.log10(1e-4) #4.0 # hinge magnitude
     ans2 = zeros_like(x)
     ans1 = zeros_like(x)
 
@@ -61,7 +61,7 @@ def bilinear_reg_fix(c, x):
 
 def bilinear_reg_fix_zero_slope(c, x):
     from numpy import zeros_like
-    hxfix = np.log10(1.4e-4) #4.0 # hinge magnitude
+    hxfix = np.log10(1e-4) #4.0 # hinge magnitude
     ans2 = zeros_like(x)
     ans1 = zeros_like(x)
 
