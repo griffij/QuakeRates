@@ -58,7 +58,7 @@ param_file_list_NZ = ['Akatore4eventBdy_output.txt',
 #param_file_list = []
 #for f in param_file_list_NZ:
 #    param_file_list.append(os.path.join(filepath, f))
-n_samples = 10  # Number of Monte Carlo samples of the eq chronologies
+n_samples = 10000  # Number of Monte Carlo samples of the eq chronologies
 half_n = int(n_samples/2)
 print(half_n)
 annotate_plots = False # If True, lable each fault on the plot
@@ -529,7 +529,7 @@ print('hx', hx)
 pyplot.plot(xvals, yrng, c='g')
 
 # Bilinear fixed hinge
-hxfix = np.log10(1e-4)
+hxfix = np.log10(2e-4)
 #bilin_hxfix = odrpack.Model(bilinear_reg_fix)
 #odr = odrpack.ODR(data, bilin_hxfix, beta0=[-3, -1.0, -4])
 #odr.set_job(fit_type=0)
@@ -567,15 +567,15 @@ print('hx', hxfix)
 pyplot.plot(xvals, yrng, c='r')
 
 # Get flat mean and std values
-idx = np.argwhere(long_term_rates_T > 10**(hxfix))
-mean_b = np.mean(np.array(burstinesses))
-print('mean b', mean_b)
-mean_b_fast = np.mean(np.array(burstinesses)[idx])
-print('mean_b_fast', mean_b_fast)
-std_b_fast = np.std(np.array(burstinesses)[idx])
-txt = 'Y = {:=+6.2f} +/- {:4.2f}'.format(mean_b_fast, std_b_fast)
-print(txt)
-ax.annotate(txt, (2e-4, 0.5), fontsize=8)                                                                                                 
+#idx = np.argwhere(long_term_rates_T > 10**(hxfix))
+#mean_b = np.mean(np.array(burstinesses))
+#print('mean b', mean_b)
+#mean_b_fast = np.mean(np.array(burstinesses)[idx])
+#print('mean_b_fast', mean_b_fast)
+#std_b_fast = np.std(np.array(burstinesses)[idx])
+#txt = 'Y = {:=+6.2f} +/- {:4.2f}'.format(mean_b_fast, std_b_fast)
+#print(txt)
+#ax.annotate(txt, (2e-4, 0.5), fontsize=8)                                                                                                 
 figname = 'burstiness_vs_lt_rate_%s.png' % fig_comment 
 pyplot.savefig(figname)
 
@@ -661,33 +661,81 @@ ax.set_ylabel('B')
 #except:
 #    pass
 
-# Now try bilinear ODR linear fit
+# Now try linear ODR linear fit
+def f(B, x):
+    return B[0]*x + B[1]
 print(slip_rates)
 print(np.log10(slip_rates))
 print(slip_rate_stds)
 print(np.log10(slip_rate_stds))
+print(burstiness_stds)
+wd = 1./np.power(burstiness_stds, 2)
+print(wd)
+we = 1./np.power(slip_rate_stds, 2)
+print(we)
 # Std dev already in log-space
 data = odrpack.RealData(np.log10(slip_rates), mean_bs,
-                        sx=slip_rate_stds, sy=burstiness_stds)
+                        sx=np.sqrt(slip_rate_stds), sy=np.sqrt(burstiness_stds))
 
-bilin = odrpack.Model(bilinear_reg_zero_slope)
-odr = odrpack.ODR(data, bilin, beta0=[-1, -1.0, -1]) # array are starting values
+#bilin = odrpack.Model(bilinear_reg_zero_slope)
+#odr = odrpack.ODR(data, bilin, beta0=[-1, -1.0, -1]) # array are starting values
+linear  = odrpack.Model(f)
+odr = odrpack.ODR(data, linear, beta0=[-1, -1.0,]) 
 odr.set_job(fit_type=0)
 out = odr.run()
 out.pprint()
 a = out.beta[0]
 b = out.beta[1]
-hx = out.beta[2]
-xvals = np.arange(1.e-4, 1e2, 1e-6)
+#hx = out.beta[2]
+xvals = np.arange(1.e-4, 1e2, 1e-2)
 yrng = a*np.log10(xvals) + b #10**(b + a * xvals)
-ylevel = a*hx + b #10**(b + a * hx)
-print('ylevel', ylevel)
+#yrng = 10**(b + a * xvals)
+#ylevel = a*hx + b #10**(b + a * hx)
+#print('ylevel', ylevel)
+#print(10**ylevel)
+#idx = xvals > 10**hx
+#yrng[idx] = (ylevel)
+#print('yrng', yrng)
+#print('hx', hx)
+pyplot.plot(xvals, yrng, c='0.6')
+txt = 'Y = {:4.2f}Log(x) {:=+6.2f}'.format(a, b)
+print(txt)                                                                                                                                 
+ax.annotate(txt, (1e0, 0.9), color='0.6') 
+
+# Now try bilinear fixed hinge
+bilin = odrpack.Model(bilinear_reg_fix_zero_slope)
+#hxfix = np.log10(1e0)
+odr = odrpack.ODR(data, bilin, beta0=[-1, -1.0, -1])
+odr.set_job(fit_type=0)
+out = odr.run()
+out.pprint()
+a = out.beta[0]
+b = out.beta[1]   
+yrng = a*np.log10(xvals) + b
+ylevel = a*hxfix + b
+print('ylevel hxfix zero slope', ylevel)
 print(10**ylevel)
-idx = xvals > 10**hx
+idx = xvals > 10**hxfix
 yrng[idx] = (ylevel)
 print('yrng', yrng)
-print('hx', hx)
+print('hx', hxfix)
+#idx = np.argwhere(slip_rates > np.power(hxfix))
+#std_dev = np.std(slip_rates
 pyplot.plot(xvals, yrng, c='0.2')
+txt = 'Y = {:4.2f}Log(x) {:=+6.2f}, x < {:4.2f}'.format(a, b, np.power(10,hxfix))
+print(txt)
+ax.annotate(txt, (2e-3, 0.9), color='0.2')
+txt = 'Y = {:4.2f}, x >= {:4.2f}'.format(ylevel, np.power(10,hxfix)) 
+print(txt)
+ax.annotate(txt, (1.2e-2, 0.8), color='0.2')
+
+# Simple least squares fit
+#lf = np.polyfit(np.log10(slip_rates),                                                                                                 
+#                mean_bs, 1)
+#print(lf)
+#yvals = lf[0]*np.log10(xvals) + lf[1]
+#pyplot.plot(xvals, yvals, c='0.2')
+
 figname = 'burstiness_vs_slip_rate_%s.png' % fig_comment   
 pyplot.savefig(figname)
 
@@ -1429,36 +1477,61 @@ line3 = ax.scatter([1], [100], marker = 's', c = 'b', s=18)
 pyplot.legend((line1, line2, line3), ('Normal', 'Strike slip', 'Reverse'))
 
 # Now do a bi-linear fit to the data
-mean_bs = np.array(mean_bs)
-indices = np.flatnonzero(mean_ltr > 3e-4)
-indices = indices.flatten()
-indices_slow_faults = np.flatnonzero(mean_ltr <= 3e-4)
-indices_slow_faults = indices_slow_faults.flatten()
+#mean_bs = np.array(mean_bs)
+#indices = np.flatnonzero(mean_ltr > 3e-4)
+#indices = indices.flatten()
+#indices_slow_faults = np.flatnonzero(mean_ltr <= 3e-4)
+#indices_slow_faults = indices_slow_faults.flatten()
 # Fit fast rate faults
-lf = np.polyfit(np.log10(mean_ltr[indices]),
-                   mean_bs[indices], 1)
+#lf = np.polyfit(np.log10(mean_ltr[indices]),
+#                   mean_bs[indices], 1)
 # Now force to be a flat line1
-lf[0] = 0.
-lf[1] = np.mean(mean_bs[indices])
-std_lf = np.std(mean_bs[indices])
-xvals_short = np.arange(1.5e-4, 2e-2, 1e-4)
-yvals = lf[0]*np.log10(xvals_short) + lf[1]
-pyplot.plot(xvals_short, yvals, c='0.4')
+#lf[0] = 0.
+#lf[1] = np.mean(mean_bs[indices])
+#std_lf = np.std(mean_bs[indices])
+#xvals_short = np.arange(1.5e-4, 2e-2, 1e-4)
+#yvals = lf[0]*np.log10(xvals_short) + lf[1]
+#pyplot.plot(xvals_short, yvals, c='0.4')
 # Fit slow faults
-lf_slow = np.polyfit(np.log10(mean_ltr[indices_slow_faults]),
-                   mean_bs[indices_slow_faults], 1)
-xvals_short = np.arange(1e-6, 1.5e-4, 1e-6)
-yvals = lf_slow[0]*np.log10(xvals_short) + lf_slow[1]
-pyplot.plot(xvals_short, yvals, c='0.4')
+#lf_slow = np.polyfit(np.log10(mean_ltr[indices_slow_faults]),
+#                   mean_bs[indices_slow_faults], 1)
+#xvals_short = np.arange(1e-6, 1.5e-4, 1e-6)
+#yvals = lf_slow[0]*np.log10(xvals_short) + lf_slow[1]
+#pyplot.plot(xvals_short, yvals, c='0.4')
 # Add formula for linear fits of data
-print('Fits for B vs LTR')
-txt = 'Y = {:=+6.2f} +/- {:4.2f}'.format(lf[1], std_lf)
-print(txt)
-ax.annotate(txt, (2e-4, 0.2), fontsize=8)
-txt = 'Y = {:4.2f}Log(x) {:=+6.2f}'.format(lf_slow[0], lf_slow[1]) 
-print(txt)
-ax.annotate(txt, (1.6e-6, -0.75), fontsize=8)
+#print('Fits for B vs LTR')
+#txt = 'Y = {:=+6.2f} +/- {:4.2f}'.format(lf[1], std_lf)
+#print(txt)
+#ax.annotate(txt, (2e-4, 0.2), fontsize=8)
+#txt = 'Y = {:4.2f}Log(x) {:=+6.2f}'.format(lf_slow[0], lf_slow[1]) 
+#print(txt)
+#ax.annotate(txt, (1.6e-6, -0.75), fontsize=8)
 
+# Bilinear fixed hinge and constant slope ODR
+hxfix = np.log10(2e-4)
+bilin_hxfix_cons_slope = odrpack.Model(bilinear_reg_fix_zero_slope)
+data = odrpack.RealData(np.log10(mean_ltr), mean_bs,
+                        sx=np.log10(long_term_rate_stds), sy=burstiness_stds)
+odr = odrpack.ODR(data, bilin_hxfix_cons_slope, beta0=[-3, -1.0])
+odr.set_job(fit_type=0)
+out = odr.run()
+out.pprint()
+a = out.beta[0]
+b = out.beta[1]
+xvals = np.arange(1e-6, 2e-2, 1e-5)
+yrng = a*np.log10(xvals) + b
+ylevel = a*hxfix + b
+print('ylevel hxfix zero slope', ylevel)
+print(10**ylevel)
+idx = xvals > 10**hxfix
+yrng[idx] = (ylevel)
+print('yrng', yrng)
+print('hx', hxfix)
+pyplot.plot(xvals, yrng, c='0.4')
+txt = 'y = {:4.2f}Log(x) {:=+6.2f}, x < {:3.1E}'.format(a, b, np.power(10, hxfix))
+ax.annotate(txt, (1.5e-6, -0.85), fontsize=8) 
+txt = 'y = {:=+4.2f}, x >= {:3.1E}'.format(ylevel, np.power(10, hxfix))
+ax.annotate(txt, (1.5e-6, -0.95), fontsize=8)
 
 ax.annotate('a)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
 
@@ -1626,43 +1699,88 @@ ax.set_yscale('log')
 ax.set_xlim([1e-6, 2e-2])
 ax.set_ylim([5e-4, 2])
 # Linear fit only bottom end of data
-indices = np.argwhere(mean_ltr > 9e-5).flatten()
-indices_slow_faults = np.argwhere(mean_ltr <= 9e-5).flatten()
-lf = np.polyfit(np.log10(mean_ltr[indices]),
-                                np.log10(ratio_min_max[indices]), 1)
+#indices = np.argwhere(mean_ltr > 9e-5).flatten()
+#indices_slow_faults = np.argwhere(mean_ltr <= 9e-5).flatten()
+#lf = np.polyfit(np.log10(mean_ltr[indices]),
+#                                np.log10(ratio_min_max[indices]), 1)
 # Now just plot as constant mean value
-lf[0] = 0
-lf[1] = np.mean(np.log10(ratio_min_max[indices]))
-std_lf = np.std(np.log10(ratio_min_max[indices]))
-xvals_short = np.arange(3.46e-5, 1e-2, 1e-4)
-log_yvals = lf[0]*np.log10(xvals_short) + lf[1]
-yvals = np.power(10, log_yvals)
-pyplot.plot(xvals_short, yvals, c='0.4')
+#lf[0] = 0
+#lf[1] = np.mean(np.log10(ratio_min_max[indices]))
+#std_lf = np.std(np.log10(ratio_min_max[indices]))
+#xvals_short = np.arange(3.46e-5, 1e-2, 1e-4)
+#log_yvals = lf[0]*np.log10(xvals_short) + lf[1]
+#yvals = np.power(10, log_yvals)
+#pyplot.plot(xvals_short, yvals, c='0.4')
 # Add formula for linear fit to low-end of data
 #txt = 'Log(Y) = %.2fLog(x) %+.2f' % (lf[0], lf[1])
-txt = 'Log(y) = {:=+6.2f} +/- {:4.2f}'.format(lf[1], std_lf)
-print(txt)
-ax.annotate(txt, (6e-5, 1e-3), fontsize=8)
+#txt = 'Log(y) = {:=+6.2f} +/- {:4.2f}'.format(lf[1], std_lf)
+#print(txt)
+#ax.annotate(txt, (6e-5, 1e-3), fontsize=8)
 # Slow long-term rates
-if len(indices_slow_faults) > 0:
-    lf = np.polyfit(np.log10(mean_ltr[indices_slow_faults]),
-                    np.log10(ratio_min_max[indices_slow_faults]), 1)
-    xvals_short = np.arange(2e-6, 3.47e-5, 1e-6)
-    log_yvals = lf[0]*np.log10(xvals_short) + lf[1]
-    yvals = np.power(10, log_yvals)
-    pyplot.plot(xvals_short, yvals, c='0.4')
-    # Add formula for linear fit to low-end of data
+#if len(indices_slow_faults) > 0:
+#    lf = np.polyfit(np.log10(mean_ltr[indices_slow_faults]),
+#                    np.log10(ratio_min_max[indices_slow_faults]), 1)
+#    xvals_short = np.arange(2e-6, 3.47e-5, 1e-6)
+#    log_yvals = lf[0]*np.log10(xvals_short) + lf[1]
+#    yvals = np.power(10, log_yvals)
+#    pyplot.plot(xvals_short, yvals, c='0.4')
+#    # Add formula for linear fit to low-end of data
 #    txt = 'Log(Y) = %.2fLog(x) %+.2f' % (lf[0], lf[1])
-    txt = 'Log(y) = {:4.2f}Log(x) {:=+6.2f}'.format(lf[0], lf[1])
-    print(txt)
-    ax.annotate(txt, (2e-6, 1.e-0), fontsize=8)
+#    txt = 'Log(y) = {:4.2f}Log(x) {:=+6.2f}'.format(lf[0], lf[1])
+#    print(txt)
+#    ax.annotate(txt, (2e-6, 1.e-0), fontsize=8)
 
-# Label low-slip rate faults
-for i, txt in enumerate(names):
-    if max_interevent_times[i] > 10 and annotate_plots:
-        ax.annotate(txt[:4],
-                    (mean_ltr[i], ratio_min_pair_max[i]),
-                    fontsize=8)
+# Bilinear fixed hinge and constant slope ODR
+hxfix = np.log10(2e-4)
+bilin_hxfix_cons_slope = odrpack.Model(bilinear_reg_fix_zero_slope)
+data = odrpack.RealData(np.log10(mean_ltr), np.log10(ratio_min_max),
+                        sx=np.log10(np.sqrt(long_term_rate_stds)), sy=np.log10(np.sqrt(std_ratio_min_max)))
+odr = odrpack.ODR(data, bilin_hxfix_cons_slope, beta0=[-3, -1.0])
+odr.set_job(fit_type=0)
+out = odr.run()
+out.pprint()
+a = out.beta[0]
+b = out.beta[1]
+log_y = a*np.log10(xvals) + b
+yrng = np.power(10, log_y)
+ylevel = np.power(10, (a*hxfix + b)) 
+print('ylevel hxfix zero slope', ylevel)
+print(10**ylevel)
+idx = xvals > 10**hxfix
+yrng[idx] = (ylevel)
+print('yrng', yrng)
+print('hx', hxfix)
+#pyplot.plot(xvals, yrng, c='0.4')
+#txt = 'Log(y) = {:4.2f}Log(x) {:=+6.2f}, x < {:3.1E}'.format(a, b, np.power(10, hxfix))
+#ax.annotate(txt, (1.5e-6, 1.05), fontsize=8) 
+#txt = 'y = {:4.2f}, x >= {:3.1E}'.format(ylevel, np.power(10, hxfix))
+#ax.annotate(txt, (1.3e-6, 0.6), fontsize=8)
+
+# Now try inverting fo hinge point
+bilin = odrpack.Model(bilinear_reg_zero_slope)
+odr = odrpack.ODR(data, bilin, beta0=[-3, -1.0, -4]) # array are starting values
+odr.set_job(fit_type=0)
+out = odr.run()
+out.pprint()
+a = out.beta[0]
+b = out.beta[1]
+hx = out.beta[2]
+xvals = np.arange(1.e-6, 2e-2, 1e-6)
+log_y = a*np.log10(xvals) + b
+yrng = np.power(10, log_y)
+ylevel = np.power(10, a*hx + b) #10**(b + a * hx)
+print('ylevel', ylevel)
+print(10**ylevel)
+idx = xvals > 10**hx
+yrng[idx] = (ylevel)
+print('yrng', yrng)
+print('hx', hx)
+pyplot.plot(xvals, yrng, c='0.4')
+txt = 'Log(y) = {:4.2f}Log(x) {:=+6.2f}, x < {:3.1E}'.format(a, b, np.power(10, hx))
+ax.annotate(txt, (1.5e-6, 1.08), fontsize=8)
+txt = 'y = {:4.2f}, x >= {:3.1E}'.format(ylevel, np.power(10, hx))
+ax.annotate(txt, (1.3e-6, 0.7), fontsize=8) 
+
 ax.annotate('e)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
 
 # Add sixth plot
@@ -1689,39 +1807,84 @@ ax.set_yscale('log')
 ax.set_xlim([1e-6, 2e-2])
 ax.set_ylim([5e-4, 2])
 # Now just plot as constant mean value
-lf[0] = 0
-lf[1] = np.mean(np.log10(ratio_min_pair_max[indices]))
-std_lf = np.std(np.log10(ratio_min_pair_max[indices]))
-xvals_short = np.arange(3.46e-5, 1e-2, 1e-4)
-log_yvals = lf[0]*np.log10(xvals_short) + lf[1]
-yvals = np.power(10, log_yvals)
-pyplot.plot(xvals_short, yvals, c='0.4')
+#lf[0] = 0
+#lf[1] = np.mean(np.log10(ratio_min_pair_max[indices]))
+#std_lf = np.std(np.log10(ratio_min_pair_max[indices]))
+#xvals_short = np.arange(3.46e-5, 1e-2, 1e-4)
+#log_yvals = lf[0]*np.log10(xvals_short) + lf[1]
+#yvals = np.power(10, log_yvals)
+#pyplot.plot(xvals_short, yvals, c='0.4')
 # Add formula for linear fit to low-end of data
 #txt = 'Log(Y) = %.2fLog(x) %+.2f' % (lf[0], lf[1])
-txt = 'Log(y) = {:=+6.2f} +/- {:4.2f}'.format(lf[1], std_lf)
-print(txt)
-ax.annotate(txt, (6e-5, 1e-3), fontsize=8)
+#txt = 'Log(y) = {:=+6.2f} +/- {:4.2f}'.format(lf[1], std_lf)
+#print(txt)
+#ax.annotate(txt, (6e-5, 1e-3), fontsize=8)
 
 # Slow long-term rates
-if len(indices_slow_faults) > 0:
-    lf = np.polyfit(np.log10(mean_ltr[indices_slow_faults]),
-                    np.log10(ratio_min_pair_max[indices_slow_faults]), 1)
-    xvals_short = np.arange(2e-6, 3.47e-5, 1e-6)
-    log_yvals = lf[0]*np.log10(xvals_short) + lf[1]
-    yvals = np.power(10, log_yvals)
-    pyplot.plot(xvals_short, yvals, c='0.4')
-    # Add formula for linear fit to low-end of data
+#if len(indices_slow_faults) > 0:
+#    lf = np.polyfit(np.log10(mean_ltr[indices_slow_faults]),
+#                    np.log10(ratio_min_pair_max[indices_slow_faults]), 1)
+#    xvals_short = np.arange(2e-6, 3.47e-5, 1e-6)
+#    log_yvals = lf[0]*np.log10(xvals_short) + lf[1]
+#    yvals = np.power(10, log_yvals)
+#    pyplot.plot(xvals_short, yvals, c='0.4')
+#    # Add formula for linear fit to low-end of data
 #    txt = 'Log(Y) = %.2fLog(x) %+.2f' % (lf[0], lf[1])
-    txt = 'Log(y) = {:4.2f}Log(x) \n{:=+6.2f}'.format(lf[0], lf[1])
-    print(txt)
-    ax.annotate(txt, (2e-6, 8.e-1), fontsize=8)
+#    txt = 'Log(y) = {:4.2f}Log(x) \n{:=+6.2f}'.format(lf[0], lf[1])
+#    print(txt)
+#    ax.annotate(txt, (2e-6, 8.e-1), fontsize=8)
 
-# Label low-slip rate faults
-for i, txt in enumerate(names):
-    if max_interevent_times[i] > 10 and annotate_plots:
-        ax.annotate(txt[:4],
-                    (mean_ltr[i], ratio_min_pair_max[i]),
-                    fontsize=8)
+# Bilinear fixed hinge and constant slope ODR
+hxfix = np.log10(2e-4)
+bilin_hxfix_cons_slope = odrpack.Model(bilinear_reg_fix_zero_slope)
+data = odrpack.RealData(np.log10(mean_ltr), np.log10(ratio_min_pair_max),
+                        sx=np.log10(long_term_rate_stds), sy=np.log10(std_ratio_min_pair_max))
+odr = odrpack.ODR(data, bilin_hxfix_cons_slope, beta0=[-3, -1.0])
+odr.set_job(fit_type=0)
+out = odr.run()
+out.pprint()
+a = out.beta[0]
+b = out.beta[1]
+log_y = a*np.log10(xvals) + b
+yrng = np.power(10, log_y) 
+ylevel = np.power(10, (a*hxfix + b))
+print('ylevel hxfix zero slope', ylevel)
+print(10**ylevel)
+idx = xvals > 10**hxfix
+yrng[idx] = (ylevel)
+print('yrng', yrng)
+print('hx', hxfix)
+#pyplot.plot(xvals, yrng, c='0.4')
+#txt = 'Log(y) = {:4.2f}Log(x) {:=+6.2f}, x < {:3.1E}'.format(a, b, np.power(10, hxfix))
+#ax.annotate(txt, (1e-5, 5.e-3), fontsize=8) 
+#txt = 'y = {:4.2f}, x >= {:3.1E}'.format(ylevel, np.power(10, hxfix))
+#ax.annotate(txt, (1e-5, 1.e-3), fontsize=8)
+
+# Now try inverting fo hinge point
+bilin = odrpack.Model(bilinear_reg_zero_slope)
+odr = odrpack.ODR(data, bilin, beta0=[-3, -1.0, -4]) # array are starting values
+odr.set_job(fit_type=0)
+out = odr.run()
+out.pprint()
+a = out.beta[0]
+b = out.beta[1]
+hx = out.beta[2]
+xvals = np.arange(1.e-6, 2e-2, 1e-6)
+log_y = a*np.log10(xvals) + b
+yrng = np.power(10, log_y)
+ylevel = np.power(10, a*hx + b) #10**(b + a * hx)
+print('ylevel', ylevel)
+print(10**ylevel)
+idx = xvals > 10**hx
+yrng[idx] = (ylevel)
+print('yrng', yrng)
+print('hx', hx)
+pyplot.plot(xvals, yrng, c='0.4')
+txt = 'Log(y) = {:4.2f}Log(x) {:=+6.2f}, x < {:3.1E}'.format(a, b, np.power(10, hx))
+ax.annotate(txt, (2e-6, 2.e-3), fontsize=8)
+txt = 'y = {:4.2f}, x >= {:3.1E}'.format(ylevel, np.power(10, hx))
+ax.annotate(txt, (2e-6, 1.e-3), fontsize=8) 
+
 ax.annotate('f)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
 
 
