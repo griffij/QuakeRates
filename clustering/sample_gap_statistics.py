@@ -40,7 +40,7 @@ if not os.path.exists(plot_dir):
 faulting_styles = ['all']
 tectonic_regions = ['all']
 #tectonic_regions = ['Plate_boundary_master', 'Plate_boundary_network']
-min_number_events = 4
+min_number_events = 5
 plot_colours = []
 
 names, event_sets, event_certainties, num_events = \
