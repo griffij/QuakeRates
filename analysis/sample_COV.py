@@ -105,6 +105,7 @@ burstiness_bounds = []
 burstiness_stds = []
 memory_coefficients = []
 memory_bounds = []
+memory_stds = []
 memory_spearman_coefficients = []
 memory_spearman_bounds = []
 memory_spearman_lag2_coef = []
@@ -220,6 +221,7 @@ for i, event_set in enumerate(event_sets):
         covs.append(combined_covs)
         burstinesses.append(combined_burstiness)
         memory_coefficients.append(combined_memory)
+        memory_stds.append(np.std(np.array(combined_memory)))
         memory_spearman_coefficients.append(combined_memory_spearman)
         memory_spearman_lag2_coef.append(combined_memory_spearman_lag2)
         cov_bounds.append([abs(np.mean(combined_covs) - \
@@ -261,6 +263,7 @@ for i, event_set in enumerate(event_sets):
         covs.append(event_set.covs)
         burstinesses.append(event_set.burstiness)
         memory_coefficients.append(event_set.mem_coef)
+        memory_stds.append(np.std(np.array(event_set.mem_coef)))
         memory_spearman_coefficients.append(event_set.rhos)
         memory_spearman_lag2_coef.append(event_set.rhos2)
         long_term_rates.append(event_set.long_term_rates)
@@ -318,6 +321,7 @@ ratio_min_max_bounds = np.array(ratio_min_max_bounds).T
 cov_bounds = np.array(cov_bounds).T
 burstiness_bounds = np.array(burstiness_bounds).T
 burstiness_stds = np.array(burstiness_stds)
+memory_stds = np.array(memory_stds)
 memory_bounds = np.array(memory_bounds).T 
 memory_spearman_bounds = np.array(memory_spearman_bounds).T
 memory_spearman_lag2_bounds = np.array(memory_spearman_lag2_bounds).T
@@ -1564,10 +1568,76 @@ for i, txt in enumerate(names):
                     fontsize=8)
 #ax.set_xlim([-1, 1])
 ax.set_xlim([1./1000000, 1./40])
+ax.set_ylim([-1, 1]) 
 pyplot.plot([1./1000000, 1./40], [0, 0], linestyle='dashed', linewidth=1, c='0.5')
 ax.set_xscale('log')
 ax.set_xlabel('Long-term rate (events per year)', fontsize=10)
 ax.set_ylabel('M', fontsize=10)
+
+# Bilinear fixed hinge and constant slope ODR
+hxfix = np.log10(2e-4)
+bilin_hxfix_cons_slope = odrpack.Model(bilinear_reg_fix_zero_slope)
+data = odrpack.RealData(np.log10(mean_ltr), mean_mems,
+                        sx=np.log10(long_term_rate_stds), sy=memory_stds)
+odr = odrpack.ODR(data, bilin_hxfix_cons_slope, beta0=[-3, -1.0])
+odr.set_job(fit_type=0)
+out = odr.run()
+out.pprint()
+a = out.beta[0]
+b = out.beta[1]
+yrng = a*np.log10(xvals) + b
+ylevel = a*hxfix + b
+print('ylevel hxfix zero slope', ylevel)
+print(ylevel)
+idx = xvals > 10**hxfix
+yrng[idx] = (ylevel)
+print('yrng', yrng)
+print('hx', hxfix)
+pyplot.plot(xvals, yrng, c='0.4')
+txt = 'y = {:4.2f}Log(x) {:=+6.2f}, x < {:3.1E}'.format(a, b, np.power(10, hxfix))
+ax.annotate(txt, (1.5e-6, -0.85), fontsize=8) 
+txt = 'y = {:4.2f}, x >= {:3.1E}'.format(ylevel, np.power(10, hxfix))
+ax.annotate(txt, (1.5e-6, -0.95), fontsize=8)
+
+# Now try inverting fo hinge point
+#bilin = odrpack.Model(bilinear_reg_zero_slope)
+#odr = odrpack.ODR(data, bilin, beta0=[-3, -1.0, -4]) # array are starting values
+#odr.set_job(fit_type=0)
+#out = odr.run()
+#out.pprint()
+#a = out.beta[0]
+#b = out.beta[1]
+#hx = out.beta[2]
+#xvals = np.arange(1.e-6, 2e-2, 1e-6)
+#yrng = a*np.log10(xvals) + b
+#ylevel = a*hx + b
+#print('ylevel', ylevel)
+#print(ylevel)
+#idx = xvals > 10**hx
+#yrng[idx] = (ylevel)
+#print('yrng', yrng)
+#print('hx', hx)
+#pyplot.plot(xvals, yrng, c='0.4')
+#txt = 'Log(y) = {:4.2f}Log(x) {:=+6.2f}, x < {:3.1E}'.format(a, b, np.power(10, hx))
+#ax.annotate(txt, (1.5e-6, 0.9), fontsize=8)
+#txt = 'y = {:4.2f}, x >= {:3.1E}'.format(ylevel, np.power(10, hx))
+#ax.annotate(txt, (1.3e-6, 0.8), fontsize=8)
+
+# Linear ODR fit
+#linear  = odrpack.Model(f)
+#odr = odrpack.ODR(data, linear, beta0=[-1, -1.0,]) 
+#odr.set_job(fit_type=0)
+#out = odr.run()
+#out.pprint()
+#a = out.beta[0]
+#b = out.beta[1]
+#xvals = np.arange(1.e-4, 1e2, 1e-2)
+#yrng = a*np.log10(xvals) + b #10**(b + a * xvals)
+#pyplot.plot(xvals, yrng, c='0.6')
+#txt = 'Y = {:4.2f}Log(x) {:=+6.2f}'.format(a, b)
+#print(txt)                                                                                                                                 
+#ax.annotate(txt, (1.3e-6, 0.6), color='0.6')
+
 ax.annotate('b)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
 
 # Now do a bi-linear fit to the data
@@ -1779,7 +1849,7 @@ pyplot.plot(xvals, yrng, c='0.4')
 txt = 'Log(y) = {:4.2f}Log(x) {:=+6.2f}, x < {:3.1E}'.format(a, b, np.power(10, hx))
 ax.annotate(txt, (1.5e-6, 1.08), fontsize=8)
 txt = 'y = {:4.2f}, x >= {:3.1E}'.format(ylevel, np.power(10, hx))
-ax.annotate(txt, (1.3e-6, 0.7), fontsize=8) 
+ax.annotate(txt, (1.5e-6, 0.6), fontsize=8) 
 
 ax.annotate('e)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
 
