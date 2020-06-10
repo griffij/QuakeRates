@@ -1,4 +1,4 @@
-filename = '../data/Teton_Larsen_2019_simple.txt'
+filename = '../data/TetonLakes_Larsen_2019_simple.txt'
 chron_type = 'Age2Sigma'
 sigma_level = 2
 event_order = 'Forwards'
