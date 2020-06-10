@@ -249,6 +249,7 @@ class EventSet(object):
         self.burstiness = (self.stds - self.means)/ \
             (self.stds + self.means)
         self.mean_burstiness = np.mean(self.burstiness)
+        self.std_burstiness = np.std(self.burstiness)
         self.mean_cov = np.mean(self.covs)
         print('Mean COV', self.mean_cov)
         print('Min COV', np.min(self.covs))
