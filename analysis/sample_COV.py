@@ -78,7 +78,7 @@ tectonic_regions = ['all']
 #tectonic_regions = ['Plate_boundary_master']
 #tectonic_regions = ['Subduction']
 #tectonic_regions = ['Near_plate_boundary']
-min_number_events = 5
+min_number_events = 4
 
 #Summarise for comment to add to figure filename
 fig_comment = ''
