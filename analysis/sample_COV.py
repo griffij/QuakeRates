@@ -10,10 +10,11 @@ import numpy as np
 from scipy.optimize import curve_fit
 from scipy.odr import Model, RealData, ODR
 import scipy.odr.odrpack as odrpack
+from scipy.stats import expon, ks_2samp, kstest
 from matplotlib import pyplot
 from matplotlib.patches import PathPatch
 import matplotlib.gridspec as gridspec
-from scipy.stats import kde
+from scipy.stats import binom, kde
 from adjustText import adjust_text
 from QuakeRates.dataman.event_dates import EventSet
 from QuakeRates.dataman.parse_oxcal import parse_oxcal
@@ -22,6 +23,7 @@ from QuakeRates.dataman.parse_params import parse_param_file, \
     get_event_sets, file_len
 from QuakeRates.utilities.bilinear import bilinear_reg_zero_slope, \
     bilinear_reg_fix, bilinear_reg_fix_zero_slope
+from QuakeRates.utilities.memory_coefficient import burstiness
 
 filepath = '../params'
 param_file_list = glob(os.path.join(filepath, '*.txt'))
@@ -58,7 +60,7 @@ param_file_list_NZ = ['Akatore4eventBdy_output.txt',
 #param_file_list = []
 #for f in param_file_list_NZ:
 #    param_file_list.append(os.path.join(filepath, f))
-n_samples = 10000  # Number of Monte Carlo samples of the eq chronologies
+n_samples = 1000  # Number of Monte Carlo samples of the eq chronologies
 half_n = int(n_samples/2)
 print(half_n)
 annotate_plots = False # If True, lable each fault on the plot
@@ -78,7 +80,7 @@ tectonic_regions = ['all']
 #tectonic_regions = ['Plate_boundary_master']
 #tectonic_regions = ['Subduction']
 #tectonic_regions = ['Near_plate_boundary']
-min_number_events = 4
+min_number_events = 6
 
 #Summarise for comment to add to figure filename
 fig_comment = ''
@@ -103,6 +105,7 @@ cov_bounds = []
 burstinesses = []
 burstiness_bounds = []
 burstiness_stds = []
+burstinesses_expon = []
 memory_coefficients = []
 memory_bounds = []
 memory_stds = []
@@ -140,6 +143,7 @@ for s in param_file_list:
     sp = s.split('_')
     if sp[0].split('/')[2] in names:
         references.append(sp[1] + ' ' + sp[2])
+n_faults = len(names)
 
 for i, event_set in enumerate(event_sets):
     # Handle cases with uncertain number of events. Where events identification is
@@ -194,6 +198,14 @@ for i, event_set in enumerate(event_sets):
                                      event_set.ratio_min_max_lb),
                                  abs(event_set.mean_ratio_min_max -
                                      event_set.ratio_min_max_ub)])
+    # Generate random exponentially distributed samples of length num_events - 1
+    # i.e. the number of inter-event times in the chronology. These will be used
+    # later for testing
+    scale = 100 # Fix scale, as burstiness is independent of scale for exponentiall distribution
+    ie_times_expon = expon(scale=scale).rvs(size=(n_samples*(event_set.num_events-1)))
+    ie_times_expon = np.reshape(np.array(ie_times_expon), (n_samples, (event_set.num_events-1)))
+    ie_times_expon_T = ie_times_expon.T
+    burst_expon = burstiness(ie_times_expon_T)
     # Now generate chronologies assuming uncertain events did not occur
     if sum(event_certainties[i]) < event_set.num_events:
         indices = np.where(event_certainties[i] == 1)
@@ -208,6 +220,14 @@ for i, event_set in enumerate(event_sets):
         event_set_certain.basic_chronology_stats()
         event_set_certain.memory_coefficient()
         event_set_certain.memory_spearman_rank_correlation()
+        # Generate random exponentially distributed samples of length num_events - 1
+        # i.e. the number of inter-event times in the chronology. These will be used
+        # later for testing
+        ie_times_expon_certain = expon(scale=scale).rvs(size=(n_samples*(len(indices)-1)))
+        ie_times_expon_certain = np.reshape(np.array(ie_times_expon_certain), (n_samples, (len(indices)-1)))
+        ie_times_expon_certain_T = ie_times_expon_certain.T
+        burst_expon_certain = burstiness(ie_times_expon_certain_T)
+        # Now combine results from certain chronolgies with uncertain ones
         combined_covs = np.concatenate([event_set.covs[:half_n],
                                         event_set_certain.covs[:half_n]])
         combined_burstiness = np.concatenate([event_set.burstiness[:half_n],
@@ -217,13 +237,16 @@ for i, event_set in enumerate(event_sets):
         combined_memory_spearman = np.concatenate([event_set.rhos[:half_n],
                                                    event_set_certain.rhos[:half_n]])
         combined_memory_spearman_lag2 = np.concatenate([event_set.rhos2[:half_n],
-                                                        event_set_certain.rhos2[:half_n]]) 
+                                                        event_set_certain.rhos2[:half_n]])
+        combined_burst_expon = np.concatenate([burst_expon[:half_n],
+                                               burst_expon_certain[:half_n]])
         covs.append(combined_covs)
         burstinesses.append(combined_burstiness)
         memory_coefficients.append(combined_memory)
         memory_stds.append(np.std(np.array(combined_memory)))
         memory_spearman_coefficients.append(combined_memory_spearman)
         memory_spearman_lag2_coef.append(combined_memory_spearman_lag2)
+        burstinesses_expon.append(combined_burst_expon)
         cov_bounds.append([abs(np.mean(combined_covs) - \
                                min(event_set.cov_lb, event_set_certain.cov_lb)),
                            abs(np.mean(combined_covs) - \
@@ -267,6 +290,7 @@ for i, event_set in enumerate(event_sets):
         memory_spearman_coefficients.append(event_set.rhos)
         memory_spearman_lag2_coef.append(event_set.rhos2)
         long_term_rates.append(event_set.long_term_rates)
+        burstinesses_expon.append(burst_expon)
         cov_bounds.append([abs(event_set.mean_cov - event_set.cov_lb),
                           abs(event_set.mean_cov - event_set.cov_ub)])
         burstiness_bounds.append([abs(event_set.mean_burstiness - event_set.burstiness_lb),
@@ -321,6 +345,7 @@ ratio_min_max_bounds = np.array(ratio_min_max_bounds).T
 cov_bounds = np.array(cov_bounds).T
 burstiness_bounds = np.array(burstiness_bounds).T
 burstiness_stds = np.array(burstiness_stds)
+burstiness_expon = np.array(burstinesses_expon)
 memory_stds = np.array(memory_stds)
 memory_bounds = np.array(memory_bounds).T 
 memory_spearman_bounds = np.array(memory_spearman_bounds).T
@@ -2085,3 +2110,60 @@ header = 'Name, reference, mean long-term annual rate, long-term rate 2.5p, long
     'burstiness 2.5p, burstiness 97.5p, mean memory coefficient, memory coefficient 2.5p,' \
     'memory coefficient 97.5p'
 np.savetxt(results_filename, all_results, header = header, delimiter=',', fmt="%s")
+
+#############################
+# Calculate percentage of burstiness values below zero
+print(np.array(burstinesses))
+b_neg = np.where(np.array(burstinesses) < 0, 1., 0)
+num_neg_idv_flt = sum(b_neg.T) # Number of negative values for each individual fault
+print('num_neg_idv_flt', num_neg_idv_flt)
+percent_neg_idv_flt = num_neg_idv_flt/n_samples*100
+print('percent_neg_idv_flt', percent_neg_idv_flt)
+maj_neg = np.where(percent_neg_idv_flt > 50, 1.0, 0.)
+print('maj_neg', maj_neg)
+num_neg_total = np.sum(maj_neg)
+fraction_maj_neg = np.sum(maj_neg)/n_faults
+percent_maj_neg = np.sum(maj_neg)/n_faults*100 # Get percentage of faults with majority of values of B < 0
+print('num_neg_total', num_neg_total)
+print('percent_maj_neg', percent_maj_neg)
+# Binomial distribution - if it was a Poisson process, we'd expect roughly
+# half of our faults to dominantly B <= 0, and half dominantly B >= 0
+binom_mod = binom(n_faults, (1-0.744))
+prob_poisson = binom_mod.cdf((n_faults - num_neg_total))
+print('prob_poisson', prob_poisson)
+total_samples = len(b_neg.flatten())
+num_neg = sum(b_neg.flatten())
+percent_neg = num_neg/total_samples*100
+print('n_faults', n_faults)
+print('Total samples', total_samples)
+print('Num neg', num_neg)
+print('Percent neg', percent_neg)
+
+# Plot histogram of all burstiness values against all random exponentially
+# sampled burstiness values
+pyplot.clf()
+#pyplot.hist(np.array(burstinesses).flatten(), bins = 40,
+#            alpha=0.5, density=False, label = 'Data')
+#pyplot.savefig('burstiness_hist.png')
+pyplot.hist(np.array(burstiness_expon.flatten()), bins = 60,
+            alpha=0.5, density=True, label = 'Random sample')
+pyplot.hist(np.array(burstinesses).flatten(), bins = 60,
+            alpha=0.5, density=True, label = 'Data')
+ax = pyplot.gca()
+ax.set_xlabel('B')
+ax.set_ylabel('Density')
+
+pyplot.legend()
+
+# Perform Kolmogorov-Smirnov test to see if our real
+# fault data is less bursty than our exponentially distributed
+# random data
+ks_stat = ks_2samp(np.array(burstinesses).flatten(), np.array(burstiness_expon).flatten())
+print('Komogorov-Smirnov statistic, p-value', ks_stat)
+# This doesn't work on my current version of scipy
+#ks_stat_less = kstest(np.array(burstinesses).flatten(), np.array(burstiness_expon).flatten(), alternative='less') 
+#print('Komogorov-Smirnov statistic for real distirbution less than exponential, p-value', ks_stat_less)
+lab = 'KS = %.2f\np value = %.2E' % (ks_stat[0], ks_stat[1])
+ax.annotate(lab, (-0.8, 0.8), fontsize=10)
+figname = 'burstiness_hist_random_%i.png' % min_number_events
+pyplot.savefig(figname) 
