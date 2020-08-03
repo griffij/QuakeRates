@@ -11,11 +11,12 @@ from QuakeRates.utilities.memory_coefficient import memory_coefficient, burstine
 
 # Generate some random data from an exponential distirbution
 n_sim = 100000
-n_events = 4
+n_events = 5
 # We run nsim simulations, each with n_events
 # Do efficiently by doing all at once and then reshaping,
 # as simulations are independently distributed
-ie_times = expon(scale=100).rvs(size=(n_sim*n_events))
+scale = 100
+ie_times = expon(scale=scale).rvs(size=(n_sim*n_events))
 print(ie_times)
 ie_times = np.reshape(ie_times, (n_sim, n_events))
 print(ie_times)
@@ -30,6 +31,35 @@ print(min(mem))
 print(max(mem))
 print(min(burst))
 print(max(burst))
+print('mean burstiness', np.mean(burst))
+print('std burstiness', np.std(burst))
+# How many are positive and negative
+burst_neg = np.where(burst < 0, 1., 0.)
+num_neg = np.sum(burst_neg)
+print('num_neg exponential', num_neg)
+
+# Do for COV as check too
+cov = np.std(ie_times_T, axis=0)/np.mean(ie_times_T, axis=0)
+print(cov)
+print('mean cov', np.mean(cov))
+print('std cov', np.std(cov))
+print('min cov', np.min(cov))
+print('max cov', np.max(cov))
+cov_less1 = np.where(cov < 1, 1., 0.)
+num_less1 = np.sum(cov_less1)
+print('Num COV < 1', num_less1)
+
+# Plot histogram of burstiness values
+plt.clf()
+plt.hist(burst, bins=50)
+figname = 'exponential_burst_hist_%i_events_lamba_%i.png' % (n_events, scale)
+plt.savefig(figname)
+
+# Plot histogram of cov values
+plt.clf()
+plt.hist(cov, bins=50)
+figname = 'exponential_cov_hist_%i_events_lamba_%i.png' % (n_events, scale)
+plt.savefig(figname)
 
 # Now plot in M-B space
 plt.clf()
