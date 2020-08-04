@@ -80,7 +80,7 @@ tectonic_regions = ['all']
 #tectonic_regions = ['Plate_boundary_master']
 #tectonic_regions = ['Subduction']
 #tectonic_regions = ['Near_plate_boundary']
-min_number_events = 4
+min_number_events = 5
 
 #Summarise for comment to add to figure filename
 fig_comment = ''
@@ -613,19 +613,6 @@ pyplot.savefig(figname)
 # Plot burstiness against slip rate
 pyplot.clf()
 ax = pyplot.subplot(111)
-#mean_bs = []
-#for i, b_set in enumerate(burstinesses):
-#    mean_b = np.mean(b_set)
-#    mean_bs.append(mean_b)
-#colours = []
-#for sr in slip_rates:
-#    if m <= -0.05:
-#        colours.append('b')
-#    elif mean_b > -0.05 and mean_b <= 0.05:
-#        colours.append('g')
-#    else:
-#        colours.append('r')
-
 pyplot.errorbar(slip_rates, mean_bs,
                 xerr = slip_rate_bounds,
                 ecolor = '0.3',
@@ -804,7 +791,6 @@ for i, txt in enumerate(names):
         ax.annotate(txt[:4],
                     (mean_ltr[i], mean_mems[i]),
                     fontsize=8)
-#ax.set_xlim([-1, 1])
 ax.set_xlim([1./1000000, 1./40])
 ax.set_xscale('log')
 ax.set_xlabel('Long-term rate (events per year)')
@@ -2111,7 +2097,8 @@ header = 'Name, reference, mean long-term annual rate, long-term rate 2.5p, long
     'memory coefficient 97.5p'
 np.savetxt(results_filename, all_results, header = header, delimiter=',', fmt="%s")
 
-#############################
+################################################################
+
 # Calculate percentage of burstiness values below zero
 print(np.array(burstinesses))
 b_neg = np.where(np.array(burstinesses) < 0, 1., 0)
@@ -2158,6 +2145,7 @@ pyplot.legend()
 # Perform Kolmogorov-Smirnov test to see if our real
 # fault data is less bursty than our exponentially distributed
 # random data
+# All data first
 ks_stat = ks_2samp(np.array(burstinesses).flatten(), np.array(burstiness_expon).flatten())
 print('Komogorov-Smirnov statistic, p-value', ks_stat)
 # This doesn't work on my current version of scipy
@@ -2167,3 +2155,59 @@ lab = 'KS = %.2f\np value = %.2E' % (ks_stat[0], ks_stat[1])
 ax.annotate(lab, (-0.8, 0.8), fontsize=10)
 figname = 'burstiness_hist_random_%i.png' % min_number_events
 pyplot.savefig(figname) 
+
+###########
+
+# Now do for only high activity rate faults
+#indices = np.flatnonzero(mean_ltr > 2e-4)
+indices = np.argwhere(mean_ltr > 2e-4)
+burstiness_fast = np.array(burstinesses)[indices]
+burstiness_expon_fast = np.array(burstiness_expon)[indices]
+
+# Plot histogram of all burstiness values against all random exponentially
+# sampled burstiness values
+pyplot.clf()
+pyplot.hist(np.array(burstiness_expon_fast.flatten()), bins = 60,
+            alpha=0.5, density=True, label = 'Random sample')
+pyplot.hist(np.array(burstiness_fast).flatten(), bins = 60,
+            alpha=0.5, density=True, label = 'Data')
+ax = pyplot.gca()
+ax.set_xlabel('B')
+ax.set_ylabel('Density')
+pyplot.legend()
+
+figname = 'burstiness_hist_random_high_activity_%i.png' % min_number_events
+ks_stat = ks_2samp(burstiness_fast.flatten(), burstiness_expon_fast.flatten())
+print('Komogorov-Smirnov statistic for high activity rate faults, p-value', ks_stat)    
+lab = 'KS = %.2f\np value = %.2E' % (ks_stat[0], ks_stat[1])
+ax.annotate(lab, (-0.8, 0.8), fontsize=10)
+pyplot.savefig(figname)
+
+####################
+
+# Now do only for low activity rate faults
+indices_slow_faults = np.flatnonzero(mean_ltr <= 2e-4)
+indices_slow_faults = indices_slow_faults.flatten()
+burstiness_slow = np.array(burstinesses)[indices_slow_faults]
+burstiness_expon_slow = np.array(burstiness_expon)[indices_slow_faults]
+
+# Plot histogram of all burstiness values against all random exponentially
+# sampled burstiness values
+pyplot.clf()
+pyplot.hist(burstiness_expon_slow.flatten(), bins = 60,
+            alpha=0.5, density=True, label = 'Random sample')
+pyplot.hist(burstiness_slow.flatten(), bins = 60,
+            alpha=0.5, density=True, label = 'Data')
+ax = pyplot.gca()
+ax.set_xlabel('B')
+ax.set_ylabel('Density')
+pyplot.legend() 
+figname = 'burstiness_hist_random_low_activity_%i.png' % min_number_events 
+# Calculate Kolmogorov-Smirnov statistic
+ks_stat = ks_2samp(burstiness_slow.flatten(), burstiness_expon_slow.flatten())
+print('Komogorov-Smirnov statistic for low activity rate faults, p-value', ks_stat)
+lab = 'KS = %.2f\np value = %.2E' % (ks_stat[0], ks_stat[1])
+ax.annotate(lab, (-0.8, 0.8), fontsize=10)
+pyplot.savefig(figname) 
+
+
