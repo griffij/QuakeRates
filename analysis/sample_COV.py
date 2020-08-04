@@ -80,7 +80,7 @@ tectonic_regions = ['all']
 #tectonic_regions = ['Plate_boundary_master']
 #tectonic_regions = ['Subduction']
 #tectonic_regions = ['Near_plate_boundary']
-min_number_events = 5
+min_number_events = 6
 
 #Summarise for comment to add to figure filename
 fig_comment = ''
@@ -2042,8 +2042,8 @@ for i, txt in enumerate(labels):
                        fontweight='bold')
     texts.append(text)
 
-print('Adjusting label locations')
-adjust_text(texts, arrowprops=dict(arrowstyle='->', color='k', linewidth=0.5))
+#print('Adjusting label locations')
+#adjust_text(texts, arrowprops=dict(arrowstyle='->', color='k', linewidth=0.5))
 
 # Now we add 95% limits from synthetically generated datasets
 for p in [68, 95]:
@@ -2129,12 +2129,10 @@ print('Percent neg', percent_neg)
 # Plot histogram of all burstiness values against all random exponentially
 # sampled burstiness values
 pyplot.clf()
-#pyplot.hist(np.array(burstinesses).flatten(), bins = 40,
-#            alpha=0.5, density=False, label = 'Data')
-#pyplot.savefig('burstiness_hist.png')
+burstinesses = np.array(burstinesses)
 pyplot.hist(np.array(burstiness_expon.flatten()), bins = 60,
             alpha=0.5, density=True, label = 'Random sample')
-pyplot.hist(np.array(burstinesses).flatten(), bins = 60,
+pyplot.hist(burstinesses.flatten(), bins = 60,
             alpha=0.5, density=True, label = 'Data')
 ax = pyplot.gca()
 ax.set_xlabel('B')
@@ -2210,4 +2208,40 @@ lab = 'KS = %.2f\np value = %.2E' % (ks_stat[0], ks_stat[1])
 ax.annotate(lab, (-0.8, 0.8), fontsize=10)
 pyplot.savefig(figname) 
 
+#######################################3
+# In this analysis, we now calculate the KS statistic
+# for each fault individually, and plot these.
+all_pvalues = []
+print(np.shape(burstinesses))
+print(np.shape(burstiness_expon))
+for i, b in enumerate(burstinesses):
+    ks = ks_2samp(b, burstiness_expon[i])
+    all_pvalues.append(ks[0])
+print('all pvalues', all_pvalues)
+pyplot.clf()
+pyplot.hist(all_pvalues, bins=50, density=True)
+ax = pyplot.gca()
+ax.set_xlabel('p value')
+ax.set_ylabel('Density')
+figname = 'ks_p_value_hist_%i.png' % min_number_events
+pyplot.savefig(figname)
 
+#########################################
+# In this analysis, we implement the method of Williams et al 2019,
+# except we do not sample with replacement for our chronologies,
+# because we want to keep in chronological order
+p_values = []
+d = burstinesses - burstiness_expon
+for i, dd in enumerate(d):
+    print('dd', dd)
+    pos_ind = (dd > 0).astype(int)
+    print(pos_ind)
+    p_value = np.sum(pos_ind)/len(dd)
+    p_values.append(p_value)
+print('p values', p_values)
+pyplot.clf()
+pyplot.hist(p_values, bins=50, density=True) 
+ax.set_xlabel('p value')
+ax.set_ylabel('Density')
+figname = 'williams_p_value_hist_%i.png' % min_number_events
+pyplot.savefig(figname)  
