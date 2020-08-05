@@ -80,7 +80,7 @@ tectonic_regions = ['all']
 #tectonic_regions = ['Plate_boundary_master']
 #tectonic_regions = ['Subduction']
 #tectonic_regions = ['Near_plate_boundary']
-min_number_events = 6
+min_number_events = 5
 
 #Summarise for comment to add to figure filename
 fig_comment = ''
@@ -482,8 +482,8 @@ for i, txt in enumerate(names):
         ax.annotate(txt[:4],
                     (mean_ltr[i], mean_bs[i]),
                     fontsize=8)
-ax.set_ylim([-1, 1])
-ax.set_xlim([1./1000000, 1./40])
+#ax.set_ylim([-1, 1])
+#ax.set_xlim([1./1000000, 1./40])
 # Add B=0 linear
 pyplot.plot([1./1000000, 1./40], [0, 0], linestyle='dashed', linewidth=1, c='0.5')
 ax.set_xscale('log')
@@ -508,32 +508,27 @@ lf[1] = np.mean(mean_bs[indices])
 std_lf = np.std(mean_bs[indices])
 xvals_short = np.arange(1.5e-4, 2e-2, 1e-4)
 yvals = lf[0]*np.log10(xvals_short) + lf[1]
-#yvals = np.power(10, log_yvals)
 pyplot.plot(xvals_short, yvals, c='0.2')
+
 # Fit slow faults
 if len(indices_slow_faults > 1):
     lf_slow = np.polyfit(np.log10(mean_ltr[indices_slow_faults]),
                          mean_bs[indices_slow_faults], 1)
     xvals_short = np.arange(1e-6, 1.5e-4, 1e-6)
     yvals = lf_slow[0]*np.log10(xvals_short) + lf_slow[1]
-    #print(yvals)
-    #print(xvals)
-    #yvals = np.power(10, log_yvals)
     pyplot.plot(xvals_short, yvals, c='0.2')
-    # Add formula for linear fits of data
+# Add formula for linear fits of data
 print('Fits for B vs LTR')
 #txt = 'Y = %.2fLog(x) + %.2f +/- %.2f' % (lf[0], lf[1], std_lf)
 txt = 'Y = {:=+6.2f} +/- {:4.2f}'.format(lf[1], std_lf)
 print(txt)
 ax.annotate(txt, (2e-4, 0.2), fontsize=8)
-#txt = 'Y = %.2fLog(x) + %.2f' % (lf_slow[0], lf_slow[1])
 try:
     txt = 'Y = {:4.2f}Log(x) {:=+6.2f}'.format(lf_slow[0], lf_slow[1]) 
     print(txt)
     ax.annotate(txt, (1.5e-6, 0.75), fontsize=8)
 except:
     pass
-    
 
 # Now try bilinear ODR linear fit
 data = odrpack.RealData(np.log10(mean_ltr), mean_bs,
@@ -542,6 +537,7 @@ bilin = odrpack.Model(bilinear_reg_zero_slope)
 odr = odrpack.ODR(data, bilin, beta0=[-3, -1.0, -4]) # array are starting values
 odr.set_job(fit_type=0)
 out = odr.run()
+print(out.sum_square)
 out.pprint()
 a = out.beta[0]
 b = out.beta[1]
@@ -582,6 +578,8 @@ bilin_hxfix_cons_slope = odrpack.Model(bilinear_reg_fix_zero_slope)
 odr = odrpack.ODR(data, bilin_hxfix_cons_slope, beta0=[-3, -1.0])
 odr.set_job(fit_type=0)
 out = odr.run()
+print('bilinear hxfix_cons_slope')
+print(out.sum_square)
 out.pprint()
 a = out.beta[0]
 b = out.beta[1]
@@ -2151,7 +2149,7 @@ print('Komogorov-Smirnov statistic, p-value', ks_stat)
 #print('Komogorov-Smirnov statistic for real distirbution less than exponential, p-value', ks_stat_less)
 lab = 'KS = %.2f\np value = %.2E' % (ks_stat[0], ks_stat[1])
 ax.annotate(lab, (-0.8, 0.8), fontsize=10)
-figname = 'burstiness_hist_random_%i.png' % min_number_events
+figname = 'burstiness_hist_random_%s.png' % fig_comment
 pyplot.savefig(figname) 
 
 ###########
@@ -2165,16 +2163,18 @@ burstiness_expon_fast = np.array(burstiness_expon)[indices]
 # Plot histogram of all burstiness values against all random exponentially
 # sampled burstiness values
 pyplot.clf()
-pyplot.hist(np.array(burstiness_expon_fast.flatten()), bins = 60,
+pyplot.hist(np.array(burstiness_expon_fast.flatten()), bins = 40,
             alpha=0.5, density=True, label = 'Random sample')
-pyplot.hist(np.array(burstiness_fast).flatten(), bins = 60,
+pyplot.hist(np.array(burstiness_fast).flatten(), bins = 40,
             alpha=0.5, density=True, label = 'Data')
 ax = pyplot.gca()
 ax.set_xlabel('B')
 ax.set_ylabel('Density')
+ax.set_ylim([0.0, 4])
+ax.set_xlim([-1., 0.5]) 
 pyplot.legend()
 
-figname = 'burstiness_hist_random_high_activity_%i.png' % min_number_events
+figname = 'burstiness_hist_random_high_activity_%s.png' % fig_comment
 ks_stat = ks_2samp(burstiness_fast.flatten(), burstiness_expon_fast.flatten())
 print('Komogorov-Smirnov statistic for high activity rate faults, p-value', ks_stat)    
 lab = 'KS = %.2f\np value = %.2E' % (ks_stat[0], ks_stat[1])
@@ -2192,15 +2192,17 @@ burstiness_expon_slow = np.array(burstiness_expon)[indices_slow_faults]
 # Plot histogram of all burstiness values against all random exponentially
 # sampled burstiness values
 pyplot.clf()
-pyplot.hist(burstiness_expon_slow.flatten(), bins = 60,
+pyplot.hist(burstiness_expon_slow.flatten(), bins = 40,
             alpha=0.5, density=True, label = 'Random sample')
-pyplot.hist(burstiness_slow.flatten(), bins = 60,
+pyplot.hist(burstiness_slow.flatten(), bins = 40,
             alpha=0.5, density=True, label = 'Data')
 ax = pyplot.gca()
 ax.set_xlabel('B')
 ax.set_ylabel('Density')
+ax.set_ylim([0.0, 4])
+ax.set_xlim([-1., 0.5])
 pyplot.legend() 
-figname = 'burstiness_hist_random_low_activity_%i.png' % min_number_events 
+figname = 'burstiness_hist_random_low_activity_%s.png' % fig_comment
 # Calculate Kolmogorov-Smirnov statistic
 ks_stat = ks_2samp(burstiness_slow.flatten(), burstiness_expon_slow.flatten())
 print('Komogorov-Smirnov statistic for low activity rate faults, p-value', ks_stat)
@@ -2223,25 +2225,34 @@ pyplot.hist(all_pvalues, bins=50, density=True)
 ax = pyplot.gca()
 ax.set_xlabel('p value')
 ax.set_ylabel('Density')
-figname = 'ks_p_value_hist_%i.png' % min_number_events
+figname = 'ks_p_value_hist_%s.png' % fig_comment
 pyplot.savefig(figname)
 
 #########################################
 # In this analysis, we implement the method of Williams et al 2019,
 # except we do not sample with replacement for our chronologies,
-# because we want to keep in chronological order
+# because we want to keep in chronological order to be consistent
+# with our memory coefficient analysis.
 p_values = []
 d = burstinesses - burstiness_expon
 for i, dd in enumerate(d):
-    print('dd', dd)
     pos_ind = (dd > 0).astype(int)
-    print(pos_ind)
     p_value = np.sum(pos_ind)/len(dd)
     p_values.append(p_value)
-print('p values', p_values)
+p_values = np.array(p_values)
+# Get number at various p level
+p_1 = np.count_nonzero(p_values < 0.01)
+p_5 = np.count_nonzero(p_values < 0.05)
+p_10 = np.count_nonzero(p_values < 0.1)
+p_20 = np.count_nonzero(p_values < 0.2)
+print('pvalues: 1, 5, 10, 20')
+print(p_1, p_5, p_10, p_20)
+print('Number of faults: %i' % n_faults)
+print('Percentages')
+print(p_1/n_faults*100, p_5/n_faults*100, p_10/n_faults*100, p_20/n_faults*100)
 pyplot.clf()
 pyplot.hist(p_values, bins=50, density=True) 
 ax.set_xlabel('p value')
 ax.set_ylabel('Density')
-figname = 'williams_p_value_hist_%i.png' % min_number_events
+figname = 'williams_p_value_hist_%s.png' % fig_comment
 pyplot.savefig(figname)  
