@@ -10,7 +10,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 from scipy.odr import Model, RealData, ODR
 import scipy.odr.odrpack as odrpack
-from scipy.stats import expon, ks_2samp, kstest
+from scipy.stats import expon, gamma, weibull_min, ks_2samp, kstest
 from matplotlib import pyplot
 from matplotlib.patches import PathPatch
 import matplotlib.gridspec as gridspec
@@ -106,6 +106,7 @@ burstinesses = []
 burstiness_bounds = []
 burstiness_stds = []
 burstinesses_expon = []
+burstinesses_gamma = []
 memory_coefficients = []
 memory_bounds = []
 memory_stds = []
@@ -198,7 +199,7 @@ for i, event_set in enumerate(event_sets):
                                      event_set.ratio_min_max_lb),
                                  abs(event_set.mean_ratio_min_max -
                                      event_set.ratio_min_max_ub)])
-    # Generate random exponentially distributed samples of length num_events - 1
+    # Generate random exponentially and gamma distributed samples of length num_events - 1
     # i.e. the number of inter-event times in the chronology. These will be used
     # later for testing
     scale = 100 # Fix scale, as burstiness is independent of scale for exponentiall distribution
@@ -206,6 +207,12 @@ for i, event_set in enumerate(event_sets):
     ie_times_expon = np.reshape(np.array(ie_times_expon), (n_samples, (event_set.num_events-1)))
     ie_times_expon_T = ie_times_expon.T
     burst_expon = burstiness(ie_times_expon_T)
+    # Gamma
+    alpha_g = 2.0
+    ie_times_g = gamma(alpha_g, scale=scale).rvs(size=(n_samples*(event_set.num_events-1)))
+    ie_times_g = np.reshape(np.array(ie_times_g), (n_samples, (event_set.num_events-1)))
+    ie_times_g_T = ie_times_g.T
+    burst_g = burstiness(ie_times_g_T)
     # Now generate chronologies assuming uncertain events did not occur
     if sum(event_certainties[i]) < event_set.num_events:
         indices = np.where(event_certainties[i] == 1)
@@ -227,6 +234,10 @@ for i, event_set in enumerate(event_sets):
         ie_times_expon_certain = np.reshape(np.array(ie_times_expon_certain), (n_samples, (len(indices)-1)))
         ie_times_expon_certain_T = ie_times_expon_certain.T
         burst_expon_certain = burstiness(ie_times_expon_certain_T)
+        ie_times_g_certain = gamma(alpha_g, scale=scale).rvs(size=(n_samples*(event_set.num_events-1)))
+        ie_times_g_certain = np.reshape(np.array(ie_times_g_certain), (n_samples, (event_set.num_events-1)))
+        ie_times_g_certain_T = ie_times_g_certain.T
+        burst_g_certain = burstiness(ie_times_g_T)
         # Now combine results from certain chronolgies with uncertain ones
         combined_covs = np.concatenate([event_set.covs[:half_n],
                                         event_set_certain.covs[:half_n]])
@@ -240,6 +251,8 @@ for i, event_set in enumerate(event_sets):
                                                         event_set_certain.rhos2[:half_n]])
         combined_burst_expon = np.concatenate([burst_expon[:half_n],
                                                burst_expon_certain[:half_n]])
+        combined_burst_g = np.concatenate([burst_g[:half_n],
+                                               burst_g_certain[:half_n]])
         covs.append(combined_covs)
         burstinesses.append(combined_burstiness)
         memory_coefficients.append(combined_memory)
@@ -247,6 +260,7 @@ for i, event_set in enumerate(event_sets):
         memory_spearman_coefficients.append(combined_memory_spearman)
         memory_spearman_lag2_coef.append(combined_memory_spearman_lag2)
         burstinesses_expon.append(combined_burst_expon)
+        burstinesses_gamma.append(combined_burst_g)
         cov_bounds.append([abs(np.mean(combined_covs) - \
                                min(event_set.cov_lb, event_set_certain.cov_lb)),
                            abs(np.mean(combined_covs) - \
@@ -291,6 +305,7 @@ for i, event_set in enumerate(event_sets):
         memory_spearman_lag2_coef.append(event_set.rhos2)
         long_term_rates.append(event_set.long_term_rates)
         burstinesses_expon.append(burst_expon)
+        burstinesses_gamma.append(burst_g)
         cov_bounds.append([abs(event_set.mean_cov - event_set.cov_lb),
                           abs(event_set.mean_cov - event_set.cov_ub)])
         burstiness_bounds.append([abs(event_set.mean_burstiness - event_set.burstiness_lb),
@@ -346,6 +361,7 @@ cov_bounds = np.array(cov_bounds).T
 burstiness_bounds = np.array(burstiness_bounds).T
 burstiness_stds = np.array(burstiness_stds)
 burstiness_expon = np.array(burstinesses_expon)
+burstiness_gamma = np.array(burstinesses_gamma)
 memory_stds = np.array(memory_stds)
 memory_bounds = np.array(memory_bounds).T 
 memory_spearman_bounds = np.array(memory_spearman_bounds).T
@@ -2210,6 +2226,88 @@ lab = 'KS = %.2f\np value = %.2E' % (ks_stat[0], ks_stat[1])
 ax.annotate(lab, (-0.8, 0.8), fontsize=10)
 pyplot.savefig(figname) 
 
+###########################################
+# Plot histogram of all burstiness values against all random gamma distributions
+# sampled burstiness values
+pyplot.clf()
+pyplot.hist(np.array(burstiness_gamma.flatten()), bins = 60,
+            alpha=0.5, density=True, label = 'Random sample')
+pyplot.hist(burstinesses.flatten(), bins = 60,
+            alpha=0.5, density=True, label = 'Data')
+ax = pyplot.gca()
+ax.set_xlabel('B')
+ax.set_ylabel('Density')
+
+pyplot.legend()
+
+# Perform Kolmogorov-Smirnov test to see if our real
+# fault data is less bursty than our gamma distributed
+# random data
+# All data first
+ks_stat = ks_2samp(np.array(burstinesses).flatten(), np.array(burstiness_gamma).flatten())
+print('Komogorov-Smirnov statistic for gamma distribution, p-value', ks_stat)
+lab = 'KS = %.2f\np value = %.2E' % (ks_stat[0], ks_stat[1])
+ax.annotate(lab, (-0.8, 0.8), fontsize=10)
+figname = 'burstiness_hist_gamma_%s.png' % fig_comment
+pyplot.savefig(figname) 
+
+########
+
+# Now do only for high activity rate faults
+
+burstiness_gamma_fast = np.array(burstiness_gamma)[indices]
+
+# Plot histogram of all burstiness values against all random exponentially
+# sampled burstiness values
+pyplot.clf()
+pyplot.hist(np.array(burstiness_gamma_fast.flatten()), bins = 40,
+            alpha=0.5, density=True, label = 'Random sample')
+pyplot.hist(np.array(burstiness_gamma).flatten(), bins = 40,
+            alpha=0.5, density=True, label = 'Data')
+ax = pyplot.gca()
+ax.set_xlabel('B')
+ax.set_ylabel('Density')
+ax.set_ylim([0.0, 4])
+ax.set_xlim([-1., 0.5]) 
+pyplot.legend()
+
+figname = 'burstiness_hist_gamma_high_activity_%s.png' % fig_comment
+ks_stat = ks_2samp(burstiness_fast.flatten(), burstiness_gamma_fast.flatten())
+print('Komogorov-Smirnov statistic for high activity rate faults, p-value', ks_stat)    
+lab = 'KS = %.2f\np value = %.2E' % (ks_stat[0], ks_stat[1])
+ax.annotate(lab, (-0.8, 0.8), fontsize=10)
+pyplot.savefig(figname)
+
+####################
+
+# Now do only for low activity rate faults
+
+burstiness_gamma_slow = np.array(burstiness_gamma)[indices_slow_faults]
+
+# Plot histogram of all burstiness values against all random gamma
+# sampled burstiness values
+pyplot.clf()
+pyplot.hist(burstiness_gamma_slow.flatten(), bins = 40,
+            alpha=0.5, density=True, label = 'Random sample')
+pyplot.hist(burstiness_slow.flatten(), bins = 40,
+            alpha=0.5, density=True, label = 'Data')
+ax = pyplot.gca()
+ax.set_xlabel('B')
+ax.set_ylabel('Density')
+ax.set_ylim([0.0, 4])
+ax.set_xlim([-1., 0.5])
+pyplot.legend() 
+figname = 'burstiness_hist_gamma_low_activity_%s.png' % fig_comment
+# Calculate Kolmogorov-Smirnov statistic
+ks_stat = ks_2samp(burstiness_slow.flatten(), burstiness_gamma_slow.flatten())
+print('Komogorov-Smirnov statistic for low activity rate faults, p-value', ks_stat)
+lab = 'KS = %.2f\np value = %.2E' % (ks_stat[0], ks_stat[1])
+ax.annotate(lab, (-0.8, 0.8), fontsize=10)
+pyplot.savefig(figname) 
+
+
+
+
 #######################################3
 # In this analysis, we now calculate the KS statistic
 # for each fault individually, and plot these.
@@ -2251,8 +2349,16 @@ print('Number of faults: %i' % n_faults)
 print('Percentages')
 print(p_1/n_faults*100, p_5/n_faults*100, p_10/n_faults*100, p_20/n_faults*100)
 pyplot.clf()
-pyplot.hist(p_values, bins=50, density=True) 
+pyplot.hist(p_values, bins=50, density=True)
+ax = pyplot.gca()
 ax.set_xlabel('p value')
 ax.set_ylabel('Density')
 figname = 'williams_p_value_hist_%s.png' % fig_comment
 pyplot.savefig(figname)  
+
+##########################3
+# Print some basic stats
+mean_all_covs = np.mean(np.array(covs))
+print('Mean COV, all records', mean_all_covs)
+mean_all_bs = np.mean(burstinesses)
+print('Mean burstiness, all records', mean_all_bs)
