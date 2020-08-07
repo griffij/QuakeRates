@@ -60,7 +60,7 @@ param_file_list_NZ = ['Akatore4eventBdy_output.txt',
 #param_file_list = []
 #for f in param_file_list_NZ:
 #    param_file_list.append(os.path.join(filepath, f))
-n_samples = 1000  # Number of Monte Carlo samples of the eq chronologies
+n_samples = 100  # Number of Monte Carlo samples of the eq chronologies
 half_n = int(n_samples/2)
 print(half_n)
 annotate_plots = False # If True, lable each fault on the plot
@@ -2112,37 +2112,34 @@ header = 'Name, reference, mean long-term annual rate, long-term rate 2.5p, long
 np.savetxt(results_filename, all_results, header = header, delimiter=',', fmt="%s")
 
 ################################################################
-
+# Delete this - no use as COV/B biased for small sample sizes
 # Calculate percentage of burstiness values below zero
-print(np.array(burstinesses))
-b_neg = np.where(np.array(burstinesses) < 0, 1., 0)
-num_neg_idv_flt = sum(b_neg.T) # Number of negative values for each individual fault
-print('num_neg_idv_flt', num_neg_idv_flt)
-percent_neg_idv_flt = num_neg_idv_flt/n_samples*100
-print('percent_neg_idv_flt', percent_neg_idv_flt)
-maj_neg = np.where(percent_neg_idv_flt > 50, 1.0, 0.)
-print('maj_neg', maj_neg)
-num_neg_total = np.sum(maj_neg)
-fraction_maj_neg = np.sum(maj_neg)/n_faults
-percent_maj_neg = np.sum(maj_neg)/n_faults*100 # Get percentage of faults with majority of values of B < 0
-print('num_neg_total', num_neg_total)
-print('percent_maj_neg', percent_maj_neg)
+#b_neg = np.where(np.array(burstinesses) < 0, 1., 0)
+#num_neg_idv_flt = sum(b_neg.T) # Number of negative values for each individual fault
+#percent_neg_idv_flt = num_neg_idv_flt/n_samples*100
+#maj_neg = np.where(percent_neg_idv_flt > 50, 1.0, 0.)
+#num_neg_total = np.sum(maj_neg)
+#fraction_maj_neg = np.sum(maj_neg)/n_faults
+#percent_maj_neg = np.sum(maj_neg)/n_faults*100 # Get percentage of faults with majority of values of B < 0
+#print('num_neg_total', num_neg_total)
+#print('percent_maj_neg', percent_maj_neg)
 # Binomial distribution - if it was a Poisson process, we'd expect roughly
 # half of our faults to dominantly B <= 0, and half dominantly B >= 0
-binom_mod = binom(n_faults, (1-0.744))
-prob_poisson = binom_mod.cdf((n_faults - num_neg_total))
-print('prob_poisson', prob_poisson)
-total_samples = len(b_neg.flatten())
-num_neg = sum(b_neg.flatten())
-percent_neg = num_neg/total_samples*100
-print('n_faults', n_faults)
-print('Total samples', total_samples)
-print('Num neg', num_neg)
-print('Percent neg', percent_neg)
+#binom_mod = binom(n_faults, (1-0.744))
+#prob_poisson = binom_mod.cdf((n_faults - num_neg_total))
+#print('prob_poisson', prob_poisson)
+#total_samples = len(b_neg.flatten())
+#num_neg = sum(b_neg.flatten())
+#percent_neg = num_neg/total_samples*100
+#print('n_faults', n_faults)
+#print('Total samples', total_samples)
+#print('Num neg', num_neg)
+#print('Percent neg', percent_neg)
 
 # Plot histogram of all burstiness values against all random exponentially
 # sampled burstiness values
 pyplot.clf()
+burstiness_expon = np.array(burstiness_expon)
 burstinesses = np.array(burstinesses)
 pyplot.hist(np.array(burstiness_expon.flatten()), bins = 60,
             alpha=0.5, density=True, label = 'Random sample')
@@ -2160,13 +2157,45 @@ pyplot.legend()
 # All data first
 ks_stat = ks_2samp(np.array(burstinesses).flatten(), np.array(burstiness_expon).flatten())
 print('Komogorov-Smirnov statistic, p-value', ks_stat)
+
+# Get proportion of overlap
+b_p = burstinesses.flatten() - burstiness_expon.flatten()
+b_neg = np.count_nonzero(b_p < 0)   
+sum_neg = np.sum(b_neg)
+print('Sum_neg Expon', sum_neg)
+print('Total size', len(burstinesses.flatten()))
+print('As percent', sum_neg/len(burstinesses.flatten()))
 # This doesn't work on my current version of scipy
 #ks_stat_less = kstest(np.array(burstinesses).flatten(), np.array(burstiness_expon).flatten(), alternative='less') 
 #print('Komogorov-Smirnov statistic for real distirbution less than exponential, p-value', ks_stat_less)
 lab = 'KS = %.2f\np value = %.2E' % (ks_stat[0], ks_stat[1])
 ax.annotate(lab, (-0.8, 0.8), fontsize=10)
 figname = 'burstiness_hist_random_%s.png' % fig_comment
-pyplot.savefig(figname) 
+pyplot.savefig(figname)
+# Dump out as text file
+f_name = 'burstiness_hist_random_%s.txt' % fig_comment
+data = np.array([burstinesses.flatten(), burstiness_expon.flatten()]).T 
+np.savetxt(f_name, data, header='Data,Exponential', delimiter=',')
+
+######################
+#Do KS test sample by sample
+ks_stats = []
+p_values = []
+for b in burstinesses.T:
+    ks_stat = ks_2samp(b, burstiness_expon.flatten()) 
+    ks_stats.append(ks_stat[0])
+    p_values.append(ks_stat[1])
+print('Komogorov-Smirnov statistic for exponential distribution')
+print('ks_stats', ks_stats)
+print('p_values', p_values)
+pyplot.clf()
+pyplot.hist(p_values, bins=40, density=True)
+ax = pyplot.gca()
+ax.set_xlabel('p value')
+ax.set_ylabel('Density')
+figname = 'burstiness_hist_KS_pvalue_random_%s.png' % fig_comment  
+pyplot.savefig(figname)
+########
 
 ###########
 
@@ -2244,13 +2273,45 @@ pyplot.legend()
 # fault data is less bursty than our gamma distributed
 # random data
 # All data first
-ks_stat = ks_2samp(np.array(burstinesses).flatten(), np.array(burstiness_gamma).flatten())
+burstiness_gamma = np.array(burstiness_gamma)
+ks_stat = ks_2samp(np.array(burstinesses).flatten(), burstiness_gamma.flatten())
 print('Komogorov-Smirnov statistic for gamma distribution, p-value', ks_stat)
 lab = 'KS = %.2f\np value = %.2E' % (ks_stat[0], ks_stat[1])
 ax.annotate(lab, (-0.8, 0.8), fontsize=10)
+
+# Get proportion of overlap
+b_p = burstinesses.flatten() - burstiness_gamma.flatten()
+b_neg = np.count_nonzero(b_p < 0)   
+sum_neg = np.sum(b_neg)
+print('Sum_neg Gamma', sum_neg)
+print('Total size', len(burstinesses.flatten()))
+print('As percent', sum_neg/len(burstinesses.flatten()))
+      
 figname = 'burstiness_hist_gamma_%s.png' % fig_comment
 pyplot.savefig(figname) 
+# Dump out as text file
+f_name = 'burstiness_hist_gamma_%s.txt' % fig_comment
+data = np.array([burstinesses.flatten(), burstiness_gamma.flatten()]).T
+np.savetxt(f_name, data, header='Data,Gamma', delimiter=',')
 
+######################
+#Do KS test sample by sample
+ks_stats = []
+p_values = []
+for b in burstinesses.T:
+    ks_stat = ks_2samp(b, burstiness_gamma.flatten()) 
+    ks_stats.append(ks_stat[0])
+    p_values.append(ks_stat[1])
+print('Komogorov-Smirnov statistic for gamma distribution')
+print('ks_stats', ks_stats)
+print('p_values', p_values)
+pyplot.clf()
+pyplot.hist(p_values, bins=40, density=True)
+ax = pyplot.gca()
+ax.set_xlabel('p value')
+ax.set_ylabel('Density')
+figname = 'burstiness_hist_KS_pvalue_gamma_%s.png' % fig_comment  
+pyplot.savefig(figname)
 ########
 
 # Now do only for high activity rate faults
@@ -2260,9 +2321,9 @@ burstiness_gamma_fast = np.array(burstiness_gamma)[indices]
 # Plot histogram of all burstiness values against all random exponentially
 # sampled burstiness values
 pyplot.clf()
-pyplot.hist(np.array(burstiness_gamma_fast.flatten()), bins = 40,
+pyplot.hist(burstiness_gamma_fast.flatten(), bins = 40,
             alpha=0.5, density=True, label = 'Random sample')
-pyplot.hist(np.array(burstiness_gamma).flatten(), bins = 40,
+pyplot.hist(burstiness_fast.flatten(), bins = 40,
             alpha=0.5, density=True, label = 'Data')
 ax = pyplot.gca()
 ax.set_xlabel('B')
@@ -2270,6 +2331,7 @@ ax.set_ylabel('Density')
 ax.set_ylim([0.0, 4])
 ax.set_xlim([-1., 0.5]) 
 pyplot.legend()
+
 
 figname = 'burstiness_hist_gamma_high_activity_%s.png' % fig_comment
 ks_stat = ks_2samp(burstiness_fast.flatten(), burstiness_gamma_fast.flatten())
