@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib
 from matplotlib import pyplot
 from matplotlib.patches import Ellipse
-from scipy.stats import kde, spearmanr
+from scipy.stats import kde, spearmanr, gamma
 from QuakeRates.utilities.inverse_transform_sample import ivt_expon
 matplotlib.use('Agg')
 np.random.seed(23)
@@ -145,7 +145,7 @@ class EventSet(object):
                 time_elapsed = observation_end - np.mean(chron_tmp.T[-1])
                 #            print('mean last event')
                 if (time_elapsed) > \
-                   (mean_ie_time + 2*std_ie_time):
+                   (mean_ie_time + 2000*std_ie_time):
                     add_events = True
                     if self.name.startswith('Alpine'):
                         # Ignore records not complete until present
@@ -483,3 +483,16 @@ class EventSet(object):
         pyplot.hist(ie_times_flat, bins = 50,
                     facecolor='0.6', edgecolor='0.2', density=True)
         pyplot.savefig(fig_filename)
+
+    def fit_gamma(self):
+        """ Fit a gamma distribution to each chronology, get mean stats
+        """
+        self.gamma_alphas = []
+        for ie_set in self.interevent_times.T:
+            gamfit = gamma.fit(ie_set, floc=0)
+            self.gamma_alphas.append(gamfit[0])
+        # test fitting to all data at once
+        gamfit_all = gamma.fit(self.interevent_times.flatten(), floc=0)
+        self.gamma_alphas = np.array(self.gamma_alphas)
+        self.mean_gamma_alpha = np.mean(self.gamma_alphas)
+        self.mean_gamma_alpha_all = gamfit_all[0]        
