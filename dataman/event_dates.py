@@ -120,7 +120,7 @@ class EventSet(object):
         n_tries = 0
         chron_samples = []
         loop_counter = 0
-        add_events = False
+        self.add_events = False
         while n_samples < n:
             for i, event in enumerate(self.event_list):
                 event.random_sample(n, plot=False)
@@ -135,7 +135,7 @@ class EventSet(object):
                 # Now we add a future event as a random variable  using the conditional probability
                 # assuming exponentially distributed inter-event times based
                 # on mean of existing inter-event times
-                # Only do if open interval is large (1 times the mean ie time).
+                # Only do if open interval is large (> mean ie time + 2 sigma).
                 interevent_times = np.diff(chron_tmp.T, axis=0)
                 #            print('interevent_times', interevent_times)
                 mean_ie_time = np.mean(interevent_times)
@@ -145,15 +145,17 @@ class EventSet(object):
                 time_elapsed = observation_end - np.mean(chron_tmp.T[-1])
                 #            print('mean last event')
                 if (time_elapsed) > \
-                   (mean_ie_time + 2000*std_ie_time):
-                    add_events = True
+                   (mean_ie_time + 2*std_ie_time):
+                    self.add_events = True
                     if self.name.startswith('Alpine'):
                         # Ignore records not complete until present
-                        add_events = False
-            if add_events:
+                        # i.e. Berryman 2012
+                        self.add_events = False
+            if self.add_events:
                 future_events = ivt_expon(1/mean_ie_time, a=time_elapsed,
                                           b=np.inf, n_samples=n)
                 future_events += observation_end
+                future_events -= time_elapsed # Previously this was double counted
                 future_events = list(future_events)
                 if loop_counter == 0:
                     chron_samples.append(future_events)
