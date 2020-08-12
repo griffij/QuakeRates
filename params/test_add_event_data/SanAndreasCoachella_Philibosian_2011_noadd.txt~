@@ -1,0 +1,8 @@
+filename = '../data/SanAndreasCoachella_Philibosian_2011.csv'
+chron_type = 'OxCal'
+events = {'Coa-7': ['Calculate', 'posterior'], 'Coa-6': ['Calculate', 'posterior'], 'Coa-5': ['Calculate', 'posterior'], 'Coa-4': ['Calculate', 'posterior'], 'Coa-3': ['Calculate', 'posterior'], 'Coa-2': ['Calculate', 'posterior'], 'Coa-1': ['Calculate', 'posterior']}
+event_order = ['Coa-7', 'Coa-6', 'Coa-5', 'Coa-4', 'Coa-3', 'Coa-2','Coa-1']
+event_certainty = [1, 0, 1, 1, 0, 1, 1]
+tectonic_region = 'Plate_boundary_master'
+faulting_style = 'Strike_slip'
+slip_rate_mean_lower_upper = [20,15,30]

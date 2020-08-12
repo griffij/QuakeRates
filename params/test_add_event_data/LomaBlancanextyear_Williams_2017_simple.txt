@@ -1,0 +1,7 @@
+filename = '../data/test_add_event_data/LomaBlanca_Williams_2017_simple_nextyear.txt'
+chron_type = 'Age2Sigma'
+sigma_level = 2
+event_order = 'Backwards'
+tectonic_region = 'Intraplate_noncratonic'
+faulting_style = 'Normal'
+slip_rate_mean_lower_upper = [0.19,0.15,0.25]

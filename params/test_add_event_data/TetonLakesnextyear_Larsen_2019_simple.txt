@@ -1,0 +1,7 @@
+filename = '../data/test_add_event_data/TetonLakes_Larsen_2019_simple_nextyear.txt'
+chron_type = 'Age2Sigma'
+sigma_level = 2
+event_order = 'Forwards'
+tectonic_region = 'Near_plate_boundary'
+faulting_style = 'Normal'
+slip_rate_mean_lower_upper = [0.8,0.2,2]
