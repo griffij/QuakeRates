@@ -151,6 +151,10 @@ class EventSet(object):
                         # Ignore records not complete until present
                         # i.e. Berryman 2012
                         self.add_events = False
+                    if self.name.endswith('noadd'): # For testing not doing this
+                        self.add_events = False
+                    if self.name.endswith('nexytear'):
+                        self.add_events = False
             if self.add_events:
                 future_events = ivt_expon(1/mean_ie_time, a=time_elapsed,
                                           b=np.inf, n_samples=n)
