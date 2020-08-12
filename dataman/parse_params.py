@@ -39,6 +39,8 @@ def get_event_sets(param_file_list, tectonic_regions,
     event_certainties = [] # Store list of 0/1 for uncertain/certain events
     num_events = []
     slip_rates = []
+    tect_regions = []
+    fault_styles = []
     for param_file in param_file_list:
         name = param_file.split('/')[-1].split('_')[0]
         print(name)
@@ -97,10 +99,12 @@ def get_event_sets(param_file_list, tectonic_regions,
             msg = 'Unknown form of chron_type defined in ' + param_file
             raise Exception(msg)
         names.append(name)
+        tect_regions.append(params['tectonic_region'])
+        fault_styles.append(params['faulting_style'])
         # Add some parameters to the event set
         event_set.faulting_style = params['faulting_style']
         event_set.tectonic_region = params['tectonic_region']
         event_set.name = name
         event_set.slip_rates = params['slip_rate_mean_lower_upper']
         event_sets.append(event_set)
-    return names, event_sets, event_certainties, num_events
+    return names, event_sets, event_certainties, num_events, tect_regions, fault_styles
