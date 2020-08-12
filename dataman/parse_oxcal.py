@@ -30,7 +30,7 @@ def parse_oxcal(filename, key_dict, event_order=None):
         line_count = 0
         for row in csv_reader:
             if line_count == 0:
-                print(f'Column names are {", ".join(row)}')
+#                print(f'Column names are {", ".join(row)}')
                 line_count += 1
             else:
                 if row['name'] in key_dict:
@@ -59,7 +59,7 @@ def parse_oxcal(filename, key_dict, event_order=None):
                 '. Check param_file correctly specifies required OxCal event' +\
                 ' name and output type'
             assert (len(event_list[k].dates) > 0), e
-            
+    
     return event_list
 
 if __name__ == "__main__":
