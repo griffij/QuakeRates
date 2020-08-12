@@ -23,7 +23,7 @@ from QuakeRates.dataman.parse_params import parse_param_file, \
     get_event_sets, file_len
 from QuakeRates.utilities.bilinear import bilinear_reg_zero_slope, \
     bilinear_reg_fix, bilinear_reg_fix_zero_slope
-from QuakeRates.utilities.memory_coefficient import burstiness
+from QuakeRates.utilities.memory_coefficient import burstiness, memory_coefficient
 
 filepath = '../params'
 param_file_list = glob(os.path.join(filepath, '*.txt'))
@@ -60,7 +60,7 @@ param_file_list_NZ = ['Akatore4eventBdy_output.txt',
 #param_file_list = []
 #for f in param_file_list_NZ:
 #    param_file_list.append(os.path.join(filepath, f))
-n_samples = 100  # Number of Monte Carlo samples of the eq chronologies
+n_samples = 10  # Number of Monte Carlo samples of the eq chronologies
 half_n = int(n_samples/2)
 print(half_n)
 annotate_plots = False # If True, lable each fault on the plot
@@ -92,6 +92,7 @@ for t in tectonic_regions:
     fig_comment += t
     fig_comment += '_'
 fig_comment += str(min_number_events)
+#fig_comment += 'test_add_event_data'
 
 def piecewise_linear(x, x0, y0, k1, k2):
     return np.piecewise(x, [x < x0], [lambda x:k1*x + y0-k1*x0, lambda x:k2*x + y0-k2*x0])
@@ -100,6 +101,9 @@ def camel_case_split(identifier):
     return [m.group(0) for m in matches]
 
 plot_colours = []
+all_ie_times = []
+added_events = [] # Store names of records where we've added an event due to
+#                   exceptionally long current open interval
 covs = []
 cov_bounds = []
 burstinesses = []
@@ -107,6 +111,7 @@ burstiness_bounds = []
 burstiness_stds = []
 burstinesses_expon = []
 burstinesses_gamma = []
+ie_gamma_alpha = []
 memory_coefficients = []
 memory_bounds = []
 memory_stds = []
@@ -152,16 +157,21 @@ for i, event_set in enumerate(event_sets):
     # events
     # First generate chronologies assuming all events are certain
 #    event_set.name = names[i]
-    event_set.gen_chronologies(n_samples, observation_end=2019, min_separation=1)
+    event_set.gen_chronologies(n_samples, observation_end=2020, min_separation=1)
     event_set.calculate_cov()
     event_set.cov_density()
     event_set.memory_coefficient()
     event_set.memory_spearman_rank_correlation()
+    # Store all inter-event times for global statistics
+    all_ie_times.append(event_set.interevent_times)
     # Now calculate some statistics on the sampled chronologies
     event_set.basic_chronology_stats()
     # Plot histogram of interevent times
     figfile = os.path.join(plot_folder, ('interevent_times_%s.png' % names[i]))
     event_set.plot_interevent_time_hist(fig_filename=figfile)
+    # Fit gamma distirbution to event set data
+    event_set.fit_gamma()
+    ie_gamma_alpha.append(event_set.mean_gamma_alpha_all) # Get mean estimate of alpha
     min_paired_interevent_times.append(event_set.mean_minimum_pair_interevent_time)
     max_interevent_times.append(event_set.mean_maximum_interevent_time)
     min_interevent_times.append(event_set.mean_minimum_interevent_time)  
@@ -208,7 +218,7 @@ for i, event_set in enumerate(event_sets):
     ie_times_expon_T = ie_times_expon.T
     burst_expon = burstiness(ie_times_expon_T)
     # Gamma
-    alpha_g = 2.0
+    alpha_g = 2.35 #2.4 #2.0
     ie_times_g = gamma(alpha_g, scale=scale).rvs(size=(n_samples*(event_set.num_events-1)))
     ie_times_g = np.reshape(np.array(ie_times_g), (n_samples, (event_set.num_events-1)))
     ie_times_g_T = ie_times_g.T
@@ -327,9 +337,12 @@ for i, event_set in enumerate(event_sets):
         plot_colours.append('g')
     else:
         plot_colours.append('k')
-
+    if event_set.add_events: # List of records where we model long open interval
+        added_events.append(event_set.name)
+        
 # Convert to numpy arrays and transpose where necessary
 num_events = np.array(num_events)
+all_ie_times = np.array(all_ie_times)
 max_interevent_times = np.array(max_interevent_times)
 min_interevent_times = np.array(min_interevent_times)
 min_paired_interevent_times = np.array(min_paired_interevent_times)
@@ -366,6 +379,7 @@ memory_stds = np.array(memory_stds)
 memory_bounds = np.array(memory_bounds).T 
 memory_spearman_bounds = np.array(memory_spearman_bounds).T
 memory_spearman_lag2_bounds = np.array(memory_spearman_lag2_bounds).T
+ie_gamma_alpha = np.array(ie_gamma_alpha)
 # Now do some plotting
 pyplot.clf()
 ax = pyplot.subplot(111)
@@ -934,17 +948,18 @@ figname = 'memory_coefficient_Spearman_L1_vs_L2_%s.png' % fig_comment
 pyplot.savefig(figname)
 
 # Plot burstiness against memory coefficient
-# Plot burstiness against mean ltr
+# Just used now for looking at uncertainties in how the open interval is modelled
 pyplot.clf()
+fig = pyplot.figure(1)
 ax = pyplot.subplot(111)
 colours = []
-for mean_b in mean_bs:
-    if mean_b <= -0.05:
-        colours.append('b')
-    elif mean_b > -0.05 and mean_b <= 0.05:
-        colours.append('g')
+for txt in names:
+    if txt.endswith('nextyear'):
+        colours.append('blue')
+    elif txt.endswith('noadd'):
+        colours.append('navy')
     else:
-        colours.append('r')
+        colours.append('lightskyblue')
 pyplot.errorbar(mean_mems, mean_bs,
                 xerr = memory_bounds,
                 ecolor = '0.3',
@@ -957,13 +972,22 @@ pyplot.errorbar(mean_mems, mean_bs,
                 elinewidth=0.7,
                 linestyle="None",
                 zorder=1)
-pyplot.scatter(mean_mems, mean_bs, marker = 's', c=plot_colours,
+pyplot.scatter(mean_mems, mean_bs, marker = 's', c=colours,
                s=25, zorder=2)
+texts = []
 for i, txt in enumerate(names):
-    if annotate_plots:
-        ax.annotate(txt,
-                    (mean_mems[i], mean_bs[i]),
-                    fontsize=8)
+    sp = camel_case_split(txt)
+    # Handle special cases of two word fault names
+    if sp[0] == 'San' or sp[0] == 'Dead' or sp[0] == 'Loma':
+        flt_txt = sp[0] + ' '  + sp [1]
+    else:
+        flt_txt = sp[0]
+    flt_txt = flt_txt.replace('noadd', '').replace('nextyear', '')
+    text = ax.annotate(flt_txt,
+                        (mean_mems[i], mean_bs[i]),
+                        fontsize=10, zorder=3)
+    texts.append(text)
+    
 ax.set_xlim([-1, 1])
 ax.set_ylim([-1, 1])
 # Add y = 0, x=0 lines
@@ -971,6 +995,20 @@ pyplot.plot([0,0],[-1, 1], linestyle='dashed', linewidth=1, c='0.5')
 pyplot.plot([-1,1],[0, 0], linestyle='dashed', linewidth=1, c='0.5')
 ax.set_ylabel('B')
 ax.set_xlabel('M')
+
+# Add a legend using some dummy data
+line1 = ax.scatter([1], [100], marker = 's', c = 'navy', s=25)
+line2 = ax.scatter([1], [100], marker = 's', c = 'blue', s=25)
+line3 = ax.scatter([1], [100], marker = 's', c = 'lightskyblue', s=25)
+pyplot.legend((line1, line2, line3), ('Only known closed intervals',
+                                      '2021 event added',
+                                      'Exponential model'))
+#              ('Normal', 'Strike slip', 'Reverse', 'Instrumental - regional',
+#               'Instrumental - single fault', 'Exponential', 'Gamma', 'Weibull')
+
+#print('Adjusting label locations')
+#adjust_text(texts, arrowprops=dict(arrowstyle='->', color='k', linewidth=0.5))
+fig.set_size_inches(w=8,h=8.)
 figname = 'burstiness_vs_memory_coefficient_%s.png' % fig_comment 
 pyplot.savefig(figname)
 
@@ -2094,15 +2132,10 @@ figname = 'B_M_phase_comparison_%s.png' % fig_comment
 fig.set_size_inches(w=8,h=8.)
 pyplot.savefig(figname)
 
+###############################################################
+
 # Dump all results to a csv file
 results_filename = 'Results_summary_%s.csv' % fig_comment
-#print(mean_bs, len(mean_bs))
-#print(burstiness_bounds[:,0])
-#print(burstiness_bounds)
-#print(burstiness_bounds[0,:])
-#print(references, len(references))
-#print(names, len(names))
-
 all_results = np.vstack([names, references, mean_ltr, ltr_bounds[0,:], ltr_bounds[1,:],
                          mean_bs, burstiness_bounds[0,:], burstiness_bounds[1,:],
                          mean_mems, memory_bounds[0,:], memory_bounds[1,:]]).T
@@ -2112,29 +2145,6 @@ header = 'Name, reference, mean long-term annual rate, long-term rate 2.5p, long
 np.savetxt(results_filename, all_results, header = header, delimiter=',', fmt="%s")
 
 ################################################################
-# Delete this - no use as COV/B biased for small sample sizes
-# Calculate percentage of burstiness values below zero
-#b_neg = np.where(np.array(burstinesses) < 0, 1., 0)
-#num_neg_idv_flt = sum(b_neg.T) # Number of negative values for each individual fault
-#percent_neg_idv_flt = num_neg_idv_flt/n_samples*100
-#maj_neg = np.where(percent_neg_idv_flt > 50, 1.0, 0.)
-#num_neg_total = np.sum(maj_neg)
-#fraction_maj_neg = np.sum(maj_neg)/n_faults
-#percent_maj_neg = np.sum(maj_neg)/n_faults*100 # Get percentage of faults with majority of values of B < 0
-#print('num_neg_total', num_neg_total)
-#print('percent_maj_neg', percent_maj_neg)
-# Binomial distribution - if it was a Poisson process, we'd expect roughly
-# half of our faults to dominantly B <= 0, and half dominantly B >= 0
-#binom_mod = binom(n_faults, (1-0.744))
-#prob_poisson = binom_mod.cdf((n_faults - num_neg_total))
-#print('prob_poisson', prob_poisson)
-#total_samples = len(b_neg.flatten())
-#num_neg = sum(b_neg.flatten())
-#percent_neg = num_neg/total_samples*100
-#print('n_faults', n_faults)
-#print('Total samples', total_samples)
-#print('Num neg', num_neg)
-#print('Percent neg', percent_neg)
 
 # Plot histogram of all burstiness values against all random exponentially
 # sampled burstiness values
@@ -2185,9 +2195,6 @@ for b in burstinesses.T:
     ks_stat = ks_2samp(b, burstiness_expon.flatten()) 
     ks_stats.append(ks_stat[0])
     p_values.append(ks_stat[1])
-print('Komogorov-Smirnov statistic for exponential distribution')
-print('ks_stats', ks_stats)
-print('p_values', p_values)
 pyplot.clf()
 pyplot.hist(p_values, bins=40, density=True)
 ax = pyplot.gca()
@@ -2296,16 +2303,19 @@ np.savetxt(f_name, data, header='Data,Gamma', delimiter=',')
 
 ######################
 #Do KS test sample by sample
+burstiness_gamma_fast = np.array(burstiness_gamma)[indices]
+
 ks_stats = []
 p_values = []
-for b in burstinesses.T:
-    ks_stat = ks_2samp(b, burstiness_gamma.flatten()) 
+#for b in burstinesses.T:
+for b in burstiness_fast.T:
+    print(b)
+    print(burstiness_gamma_fast.flatten())
+    ks_stat = ks_2samp(b.flatten(), burstiness_gamma_fast.flatten()) 
     ks_stats.append(ks_stat[0])
     p_values.append(ks_stat[1])
-print('Komogorov-Smirnov statistic for gamma distribution')
-print('ks_stats', ks_stats)
-print('p_values', p_values)
 pyplot.clf()
+#p_values_fast = np.array(p_values)[indices]
 pyplot.hist(p_values, bins=40, density=True)
 ax = pyplot.gca()
 ax.set_xlabel('p value')
@@ -2315,8 +2325,7 @@ pyplot.savefig(figname)
 ########
 
 # Now do only for high activity rate faults
-
-burstiness_gamma_fast = np.array(burstiness_gamma)[indices]
+#burstiness_gamma_fast = np.array(burstiness_gamma)[indices]
 
 # Plot histogram of all burstiness values against all random exponentially
 # sampled burstiness values
@@ -2424,3 +2433,47 @@ mean_all_covs = np.mean(np.array(covs))
 print('Mean COV, all records', mean_all_covs)
 mean_all_bs = np.mean(burstinesses)
 print('Mean burstiness, all records', mean_all_bs)
+# Get alpha only for high activity rate faults
+alpha_fast_faults = ie_gamma_alpha[indices]
+print('Mean alpha paramater for gamma distribution', np.mean(ie_gamma_alpha))
+print('Median alpha paramater for gamma distribution', np.median(ie_gamma_alpha)) 
+print('Mean alpha paramater for gamma distribution, high activity rate faults',
+      np.mean(alpha_fast_faults))
+print('Median alpha paramater for gamma distribution, high activity rate faults', np.median(alpha_fast_faults))
+# Try excluding outliers
+alpha_fast_faults_exclude_outliers = alpha_fast_faults[alpha_fast_faults < 10]
+print('Mean alpha paramater for gamma distribution, exclude outliers',
+      np.mean(alpha_fast_faults_exclude_outliers))
+
+#################################
+# Look at events where we've modelled the open interval because it's exceptionally long
+print('Open interval has been modelled for these records:', added_events)
+# Make a plot of some variations on the theme
+#burstiness_a = []
+#burstiness_a_ub = []
+
+#memory_a = []
+st = set(added_events)
+# Get indices of faults with added events
+idx = [i for i, e in enumerate(names) if e in st]
+pyplot.clf()
+fig = pyplot.figure(1)
+# set up subplot grid
+gridspec.GridSpec(2, 2)
+for j,i in enumerate(idx):
+    if j < 2:
+        pyplot.subplot2grid((2, 2), (0,j), colspan=1, rowspan=1)
+    else:
+#        j=i-2
+        print(j)
+        pyplot.subplot2grid((2, 2), (1,(j-2)), colspan=1, rowspan=1) 
+    last_ie_time = all_ie_times[i][-1]
+    print(last_ie_time)
+    ax = pyplot.gca()
+    pyplot.hist(last_ie_time, bins=40, density=True, color='0.5', label = names[i])
+    pyplot.legend()
+    ax.set_xlabel('Length of final interevent time (years)')
+    ax.set_ylabel('Density')
+pyplot.tight_layout()
+figname = 'Added_interval_histograms.png'
+pyplot.savefig(figname)    
