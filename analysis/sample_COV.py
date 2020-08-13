@@ -2424,10 +2424,10 @@ pyplot.hist(burstinesses.flatten(), bins = 60, color='#ff7f0e',
             alpha=0.5, density=True, label = 'Data')
 ax = pyplot.gca()
 ax.set_xlim([-1.0, 0.5])
-ax.set_ylim([0.0, 3.0])
+ax.set_ylim([0.0, 3.2])
 ax.set_xlabel('B')
 ax.set_ylabel('Density')
-pyplot.legend(loc=1, fontsize=8, handlelength=1.5, framealpha=0.05)
+pyplot.legend(loc=1, fontsize=9, handlelength=1.5, framealpha=0.2)
 # Annotate figure
 txt = 'p reject: %.2f\n%s\nAll' % (p_reject, rej)
 ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
@@ -2490,8 +2490,9 @@ ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
 pyplot.subplot2grid((4, 3), (1,0), colspan=1, rowspan=1)
 fault_styles = np.array(fault_styles)
 indices_ss = np.argwhere(fault_styles == 'Strike_slip')
-burstiness_ss = burstinesses[indices_ss]
-burstiness_expon_ss = burstiness_expon[indices_ss]
+indices_ss_hs = np.intersect1d(indices, indices_ss)   
+burstiness_ss = burstinesses[indices_ss_hs]
+burstiness_expon_ss = burstiness_expon[indices_ss_hs]
 #Do KS test sample by sample
 ks_stats = []
 p_values = []
@@ -2520,8 +2521,10 @@ ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
 # Add fifth subplot - normal faults
 pyplot.subplot2grid((4, 3), (1,1), colspan=1, rowspan=1)
 indices_n = np.argwhere(fault_styles == 'Normal')
-burstiness_n = burstinesses[indices_n]
-burstiness_expon_n = burstiness_expon[indices_n]
+# Get indices of normal faults with high slip rates
+indices_n_hs = np.intersect1d(indices, indices_n)
+burstiness_n = burstinesses[indices_n_hs]
+burstiness_expon_n = burstiness_expon[indices_n_hs]
 #Do KS test sample by sample
 ks_stats = []
 p_values = []
@@ -2550,8 +2553,9 @@ ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
 # Add sixth subplot - reverse faults
 pyplot.subplot2grid((4, 3), (1,2), colspan=1, rowspan=1)
 indices_r = np.argwhere(fault_styles == 'Reverse')
-burstiness_r = burstinesses[indices_r]
-burstiness_expon_r = burstiness_expon[indices_r]
+indices_r_hs = np.intersect1d(indices, indices_r)
+burstiness_r = burstinesses[indices_r_hs]
+burstiness_expon_r = burstiness_expon[indices_r_hs]
 #Do KS test sample by sample
 ks_stats = []
 p_values = []
@@ -2593,14 +2597,14 @@ if p_reject < 0.05:
 else:
     rej = 'Reject'
 pyplot.hist(np.array(burstiness_gamma.flatten()), bins = 60,
-            alpha=0.5, density=True, label = 'Gamma', color='navy')
+            alpha=0.5, density=True, label = 'Gamma', color='slategrey')
 pyplot.hist(burstinesses.flatten(), bins = 60,
             alpha=0.5, density=True, label = 'Data', color='#ff7f0e')
 ax = pyplot.gca()
 ax.set_xlim([-1.0, 0.5])
 ax.set_xlabel('B')
 ax.set_ylabel('Density')
-pyplot.legend(loc=1, fontsize=8, handlelength=1.5, framealpha=1.0)
+pyplot.legend(loc=1, fontsize=9, handlelength=1.5, framealpha=0.2)
 # Annotate figure
 txt = 'p reject: %.2f\n%s\nAll' % (p_reject, rej)
 ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
@@ -2621,7 +2625,7 @@ if p_reject < 0.05:
 else:
     rej = 'Reject'
 pyplot.hist(np.array(burstiness_gamma_fast.flatten()), bins = 60,
-            alpha=0.5, density=True, label = 'Gamma', color='navy')
+            alpha=0.5, density=True, label = 'Gamma', color='slategrey')
 pyplot.hist(burstiness_fast.flatten(), bins = 60,
             alpha=0.5, density=True, label = 'Data', color='#ff7f0e')
 ax = pyplot.gca()
@@ -2648,7 +2652,7 @@ if p_reject < 0.05:
 else:
     rej = 'Reject'
 pyplot.hist(np.array(burstiness_gamma_slow.flatten()), bins = 60,
-            alpha=0.5, density=True, label = 'Gamma', color='navy')
+            alpha=0.5, density=True, label = 'Gamma', color='slategrey')
 pyplot.hist(burstiness_slow.flatten(), bins = 60,
             alpha=0.5, density=True, label = 'Data', color='#ff7f0e')
 ax = pyplot.gca()
@@ -2662,7 +2666,7 @@ ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
 #############
 # Tenth plot - strike-slip faults against gamma
 pyplot.subplot2grid((4, 3), (3,0), colspan=1, rowspan=1)
-burstiness_gamma_ss = burstiness_gamma[indices_ss]
+burstiness_gamma_ss = burstiness_gamma[indices_ss_hs]
 #Do KS test sample by sample
 ks_stats = []
 p_values = []
@@ -2676,7 +2680,7 @@ if p_reject < 0.05:
 else:
     rej = 'Reject'
 pyplot.hist(np.array(burstiness_gamma_ss.flatten()), bins = 60,
-            alpha=0.5, density=True, label = 'Gamma', color='navy')
+            alpha=0.5, density=True, label = 'Gamma', color='slategrey')
 pyplot.hist(burstiness_ss.flatten(), bins = 60,
             alpha=0.5, density=True, label = 'Data', color='#ff7f0e')
 ax = pyplot.gca()
@@ -2690,7 +2694,7 @@ ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
 #############
 # Eleventh plot - normal faults against gamma
 pyplot.subplot2grid((4, 3), (3,1), colspan=1, rowspan=1)
-burstiness_gamma_n = burstiness_gamma[indices_n]
+burstiness_gamma_n = burstiness_gamma[indices_n_hs]
 #Do KS test sample by sample
 ks_stats = []
 p_values = []
@@ -2704,7 +2708,7 @@ if p_reject < 0.05:
 else:
     rej = 'Reject'
 pyplot.hist(np.array(burstiness_gamma_n.flatten()), bins = 60,
-            alpha=0.5, density=True, label = 'Gamma', color='navy')
+            alpha=0.5, density=True, label = 'Gamma', color='slategrey')
 pyplot.hist(burstiness_n.flatten(), bins = 60,
             alpha=0.5, density=True, label = 'Data', color='#ff7f0e')
 ax = pyplot.gca()
@@ -2718,7 +2722,7 @@ ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
 #############
 # Twelfth plot - reverse faults against gamma
 pyplot.subplot2grid((4, 3), (3,2), colspan=1, rowspan=1)
-burstiness_gamma_r = burstiness_gamma[indices_r]
+burstiness_gamma_r = burstiness_gamma[indices_r_hs]
 #Do KS test sample by sample
 ks_stats = []
 p_values = []
@@ -2732,7 +2736,7 @@ if p_reject < 0.05:
 else:
     rej = 'Reject'
 pyplot.hist(np.array(burstiness_gamma_r.flatten()), bins = 60,
-            alpha=0.5, density=True, label = 'Gamma', color='navy')
+            alpha=0.5, density=True, label = 'Gamma', color='slategrey')
 pyplot.hist(burstiness_r.flatten(), bins = 60,
             alpha=0.5, density=True, label = 'Data', color='#ff7f0e')
 ax = pyplot.gca()
