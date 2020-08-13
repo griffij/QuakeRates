@@ -60,7 +60,7 @@ param_file_list_NZ = ['Akatore4eventBdy_output.txt',
 #param_file_list = []
 #for f in param_file_list_NZ:
 #    param_file_list.append(os.path.join(filepath, f))
-n_samples = 10  # Number of Monte Carlo samples of the eq chronologies
+n_samples = 100  # Number of Monte Carlo samples of the eq chronologies
 half_n = int(n_samples/2)
 print(half_n)
 annotate_plots = False # If True, lable each fault on the plot
@@ -140,9 +140,10 @@ std_ratio_min_max = []
 ratio_min_pair_max_bounds =[]
 ratio_min_max_bounds = []
 
-names, event_sets, event_certainties, num_events = \
+names, event_sets, event_certainties, num_events, tect_regions, fault_styles = \
     get_event_sets(param_file_list, tectonic_regions,
                    faulting_styles, min_number_events)
+
 references = []
 # Get citations for each dataset from filename
 for s in param_file_list:
@@ -218,7 +219,7 @@ for i, event_set in enumerate(event_sets):
     ie_times_expon_T = ie_times_expon.T
     burst_expon = burstiness(ie_times_expon_T)
     # Gamma
-    alpha_g = 2.35 #2.4 #2.0
+    alpha_g = 2.2 #2.2 #2.35 #2.4 #2.0
     ie_times_g = gamma(alpha_g, scale=scale).rvs(size=(n_samples*(event_set.num_events-1)))
     ie_times_g = np.reshape(np.array(ie_times_g), (n_samples, (event_set.num_events-1)))
     ie_times_g_T = ie_times_g.T
@@ -2238,7 +2239,7 @@ pyplot.savefig(figname)
 # Now do only for low activity rate faults
 indices_slow_faults = np.flatnonzero(mean_ltr <= 2e-4)
 indices_slow_faults = indices_slow_faults.flatten()
-burstiness_slow = np.array(burstinesses)[indices_slow_faults]
+burstiness_slow = burstinesses[indices_slow_faults]
 burstiness_expon_slow = np.array(burstiness_expon)[indices_slow_faults]
 
 # Plot histogram of all burstiness values against all random exponentially
@@ -2265,8 +2266,9 @@ pyplot.savefig(figname)
 ###########################################
 # Plot histogram of all burstiness values against all random gamma distributions
 # sampled burstiness values
+burstiness_gamma = np.array(burstiness_gamma)
 pyplot.clf()
-pyplot.hist(np.array(burstiness_gamma.flatten()), bins = 60,
+pyplot.hist(burstiness_gamma.flatten(), bins = 60,
             alpha=0.5, density=True, label = 'Random sample')
 pyplot.hist(burstinesses.flatten(), bins = 60,
             alpha=0.5, density=True, label = 'Data')
@@ -2280,8 +2282,7 @@ pyplot.legend()
 # fault data is less bursty than our gamma distributed
 # random data
 # All data first
-burstiness_gamma = np.array(burstiness_gamma)
-ks_stat = ks_2samp(np.array(burstinesses).flatten(), burstiness_gamma.flatten())
+ks_stat = ks_2samp(burstinesses.flatten(), burstiness_gamma.flatten())
 print('Komogorov-Smirnov statistic for gamma distribution, p-value', ks_stat)
 lab = 'KS = %.2f\np value = %.2E' % (ks_stat[0], ks_stat[1])
 ax.annotate(lab, (-0.8, 0.8), fontsize=10)
@@ -2307,11 +2308,9 @@ burstiness_gamma_fast = np.array(burstiness_gamma)[indices]
 
 ks_stats = []
 p_values = []
-#for b in burstinesses.T:
-for b in burstiness_fast.T:
-    print(b)
-    print(burstiness_gamma_fast.flatten())
-    ks_stat = ks_2samp(b.flatten(), burstiness_gamma_fast.flatten()) 
+for b in burstinesses.T:
+#for b in burstiness_fast.T:
+    ks_stat = ks_2samp(b.flatten(), burstiness_gamma.flatten()) 
     ks_stats.append(ks_stat[0])
     p_values.append(ks_stat[1])
 pyplot.clf()
@@ -2377,8 +2376,6 @@ ax.annotate(lab, (-0.8, 0.8), fontsize=10)
 pyplot.savefig(figname) 
 
 
-
-
 #######################################3
 # In this analysis, we now calculate the KS statistic
 # for each fault individually, and plot these.
@@ -2395,6 +2392,362 @@ ax = pyplot.gca()
 ax.set_xlabel('p value')
 ax.set_ylabel('Density')
 figname = 'ks_p_value_hist_%s.png' % fig_comment
+pyplot.savefig(figname)
+
+#######################################################3
+# Now make a nice combined figure showing all the results
+# 4 rows by 3 columns
+# Plot results against expected distirbutions for Poisson and Gamma distributions.
+# Do this for: All data; high activity rate data; low activity rate data;
+# Strike-slip faults; normal faults; reverse faults;
+pyplot.clf()
+fig = pyplot.figure(1)
+# set up subplot grid
+gridspec.GridSpec(4, 3)
+#First plot - all data against Poisson
+pyplot.subplot2grid((4, 3), (0,0), colspan=1, rowspan=1)
+#Do KS test sample by sample
+ks_stats = []
+p_values = []
+for b in burstinesses.T:
+    ks_stat = ks_2samp(b.flatten(), burstiness_expon.flatten()) 
+    ks_stats.append(ks_stat[0])
+    p_values.append(ks_stat[1])
+p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
+if p_reject < 0.05:
+    rej = 'Accept'
+else:
+    rej = 'Reject'
+pyplot.hist(np.array(burstiness_expon.flatten()), bins = 60,
+            alpha=0.5, density=True, label = 'Exponential', color='#1f77b4')
+pyplot.hist(burstinesses.flatten(), bins = 60, color='#ff7f0e',
+            alpha=0.5, density=True, label = 'Data')
+ax = pyplot.gca()
+ax.set_xlim([-1.0, 0.5])
+ax.set_ylim([0.0, 3.0])
+ax.set_xlabel('B')
+ax.set_ylabel('Density')
+pyplot.legend(loc=1, fontsize=8, handlelength=1.5, framealpha=0.05)
+# Annotate figure
+txt = 'p reject: %.2f\n%s\nAll' % (p_reject, rej)
+ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
+
+##############
+# Second subplot - high activity rate faults
+pyplot.subplot2grid((4, 3), (0,1), colspan=1, rowspan=1)
+#Do KS test sample by sample
+ks_stats = []
+p_values = []
+for b in burstiness_fast.T:
+    ks_stat = ks_2samp(b.flatten(), burstiness_expon_fast.flatten()) 
+    ks_stats.append(ks_stat[0])
+    p_values.append(ks_stat[1])
+p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
+if p_reject < 0.05:
+    rej = 'Accept'
+else:
+    rej = 'Reject'
+pyplot.hist(np.array(burstiness_expon_fast.flatten()), bins = 60,
+            alpha=0.5, density=True, label = 'Exponential', color='#1f77b4')
+pyplot.hist(burstiness_fast.flatten(), bins = 60,
+            alpha=0.5, density=True, label = 'Data', color='#ff7f0e')
+ax = pyplot.gca()
+ax.set_xlim([-1.0, 0.5])
+ax.set_xlabel('B')
+ax.set_ylabel('Density')
+# Annotate figure
+txt = 'p reject: %.2f\n%s\nHigh rate' % (p_reject, rej)
+ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
+
+# Third subplot - low activity rate faults
+pyplot.subplot2grid((4, 3), (0,2), colspan=1, rowspan=1)
+#Do KS test sample by sample
+ks_stats = []
+p_values = []
+for b in burstiness_slow.T:
+    ks_stat = ks_2samp(b.flatten(), burstiness_expon_slow.flatten()) 
+    ks_stats.append(ks_stat[0])
+    p_values.append(ks_stat[1])
+p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
+if p_reject < 0.05:
+    rej = 'Accept'
+else:
+    rej = 'Reject'
+pyplot.hist(np.array(burstiness_expon_slow.flatten()), bins = 60,
+            alpha=0.5, density=True, label = 'Exponential', color='#1f77b4')
+pyplot.hist(burstiness_slow.flatten(), bins = 60,
+            alpha=0.5, density=True, label = 'Data', color='#ff7f0e')
+ax = pyplot.gca()
+ax.set_xlim([-1.0, 0.5])
+ax.set_xlabel('B')
+ax.set_ylabel('Density')
+# Annotate figure
+txt = 'p reject: %.2f\n%s\nLow Rate' % (p_reject, rej)
+ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
+
+##############
+# Add fourth subplot - strike-slip faults
+pyplot.subplot2grid((4, 3), (1,0), colspan=1, rowspan=1)
+fault_styles = np.array(fault_styles)
+indices_ss = np.argwhere(fault_styles == 'Strike_slip')
+burstiness_ss = burstinesses[indices_ss]
+burstiness_expon_ss = burstiness_expon[indices_ss]
+#Do KS test sample by sample
+ks_stats = []
+p_values = []
+for b in burstiness_ss.T:
+    ks_stat = ks_2samp(b.flatten(), burstiness_expon_ss.flatten()) 
+    ks_stats.append(ks_stat[0])
+    p_values.append(ks_stat[1])
+p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
+if p_reject < 0.05:
+    rej = 'Accept'
+else:
+    rej = 'Reject'
+pyplot.hist(np.array(burstiness_expon_ss.flatten()), bins = 60,
+            alpha=0.5, density=True, label = 'Exponential', color='#1f77b4')
+pyplot.hist(burstiness_ss.flatten(), bins = 60,
+            alpha=0.5, density=True, label = 'Data', color='#ff7f0e')
+ax = pyplot.gca()
+ax.set_xlim([-1.0, 0.5])
+ax.set_xlabel('B')
+ax.set_ylabel('Density')
+# Annotate figure
+txt = 'p reject: %.2f\n%s\nStrike-slip' % (p_reject, rej)
+ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
+
+##############
+# Add fifth subplot - normal faults
+pyplot.subplot2grid((4, 3), (1,1), colspan=1, rowspan=1)
+indices_n = np.argwhere(fault_styles == 'Normal')
+burstiness_n = burstinesses[indices_n]
+burstiness_expon_n = burstiness_expon[indices_n]
+#Do KS test sample by sample
+ks_stats = []
+p_values = []
+for b in burstiness_n.T:
+    ks_stat = ks_2samp(b.flatten(), burstiness_expon_n.flatten()) 
+    ks_stats.append(ks_stat[0])
+    p_values.append(ks_stat[1])
+p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
+if p_reject < 0.05:
+    rej = 'Accept'
+else:
+    rej = 'Reject'
+pyplot.hist(np.array(burstiness_expon_n.flatten()), bins = 60,
+            alpha=0.5, density=True, label = 'Exponential', color='#1f77b4')
+pyplot.hist(burstiness_n.flatten(), bins = 60,
+            alpha=0.5, density=True, label = 'Data', color='#ff7f0e')
+ax = pyplot.gca()
+ax.set_xlim([-1.0, 0.5])
+ax.set_xlabel('B')
+ax.set_ylabel('Density')
+# Annotate figure
+txt = 'p reject: %.2f\n%s\nNormal' % (p_reject, rej)
+ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
+
+##############
+# Add sixth subplot - reverse faults
+pyplot.subplot2grid((4, 3), (1,2), colspan=1, rowspan=1)
+indices_r = np.argwhere(fault_styles == 'Reverse')
+burstiness_r = burstinesses[indices_r]
+burstiness_expon_r = burstiness_expon[indices_r]
+#Do KS test sample by sample
+ks_stats = []
+p_values = []
+for b in burstiness_r.T:
+    ks_stat = ks_2samp(b.flatten(), burstiness_expon_r.flatten()) 
+    ks_stats.append(ks_stat[0])
+    p_values.append(ks_stat[1])
+p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
+if p_reject < 0.05:
+    rej = 'Accept'
+else:
+    rej = 'Reject'
+pyplot.hist(np.array(burstiness_expon_r.flatten()), bins = 60,
+            alpha=0.5, density=True, label = 'Exponential', color='#1f77b4')
+pyplot.hist(burstiness_r.flatten(), bins = 60,
+            alpha=0.5, density=True, label = 'Data', color='#ff7f0e')
+ax = pyplot.gca()
+ax.set_xlim([-1.0, 0.5])
+ax.set_xlabel('B')
+ax.set_ylabel('Density')
+# Annotate figure
+txt = 'p reject: %.2f\n%s\nReverse' % (p_reject, rej)
+ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
+
+#########################
+# Now we add plots against gamma distribution
+# Seventh plot - all data against Gamma
+pyplot.subplot2grid((4, 3), (2,0), colspan=1, rowspan=1)
+#Do KS test sample by sample
+ks_stats = []
+p_values = []
+for b in burstinesses.T:
+    ks_stat = ks_2samp(b.flatten(), burstiness_gamma.flatten()) 
+    ks_stats.append(ks_stat[0])
+    p_values.append(ks_stat[1])
+p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
+if p_reject < 0.05:
+    rej = 'Accept'
+else:
+    rej = 'Reject'
+pyplot.hist(np.array(burstiness_gamma.flatten()), bins = 60,
+            alpha=0.5, density=True, label = 'Gamma', color='navy')
+pyplot.hist(burstinesses.flatten(), bins = 60,
+            alpha=0.5, density=True, label = 'Data', color='#ff7f0e')
+ax = pyplot.gca()
+ax.set_xlim([-1.0, 0.5])
+ax.set_xlabel('B')
+ax.set_ylabel('Density')
+pyplot.legend(loc=1, fontsize=8, handlelength=1.5, framealpha=1.0)
+# Annotate figure
+txt = 'p reject: %.2f\n%s\nAll' % (p_reject, rej)
+ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
+
+#############
+# Eighth plot - high activity rate faults against gamma
+pyplot.subplot2grid((4, 3), (2,1), colspan=1, rowspan=1)
+#Do KS test sample by sample
+ks_stats = []
+p_values = []
+for b in burstiness_fast.T:
+    ks_stat = ks_2samp(b.flatten(), burstiness_gamma_fast.flatten()) 
+    ks_stats.append(ks_stat[0])
+    p_values.append(ks_stat[1])
+p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
+if p_reject < 0.05:
+    rej = 'Accept'
+else:
+    rej = 'Reject'
+pyplot.hist(np.array(burstiness_gamma_fast.flatten()), bins = 60,
+            alpha=0.5, density=True, label = 'Gamma', color='navy')
+pyplot.hist(burstiness_fast.flatten(), bins = 60,
+            alpha=0.5, density=True, label = 'Data', color='#ff7f0e')
+ax = pyplot.gca()
+ax.set_xlim([-1.0, 0.5])
+ax.set_xlabel('B')
+ax.set_ylabel('Density')
+# Annotate figure
+txt = 'p reject: %.2f\n%s\nHigh Rate' % (p_reject, rej)
+ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
+
+############# 
+# nineth plot - low activity rate faults against gamma
+pyplot.subplot2grid((4, 3), (2,2), colspan=1, rowspan=1)
+#Do KS test sample by sample
+ks_stats = []
+p_values = []
+for b in burstiness_slow.T:
+    ks_stat = ks_2samp(b.flatten(), burstiness_gamma_slow.flatten()) 
+    ks_stats.append(ks_stat[0])
+    p_values.append(ks_stat[1])
+p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
+if p_reject < 0.05:
+    rej = 'Accept'
+else:
+    rej = 'Reject'
+pyplot.hist(np.array(burstiness_gamma_slow.flatten()), bins = 60,
+            alpha=0.5, density=True, label = 'Gamma', color='navy')
+pyplot.hist(burstiness_slow.flatten(), bins = 60,
+            alpha=0.5, density=True, label = 'Data', color='#ff7f0e')
+ax = pyplot.gca()
+ax.set_xlim([-1.0, 0.5])
+ax.set_xlabel('B')
+ax.set_ylabel('Density')
+# Annotate figure
+txt = 'p reject: %.2f\n%s\nLow Rate' % (p_reject, rej)
+ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
+
+#############
+# Tenth plot - strike-slip faults against gamma
+pyplot.subplot2grid((4, 3), (3,0), colspan=1, rowspan=1)
+burstiness_gamma_ss = burstiness_gamma[indices_ss]
+#Do KS test sample by sample
+ks_stats = []
+p_values = []
+for b in burstiness_ss.T:
+    ks_stat = ks_2samp(b.flatten(), burstiness_gamma_ss.flatten()) 
+    ks_stats.append(ks_stat[0])
+    p_values.append(ks_stat[1])
+p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
+if p_reject < 0.05:
+    rej = 'Accept'
+else:
+    rej = 'Reject'
+pyplot.hist(np.array(burstiness_gamma_ss.flatten()), bins = 60,
+            alpha=0.5, density=True, label = 'Gamma', color='navy')
+pyplot.hist(burstiness_ss.flatten(), bins = 60,
+            alpha=0.5, density=True, label = 'Data', color='#ff7f0e')
+ax = pyplot.gca()
+ax.set_xlim([-1.0, 0.5])
+ax.set_xlabel('B')
+ax.set_ylabel('Density')
+# Annotate figure
+txt = 'p reject: %.2f\n%s\nStrike-slip' % (p_reject, rej)
+ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
+
+#############
+# Eleventh plot - normal faults against gamma
+pyplot.subplot2grid((4, 3), (3,1), colspan=1, rowspan=1)
+burstiness_gamma_n = burstiness_gamma[indices_n]
+#Do KS test sample by sample
+ks_stats = []
+p_values = []
+for b in burstiness_n.T:
+    ks_stat = ks_2samp(b.flatten(), burstiness_gamma_n.flatten()) 
+    ks_stats.append(ks_stat[0])
+    p_values.append(ks_stat[1])
+p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
+if p_reject < 0.05:
+    rej = 'Accept'
+else:
+    rej = 'Reject'
+pyplot.hist(np.array(burstiness_gamma_n.flatten()), bins = 60,
+            alpha=0.5, density=True, label = 'Gamma', color='navy')
+pyplot.hist(burstiness_n.flatten(), bins = 60,
+            alpha=0.5, density=True, label = 'Data', color='#ff7f0e')
+ax = pyplot.gca()
+ax.set_xlim([-1.0, 0.5])
+ax.set_xlabel('B')
+ax.set_ylabel('Density')
+# Annotate figure
+txt = 'p reject: %.2f\n%s\nNormal' % (p_reject, rej)
+ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
+
+#############
+# Twelfth plot - reverse faults against gamma
+pyplot.subplot2grid((4, 3), (3,2), colspan=1, rowspan=1)
+burstiness_gamma_r = burstiness_gamma[indices_r]
+#Do KS test sample by sample
+ks_stats = []
+p_values = []
+for b in burstiness_r.T:
+    ks_stat = ks_2samp(b.flatten(), burstiness_gamma_r.flatten()) 
+    ks_stats.append(ks_stat[0])
+    p_values.append(ks_stat[1])
+p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
+if p_reject < 0.05:
+    rej = 'Accept'
+else:
+    rej = 'Reject'
+pyplot.hist(np.array(burstiness_gamma_r.flatten()), bins = 60,
+            alpha=0.5, density=True, label = 'Gamma', color='navy')
+pyplot.hist(burstiness_r.flatten(), bins = 60,
+            alpha=0.5, density=True, label = 'Data', color='#ff7f0e')
+ax = pyplot.gca()
+ax.set_xlim([-1.0, 0.5])
+ax.set_xlabel('B')
+ax.set_ylabel('Density')
+# Annotate figure
+txt = 'p reject: %.2f\n%s\nReverse' % (p_reject, rej)
+ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
+
+
+#############
+fig.set_size_inches(w=9,h=12.) 
+pyplot.tight_layout()
+figname = 'combined_burstiness_hist_%s.png' % fig_comment
 pyplot.savefig(figname)
 
 #########################################
@@ -2448,11 +2801,7 @@ print('Mean alpha paramater for gamma distribution, exclude outliers',
 #################################
 # Look at events where we've modelled the open interval because it's exceptionally long
 print('Open interval has been modelled for these records:', added_events)
-# Make a plot of some variations on the theme
-#burstiness_a = []
-#burstiness_a_ub = []
 
-#memory_a = []
 st = set(added_events)
 # Get indices of faults with added events
 idx = [i for i, e in enumerate(names) if e in st]
@@ -2460,17 +2809,15 @@ pyplot.clf()
 fig = pyplot.figure(1)
 # set up subplot grid
 gridspec.GridSpec(2, 2)
+labels = ['Teton', 'Loma Blanca', 'Wasatch (Brigham)', 'San Andreas (Coachella)']
 for j,i in enumerate(idx):
     if j < 2:
         pyplot.subplot2grid((2, 2), (0,j), colspan=1, rowspan=1)
     else:
-#        j=i-2
-        print(j)
         pyplot.subplot2grid((2, 2), (1,(j-2)), colspan=1, rowspan=1) 
     last_ie_time = all_ie_times[i][-1]
-    print(last_ie_time)
     ax = pyplot.gca()
-    pyplot.hist(last_ie_time, bins=40, density=True, color='0.5', label = names[i])
+    pyplot.hist(last_ie_time, bins=40, density=True, color='0.5', label = labels[j])
     pyplot.legend()
     ax.set_xlabel('Length of final interevent time (years)')
     ax.set_ylabel('Density')
