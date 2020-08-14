@@ -10,12 +10,12 @@ from scipy.stats import expon, gamma, weibull_min, lognorm
 from QuakeRates.utilities.memory_coefficient import memory_coefficient, burstiness
 
 # Generate some random data from an exponential distirbution
-n_sim = 100000
-n_events = 5
+n_sim = 10000
+n_events = 4 # Number of inter-event times
 # We run nsim simulations, each with n_events
 # Do efficiently by doing all at once and then reshaping,
 # as simulations are independently distributed
-scale = 100
+scale = 100000
 ie_times = expon(scale=scale).rvs(size=(n_sim*n_events))
 print(ie_times)
 ie_times = np.reshape(ie_times, (n_sim, n_events))
