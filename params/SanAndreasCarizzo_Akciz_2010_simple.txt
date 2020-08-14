@@ -1,6 +1,6 @@
-filename = '../data/SanAndreasCarizzo_Biasi_2009_simple.txt'
+filename = '../data/SanAndreasCarizzo_Akciz_2010_simple.txt
 chron_type = 'Age2Sigma'
-sigma_level = 1
+sigma_level = 2
 event_order = 'Backwards'
 tectonic_region = 'Plate_boundary_master'
 faulting_style = 'Strike_slip'
