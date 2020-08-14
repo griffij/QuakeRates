@@ -11,9 +11,13 @@ from scipy.optimize import curve_fit
 from scipy.odr import Model, RealData, ODR
 import scipy.odr.odrpack as odrpack
 from scipy.stats import expon, gamma, weibull_min, ks_2samp, kstest
+# !!! Dangerous hack to swap Weibull for gamma
+#from scipy.stats import weibull_min as gamma #
+# !!!
 from matplotlib import pyplot
 from matplotlib.patches import PathPatch
 import matplotlib.gridspec as gridspec
+from matplotlib.ticker import FormatStrFormatter
 from scipy.stats import binom, kde
 from adjustText import adjust_text
 from QuakeRates.dataman.event_dates import EventSet
@@ -60,7 +64,7 @@ param_file_list_NZ = ['Akatore4eventBdy_output.txt',
 #param_file_list = []
 #for f in param_file_list_NZ:
 #    param_file_list.append(os.path.join(filepath, f))
-n_samples = 100  # Number of Monte Carlo samples of the eq chronologies
+n_samples = 10000  # Number of Monte Carlo samples of the eq chronologies
 half_n = int(n_samples/2)
 print(half_n)
 annotate_plots = False # If True, lable each fault on the plot
@@ -219,7 +223,7 @@ for i, event_set in enumerate(event_sets):
     ie_times_expon_T = ie_times_expon.T
     burst_expon = burstiness(ie_times_expon_T)
     # Gamma
-    alpha_g = 2.2 #2.2 #2.35 #2.4 #2.0
+    alpha_g = 2.2 #1.6 ##2.35 #2.4 #2.0
     ie_times_g = gamma(alpha_g, scale=scale).rvs(size=(n_samples*(event_set.num_events-1)))
     ie_times_g = np.reshape(np.array(ie_times_g), (n_samples, (event_set.num_events-1)))
     ie_times_g_T = ie_times_g.T
@@ -2414,7 +2418,7 @@ for b in burstinesses.T:
     ks_stats.append(ks_stat[0])
     p_values.append(ks_stat[1])
 p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
-if p_reject < 0.05:
+if p_reject < 0.95:
     rej = 'Accept'
 else:
     rej = 'Reject'
@@ -2431,7 +2435,7 @@ pyplot.legend(loc=1, fontsize=9, handlelength=1.5, framealpha=0.2)
 # Annotate figure
 txt = 'p reject: %.2f\n%s\nAll' % (p_reject, rej)
 ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
-
+ax.annotate('a)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10) 
 ##############
 # Second subplot - high activity rate faults
 pyplot.subplot2grid((4, 3), (0,1), colspan=1, rowspan=1)
@@ -2443,7 +2447,7 @@ for b in burstiness_fast.T:
     ks_stats.append(ks_stat[0])
     p_values.append(ks_stat[1])
 p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
-if p_reject < 0.05:
+if p_reject < 0.95:
     rej = 'Accept'
 else:
     rej = 'Reject'
@@ -2458,6 +2462,7 @@ ax.set_ylabel('Density')
 # Annotate figure
 txt = 'p reject: %.2f\n%s\nHigh rate' % (p_reject, rej)
 ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
+ax.annotate('b)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
 
 # Third subplot - low activity rate faults
 pyplot.subplot2grid((4, 3), (0,2), colspan=1, rowspan=1)
@@ -2469,7 +2474,7 @@ for b in burstiness_slow.T:
     ks_stats.append(ks_stat[0])
     p_values.append(ks_stat[1])
 p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
-if p_reject < 0.05:
+if p_reject < 0.95:
     rej = 'Accept'
 else:
     rej = 'Reject'
@@ -2481,9 +2486,11 @@ ax = pyplot.gca()
 ax.set_xlim([-1.0, 0.5])
 ax.set_xlabel('B')
 ax.set_ylabel('Density')
+ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
 # Annotate figure
 txt = 'p reject: %.2f\n%s\nLow Rate' % (p_reject, rej)
 ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
+ax.annotate('c)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
 
 ##############
 # Add fourth subplot - strike-slip faults
@@ -2501,7 +2508,7 @@ for b in burstiness_ss.T:
     ks_stats.append(ks_stat[0])
     p_values.append(ks_stat[1])
 p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
-if p_reject < 0.05:
+if p_reject < 0.95:
     rej = 'Accept'
 else:
     rej = 'Reject'
@@ -2514,8 +2521,9 @@ ax.set_xlim([-1.0, 0.5])
 ax.set_xlabel('B')
 ax.set_ylabel('Density')
 # Annotate figure
-txt = 'p reject: %.2f\n%s\nStrike-slip' % (p_reject, rej)
-ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
+txt = 'p reject: %.2f\n%s\nStrike-slip\n(High rate)' % (p_reject, rej)
+ax.annotate(txt, (0.03, 0.72), xycoords = 'axes fraction', fontsize = 10)
+ax.annotate('d)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
 
 ##############
 # Add fifth subplot - normal faults
@@ -2533,7 +2541,7 @@ for b in burstiness_n.T:
     ks_stats.append(ks_stat[0])
     p_values.append(ks_stat[1])
 p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
-if p_reject < 0.05:
+if p_reject < 0.95:
     rej = 'Accept'
 else:
     rej = 'Reject'
@@ -2546,8 +2554,9 @@ ax.set_xlim([-1.0, 0.5])
 ax.set_xlabel('B')
 ax.set_ylabel('Density')
 # Annotate figure
-txt = 'p reject: %.2f\n%s\nNormal' % (p_reject, rej)
-ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
+txt = 'p reject: %.2f\n%s\nNormal\n(High rate)' % (p_reject, rej)
+ax.annotate(txt, (0.03, 0.72), xycoords = 'axes fraction', fontsize = 10)
+ax.annotate('e)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
 
 ##############
 # Add sixth subplot - reverse faults
@@ -2564,7 +2573,7 @@ for b in burstiness_r.T:
     ks_stats.append(ks_stat[0])
     p_values.append(ks_stat[1])
 p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
-if p_reject < 0.05:
+if p_reject < 0.95:
     rej = 'Accept'
 else:
     rej = 'Reject'
@@ -2577,8 +2586,10 @@ ax.set_xlim([-1.0, 0.5])
 ax.set_xlabel('B')
 ax.set_ylabel('Density')
 # Annotate figure
-txt = 'p reject: %.2f\n%s\nReverse' % (p_reject, rej)
-ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
+txt = 'p reject: %.2f\n%s\nReverse\n(High rate)' % (p_reject, rej)
+ax.annotate(txt, (0.03, 0.72), xycoords = 'axes fraction', fontsize = 10)
+ax.annotate('f)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
+ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
 
 #########################
 # Now we add plots against gamma distribution
@@ -2592,7 +2603,7 @@ for b in burstinesses.T:
     ks_stats.append(ks_stat[0])
     p_values.append(ks_stat[1])
 p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
-if p_reject < 0.05:
+if p_reject < 0.95:
     rej = 'Accept'
 else:
     rej = 'Reject'
@@ -2608,6 +2619,7 @@ pyplot.legend(loc=1, fontsize=9, handlelength=1.5, framealpha=0.2)
 # Annotate figure
 txt = 'p reject: %.2f\n%s\nAll' % (p_reject, rej)
 ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
+ax.annotate('g)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
 
 #############
 # Eighth plot - high activity rate faults against gamma
@@ -2620,7 +2632,7 @@ for b in burstiness_fast.T:
     ks_stats.append(ks_stat[0])
     p_values.append(ks_stat[1])
 p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
-if p_reject < 0.05:
+if p_reject < 0.95:
     rej = 'Accept'
 else:
     rej = 'Reject'
@@ -2635,6 +2647,7 @@ ax.set_ylabel('Density')
 # Annotate figure
 txt = 'p reject: %.2f\n%s\nHigh Rate' % (p_reject, rej)
 ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
+ax.annotate('h)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
 
 ############# 
 # nineth plot - low activity rate faults against gamma
@@ -2647,7 +2660,7 @@ for b in burstiness_slow.T:
     ks_stats.append(ks_stat[0])
     p_values.append(ks_stat[1])
 p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
-if p_reject < 0.05:
+if p_reject < 0.95:
     rej = 'Accept'
 else:
     rej = 'Reject'
@@ -2662,6 +2675,8 @@ ax.set_ylabel('Density')
 # Annotate figure
 txt = 'p reject: %.2f\n%s\nLow Rate' % (p_reject, rej)
 ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
+ax.annotate('i)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
+ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
 
 #############
 # Tenth plot - strike-slip faults against gamma
@@ -2675,7 +2690,7 @@ for b in burstiness_ss.T:
     ks_stats.append(ks_stat[0])
     p_values.append(ks_stat[1])
 p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
-if p_reject < 0.05:
+if p_reject < 0.95:
     rej = 'Accept'
 else:
     rej = 'Reject'
@@ -2688,8 +2703,9 @@ ax.set_xlim([-1.0, 0.5])
 ax.set_xlabel('B')
 ax.set_ylabel('Density')
 # Annotate figure
-txt = 'p reject: %.2f\n%s\nStrike-slip' % (p_reject, rej)
-ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
+txt = 'p reject: %.2f\n%s\nStrike-slip\n(High rate)' % (p_reject, rej)
+ax.annotate(txt, (0.03, 0.72), xycoords = 'axes fraction', fontsize = 10)
+ax.annotate('j)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
 
 #############
 # Eleventh plot - normal faults against gamma
@@ -2703,7 +2719,7 @@ for b in burstiness_n.T:
     ks_stats.append(ks_stat[0])
     p_values.append(ks_stat[1])
 p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
-if p_reject < 0.05:
+if p_reject < 0.95:
     rej = 'Accept'
 else:
     rej = 'Reject'
@@ -2716,8 +2732,9 @@ ax.set_xlim([-1.0, 0.5])
 ax.set_xlabel('B')
 ax.set_ylabel('Density')
 # Annotate figure
-txt = 'p reject: %.2f\n%s\nNormal' % (p_reject, rej)
-ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
+txt = 'p reject: %.2f\n%s\nNormal\n(High rate)' % (p_reject, rej)
+ax.annotate(txt, (0.03, 0.72), xycoords = 'axes fraction', fontsize = 10)
+ax.annotate('k)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
 
 #############
 # Twelfth plot - reverse faults against gamma
@@ -2731,7 +2748,7 @@ for b in burstiness_r.T:
     ks_stats.append(ks_stat[0])
     p_values.append(ks_stat[1])
 p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
-if p_reject < 0.05:
+if p_reject < 0.95:
     rej = 'Accept'
 else:
     rej = 'Reject'
@@ -2744,10 +2761,10 @@ ax.set_xlim([-1.0, 0.5])
 ax.set_xlabel('B')
 ax.set_ylabel('Density')
 # Annotate figure
-txt = 'p reject: %.2f\n%s\nReverse' % (p_reject, rej)
-ax.annotate(txt, (0.03, 0.77), xycoords = 'axes fraction', fontsize = 10)
-
-
+txt = 'p reject: %.2f\n%s\nReverse\n(High rate)' % (p_reject, rej)
+ax.annotate(txt, (0.03, 0.72), xycoords = 'axes fraction', fontsize = 10)
+ax.annotate('l)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10) 
+ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f')) 
 #############
 fig.set_size_inches(w=9,h=12.) 
 pyplot.tight_layout()
