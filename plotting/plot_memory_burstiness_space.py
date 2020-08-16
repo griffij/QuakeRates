@@ -4,6 +4,7 @@
 import os, sys
 from matplotlib import pyplot as plt
 import matplotlib.gridspec as gridspec
+from matplotlib.patches import Ellipse
 import numpy as np
 from scipy.stats import expon, gamma, weibull_min
 from adjustText import adjust_text 
@@ -96,7 +97,7 @@ labels.append('c')
 
 # Next subplot
 # Generate Gamma distribution
-ie_times = gamma(2.0, scale=100).rvs(size=10)
+ie_times = gamma(2.2, scale=100).rvs(size=10)
 plt.subplot2grid((7, 2), (3,0), colspan=1, rowspan=1)
 time_sum = 0
 for i, ie_time in enumerate(ie_times):
@@ -107,7 +108,7 @@ ax = plt.gca()
 ax.set_ylim([0, 1])
 ax.get_yaxis().set_visible(False)
 ax.annotate('d)', (-0.13, 0.9), xycoords = 'axes fraction', fontsize=10) 
-ax.set_title(r'Gamma $(\alpha = 2, \theta = 100)$', fontsize=10)
+ax.set_title(r'Gamma $(\alpha = 2.2, \theta = 100)$', fontsize=10)
 ax.set_xlabel('Time (years)')
 burst = burstiness(ie_times)
 memory = memory_coefficient(ie_times)
@@ -256,12 +257,20 @@ for i, txt in enumerate(labels):
     texts.append(text)
 ax.annotate('Quasi-periodic', (-0.32, -0.9), fontsize=10, fontstyle='italic')
 ax.annotate('Earthquake \ncycles', (-0.70, -0.50), fontsize=10, fontstyle='italic')
-ax.annotate('Supercycles', (-0.15, -0.15), fontsize=10, fontstyle='italic')
+ax.annotate('Supercycles', (-0.25, -0.13), fontsize=10, fontstyle='italic')
 #ax.annotate('Poisson', (-0.27, -0.14), fontsize=10, fontstyle='italic')
 ax.annotate('Clusters', (0.3, 0.25), fontsize=10, fontstyle='italic')
 ax.annotate('Rate \nvarying', (0.25, -0.45), fontsize=10, fontstyle='italic')
+
+# Now add and ellipse for the earthquake cycle
+el = Ellipse((-0.15,-0.38), 0.8, 0.4, 30, color='0.7', alpha=0.3)
+
+ax.add_artist(el)
+
 ax.set_aspect('equal')
 adjust_text(texts)#, arrowprops=dict(arrowstyle='->', color='k', linewidth=0.5))  
+
+
 
 fig.tight_layout(pad=1.2, w_pad=1.3, h_pad=-1.2)
 fig.set_size_inches(w=6,h=8.) 
