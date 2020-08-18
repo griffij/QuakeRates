@@ -153,8 +153,8 @@ memory = memory_coefficient(af_b_ie_times)
 print('Alpine bursty', burst)
 print(memory)
 
-# Next subplot
-plt.subplot2grid((7, 2), (1,1), colspan=1, rowspan=1)
+# Next subplot (actually, this is 2 down now)
+plt.subplot2grid((7, 2), (2,1), colspan=1, rowspan=1)
 # Based on Mentawai
 sum_m = [1314, 1350, 1388, 1569, 1597, 1613, 1631, 1658, 1703, 1797, 1833, 2007, 2010]
 sum_m_ie_times = []
@@ -166,7 +166,7 @@ for i, date in enumerate(sum_m):
 ax = plt.gca() 
 ax.set_ylim([0, 1])
 ax.get_yaxis().set_visible(False)
-ax.annotate('f)', (-0.13, 0.9), xycoords = 'axes fraction', fontsize=10) 
+ax.annotate('g)', (-0.13, 0.9), xycoords = 'axes fraction', fontsize=10) 
 ax.set_title('Sunda Arc (Mentawai Segment)', fontsize=10) 
 burst = burstiness(sum_m_ie_times)
 memory = memory_coefficient(sum_m_ie_times)
@@ -174,17 +174,19 @@ print(burst)
 print(memory)
 mems.append(memory)
 bursts.append(burst)
-labels.append('SA')
+labels.append('M')
 
 # Next subplot
-plt.subplot2grid((7, 2), (2,1), colspan=1, rowspan=1)
+plt.subplot2grid((7, 2), (1,1), colspan=1, rowspan=1)
 # Based on Wairarapa fault
-wf = [-4880, -3140, -1550, -260, 1030, 1855]
+#wf = [-4880, -3140, -1550, -260, 1030, 1855]
+# Try San Andreas (Big Bend; Scharer et al 2017)
+san = [960, 1035, 1210, 1395, 1480, 1530, 1550, 1560, 1737, 1857]
 # Hope Fault - Conway segment
 #hf = [500, 1355, 1553, 1750, 1820]
-#wf = hf
+wf = san
 wf_ie_times = []
-for i, date in enumerate(wf):
+for i, date in enumerate(san):
     plt.plot([date, date], [0, 1], c='k')
     if i > 0:
         ie_times = date - wf[i-1]
@@ -192,8 +194,9 @@ for i, date in enumerate(wf):
 ax = plt.gca()
 ax.set_ylim([0, 1])
 ax.get_yaxis().set_visible(False)
-ax.annotate('g)', (-0.13, 0.9), xycoords = 'axes fraction', fontsize=10)
-ax.set_title('Wairarapa Fault', fontsize=10)
+ax.annotate('f)', (-0.13, 0.9), xycoords = 'axes fraction', fontsize=10)
+#ax.set_title('Wairarapa Fault', fontsize=10)
+ax.set_title('San Andreas (Big Bend)', fontsize=10)
 #ax.set_xlabel('Year')
 #plt.xticks([-4000000, -2000000, 0])
 burst = burstiness(wf_ie_times)
@@ -202,7 +205,7 @@ print(burst)
 print(memory)
 mems.append(memory)
 bursts.append(burst)
-labels.append('W')
+labels.append('SA')
 
 
 # Next subplot
@@ -251,19 +254,24 @@ plt.plot([0,0],[-1, 1], linestyle='dashed', linewidth=1, c='0.5')
 plt.plot([-1,1],[0, 0], linestyle='dashed', linewidth=1, c='0.5')
 texts = []
 for i, txt in enumerate(labels):
-    text = ax.annotate(txt,
-                (mems[i]+0.01, bursts[i]+0.0),
-                       fontsize=10)
+    if txt=='SA':
+        text = ax.annotate(txt,
+                           (mems[i]+0.03, bursts[i]-0.04),
+                           fontsize=10)
+    else:
+        text = ax.annotate(txt,
+                           (mems[i]+0.01, bursts[i]+0.0),
+                           fontsize=10)
     texts.append(text)
 ax.annotate('Quasi-periodic', (-0.32, -0.9), fontsize=10, fontstyle='italic')
 ax.annotate('Earthquake \ncycles', (-0.70, -0.50), fontsize=10, fontstyle='italic')
-ax.annotate('Supercycles', (-0.25, -0.13), fontsize=10, fontstyle='italic')
+ax.annotate('Supercycles', (-0.35, -0.13), fontsize=10, fontstyle='italic')
 #ax.annotate('Poisson', (-0.27, -0.14), fontsize=10, fontstyle='italic')
 ax.annotate('Clusters', (0.3, 0.25), fontsize=10, fontstyle='italic')
-ax.annotate('Rate \nvarying', (0.25, -0.45), fontsize=10, fontstyle='italic')
+ax.annotate('Rate \nvarying', (0.35, -0.55), fontsize=10, fontstyle='italic')
 
 # Now add and ellipse for the earthquake cycle
-el = Ellipse((-0.15,-0.38), 0.8, 0.4, 30, color='0.7', alpha=0.3)
+el = Ellipse((-0.1,-0.38), 0.9, 0.4, 25, color='0.7', alpha=0.3)
 
 ax.add_artist(el)
 
