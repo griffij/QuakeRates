@@ -28,10 +28,13 @@ Nevis_CC = [[0,11],[13, 18]]
 N_CC_n = ['1', '1']
 Little_Nevis = [[0, 18]]
 LN_n = ['      4']
-faults = [Akatore, Titri, Hyde, Dunstan, Pisa_L, Pisa_GV, Cardrona_BK, Cardrona_Kawarau, Nevis_BN, Nevis_CC,
+#faults = [Akatore, Titri, Hyde, Dunstan, Pisa_L, Pisa_GV, Cardrona_BK, Cardrona_Kawarau, Nevis_BN, Nevis_CC,
+#          Little_Nevis]
+#event_numbers = [Ak_n, T_n, H_n, D_n, P_L_n, P_GV_n, C_BK_n, C_K_n, N_BN_n, N_CC_n, LN_n]
+# Exclude Hyde Fault for now
+faults = [Akatore, Titri, Dunstan, Pisa_L, Pisa_GV, Cardrona_BK, Cardrona_Kawarau, Nevis_BN, Nevis_CC,
           Little_Nevis]
-event_numbers = [Ak_n, T_n, H_n, D_n, P_L_n, P_GV_n, C_BK_n, C_K_n, N_BN_n, N_CC_n, LN_n]
-
+event_numbers = [Ak_n, T_n, D_n, P_L_n, P_GV_n, C_BK_n, C_K_n, N_BN_n, N_CC_n, LN_n]
 #plt.xlim([-5, 50])
 for i, fault in enumerate(faults):
     for j, date_range in enumerate(fault):
@@ -43,7 +46,8 @@ plt.text(124, 0.1, '? > 125 ka')
 plt.ylim([-0.2, len(faults)-0.7])
 #plt.xlim([-5, 50]) 
 plt.yticks(np.arange(0, len(faults)+1, 1),
-           ['Akatore', 'Titri', 'Hyde', 'Dunstan', 'Pisa-\nLindis', 'Pisa-\nGrandview', 'NW Cardrona\n(Branch Ck)',
+           ['Akatore', 'Titri', #'Hyde',
+            'Dunstan', 'Pisa-\nLindis', 'Pisa-\nGrandview', 'NW Cardrona\n(Branch Ck)',
             'NW Cardrona\n(Kawarau Gorge)', 'Nevis\n(Ben Nevis)', 'Nevis\n(Coal Creek)',
             'Little\nNevis'])
 plt.xlabel('Thousands of years before present')
@@ -67,7 +71,7 @@ ax.add_patch(rect)
 #plt.text(30, 3.1, 'No late Quaternary deformation')
 plt.text(81, 0.1, '? > 125 ka')
 plt.text(81, 1.1, '? < 128 ka')
-plt.text(55, 2.1, '? > 55 ka')
+#plt.text(55, 2.1, '? > 55 ka')
 plt.text(81, 5.1, '? ~ 250 ka')
 plt.text(40,8.6, 'Nevis-Cardrona\nFault System')
 plt.plot([80,80],[-1,len(faults)+1], linestyle=':', linewidth=1, c='0.5')
