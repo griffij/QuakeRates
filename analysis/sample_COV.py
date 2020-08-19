@@ -64,7 +64,7 @@ param_file_list_NZ = ['Akatore4eventBdy_output.txt',
 #param_file_list = []
 #for f in param_file_list_NZ:
 #    param_file_list.append(os.path.join(filepath, f))
-n_samples = 10000  # Number of Monte Carlo samples of the eq chronologies
+n_samples = 100  # Number of Monte Carlo samples of the eq chronologies
 half_n = int(n_samples/2)
 print(half_n)
 annotate_plots = False # If True, lable each fault on the plot
@@ -84,7 +84,7 @@ tectonic_regions = ['all']
 #tectonic_regions = ['Plate_boundary_master']
 #tectonic_regions = ['Subduction']
 #tectonic_regions = ['Near_plate_boundary']
-min_number_events = 8
+min_number_events = 6
 
 #Summarise for comment to add to figure filename
 fig_comment = ''
@@ -354,8 +354,6 @@ min_paired_interevent_times = np.array(min_paired_interevent_times)
 std_max_interevent_times = np.array(std_max_interevent_times)
 std_min_interevent_times = np.array(std_min_interevent_times)
 std_min_paired_interevent_times = np.array(std_min_paired_interevent_times)
-print('std_max_interevent_times', std_max_interevent_times)
-print('std_min_paired_interevent_times', std_min_paired_interevent_times)
 max_interevent_times_bounds = np.array(max_interevent_times_bounds).T
 min_interevent_times_bounds = np.array(min_interevent_times_bounds).T
 min_paired_interevent_times_bounds = np.array(min_paired_interevent_times_bounds).T
@@ -787,7 +785,8 @@ ax.annotate(txt, (1.2e-2, 0.8), color='0.2')
 
 figname = 'burstiness_vs_slip_rate_%s.png' % fig_comment   
 pyplot.savefig(figname)
-
+figname = 'burstiness_vs_slip_rate_%s.pdf' % fig_comment
+pyplot.savefig(figname)
 
 # Plot memory coefficients against long term rates
 pyplot.clf()
@@ -1016,7 +1015,8 @@ pyplot.legend((line1, line2, line3), ('Only known closed intervals',
 fig.set_size_inches(w=8,h=8.)
 figname = 'burstiness_vs_memory_coefficient_%s.png' % fig_comment 
 pyplot.savefig(figname)
-
+figname = 'burstiness_vs_memory_coefficient_%s.pdf' % fig_comment
+pyplot.savefig(figname) 
 
 # Plot COV against number of events to look at sampling biases
 pyplot.clf()
@@ -1583,7 +1583,7 @@ pyplot.legend((line1, line2, line3), ('Normal', 'Strike slip', 'Reverse'))
 hxfix = np.log10(2e-4)
 bilin_hxfix_cons_slope = odrpack.Model(bilinear_reg_fix_zero_slope)
 data = odrpack.RealData(np.log10(mean_ltr), mean_bs,
-                        sx=np.log10(long_term_rate_stds), sy=burstiness_stds)
+                        sx=np.log10(np.sqrt(long_term_rate_stds)), sy=np.sqrt(burstiness_stds))
 odr = odrpack.ODR(data, bilin_hxfix_cons_slope, beta0=[-3, -1.0])
 odr.set_job(fit_type=0)
 out = odr.run()
@@ -1646,7 +1646,7 @@ ax.set_ylabel('M', fontsize=10)
 hxfix = np.log10(2e-4)
 bilin_hxfix_cons_slope = odrpack.Model(bilinear_reg_fix_zero_slope)
 data = odrpack.RealData(np.log10(mean_ltr), mean_mems,
-                        sx=np.log10(long_term_rate_stds), sy=memory_stds)
+                        sx=np.log10(np.sqrt(long_term_rate_stds)), sy=np.sqrt(memory_stds))
 odr = odrpack.ODR(data, bilin_hxfix_cons_slope, beta0=[-3, -1.0])
 odr.set_job(fit_type=0)
 out = odr.run()
@@ -1768,8 +1768,32 @@ ax.set_ylim([-1, 1])
 pyplot.plot([0,0],[-1, 1], linestyle='dashed', linewidth=1, c='0.5')
 pyplot.plot([-1,1],[0, 0], linestyle='dashed', linewidth=1, c='0.5')
 #ax.set_yscale('log')
+#Orthogonal linear fit
+def linear_func(B, x):
+    return B[0]*x + B[1]
+linear_model = Model(linear_func)
+print(np.array(mean_mems).flatten())
+print(np.array(mean_bs).flatten())
+print(memory_stds.flatten())
+print(burstiness_stds.flatten())
+data = RealData(np.array(mean_mems).flatten(),
+                np.array(mean_bs).flatten(),
+                sx = np.sqrt(memory_stds.flatten()),
+                sy = np.sqrt(burstiness_stds.flatten()))
+# Set up ODR with the model and data
+odr = ODR(data, linear_model, beta0=[1., -1.])
+out = odr.run()
+out.pprint()
+xvals = np.arange(-0.75, 0.75, 0.01)
+yvals = linear_func(out.beta, xvals)
+pyplot.plot(xvals, yvals, c='0.4')
 ax.set_ylabel('B', fontsize=10)
 ax.set_xlabel('M', fontsize=10)
+# Add formula for linear fit to low-end of data
+#txt = 'Log(Y) = %.2fLog(x) + %.2f' % (out.beta[0], out.beta[1])
+txt = 'y = {:4.2f}Log(x) {:=+6.2f}'.format(out.beta[0], out.beta[1])
+print(txt)
+ax.annotate(txt, (-0.95, 0.8), fontsize=8)
 ax.annotate('c)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
 
 # Add fourth plot
@@ -1976,7 +2000,8 @@ ax.set_ylim([5e-4, 2])
 hxfix = np.log10(2e-4)
 bilin_hxfix_cons_slope = odrpack.Model(bilinear_reg_fix_zero_slope)
 data = odrpack.RealData(np.log10(mean_ltr), np.log10(ratio_min_pair_max),
-                        sx=np.log10(long_term_rate_stds), sy=np.log10(std_ratio_min_pair_max))
+                        sx=np.log10(np.sqrt(long_term_rate_stds)),
+                        sy=np.log10(np.sqrt(std_ratio_min_pair_max)))
 odr = odrpack.ODR(data, bilin_hxfix_cons_slope, beta0=[-3, -1.0])
 odr.set_job(fit_type=0)
 out = odr.run()
@@ -2030,7 +2055,8 @@ fig.tight_layout(pad=1.2, w_pad=1.0, h_pad=-1)
 fig.set_size_inches(w=7.5,h=10.5)
 figname = 'combined_plot_%s.png' % fig_comment
 pyplot.savefig(figname)
-
+figname = 'combined_plot_%s.pdf' % fig_comment 
+pyplot.savefig(figname)
 
 # Plot M-B phase diagram with stuff over the top
 pyplot.clf()
@@ -2061,7 +2087,9 @@ texts = []
 for i, txt in enumerate(names):
     sp = camel_case_split(txt)
     # Handle special cases of two word fault names
-    if sp[0] == 'San' or sp[0] == 'Dead' or sp[0] == 'Loma':
+    if sp[0] == 'San' or sp[0] == 'Dead':
+        flt_txt = sp[0] + ' '  + sp [1] #+ ' (' + sp [2] + ')' # Uncomment to get segment names
+    elif sp[0] == 'Loma':
         flt_txt = sp[0] + ' '  + sp [1]
     else:
         flt_txt = sp[0]
@@ -2135,6 +2163,8 @@ pyplot.legend((line1, line2, line3, line4, line6, line7, line8),
                'Exponential', 'Gamma', 'Weibull'))
 figname = 'B_M_phase_comparison_%s.png' % fig_comment 
 fig.set_size_inches(w=8,h=8.)
+pyplot.savefig(figname)
+figname = 'B_M_phase_comparison_%s.pdf' % fig_comment 
 pyplot.savefig(figname)
 
 ###############################################################
@@ -2770,6 +2800,8 @@ fig.set_size_inches(w=9,h=12.)
 pyplot.tight_layout()
 figname = 'combined_burstiness_hist_%s.png' % fig_comment
 pyplot.savefig(figname)
+figname = 'combined_burstiness_hist_%s.pdf' % fig_comment
+pyplot.savefig(figname)
 
 #########################################
 # In this analysis, we implement the method of Williams et al 2019,
@@ -2800,6 +2832,8 @@ ax.set_xlabel('p value')
 ax.set_ylabel('Density')
 figname = 'williams_p_value_hist_%s.png' % fig_comment
 pyplot.savefig(figname)  
+figname = 'williams_p_value_hist_%s.pdf' % fig_comment
+pyplot.savefig(figname)
 
 ##########################3
 # Print some basic stats
@@ -2845,3 +2879,5 @@ for j,i in enumerate(idx):
 pyplot.tight_layout()
 figname = 'Added_interval_histograms.png'
 pyplot.savefig(figname)    
+figname = 'Added_interval_histograms.pdf'
+pyplot.savefig(figname)   
