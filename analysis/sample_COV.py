@@ -64,7 +64,7 @@ param_file_list_NZ = ['Akatore4eventBdy_output.txt',
 #param_file_list = []
 #for f in param_file_list_NZ:
 #    param_file_list.append(os.path.join(filepath, f))
-n_samples = 100  # Number of Monte Carlo samples of the eq chronologies
+n_samples = 1000  # Number of Monte Carlo samples of the eq chronologies
 half_n = int(n_samples/2)
 print(half_n)
 annotate_plots = False # If True, lable each fault on the plot
@@ -84,7 +84,7 @@ tectonic_regions = ['all']
 #tectonic_regions = ['Plate_boundary_master']
 #tectonic_regions = ['Subduction']
 #tectonic_regions = ['Near_plate_boundary']
-min_number_events = 6
+min_number_events = 5
 
 #Summarise for comment to add to figure filename
 fig_comment = ''
@@ -223,7 +223,7 @@ for i, event_set in enumerate(event_sets):
     ie_times_expon_T = ie_times_expon.T
     burst_expon = burstiness(ie_times_expon_T)
     # Gamma
-    alpha_g = 2.2 #1.6 ##2.35 #2.4 #2.0
+    alpha_g = 2.3 #2.2 #1.6 ##2.35 #2.4 #2.0
     ie_times_g = gamma(alpha_g, scale=scale).rvs(size=(n_samples*(event_set.num_events-1)))
     ie_times_g = np.reshape(np.array(ie_times_g), (n_samples, (event_set.num_events-1)))
     ie_times_g_T = ie_times_g.T
