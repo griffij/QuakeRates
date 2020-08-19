@@ -271,7 +271,7 @@ ax.annotate('Clusters', (0.3, 0.25), fontsize=10, fontstyle='italic')
 ax.annotate('Rate \nvarying', (0.35, -0.55), fontsize=10, fontstyle='italic')
 
 # Now add and ellipse for the earthquake cycle
-el = Ellipse((-0.1,-0.38), 0.9, 0.4, 25, color='0.7', alpha=0.3)
+el = Ellipse((-0.06,-0.35), 0.9, 0.4, 35, color='0.7', alpha=0.3)
 
 ax.add_artist(el)
 
@@ -283,3 +283,4 @@ adjust_text(texts)#, arrowprops=dict(arrowstyle='->', color='k', linewidth=0.5))
 fig.tight_layout(pad=1.2, w_pad=1.3, h_pad=-1.2)
 fig.set_size_inches(w=6,h=8.) 
 fig.savefig('B_M_phase_examples.png')#, bbox_inches='tight',pad_inches = 0)
+fig.savefig('B_M_phase_examples.pdf')

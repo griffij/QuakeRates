@@ -6,16 +6,17 @@ from matplotlib import pyplot as plt
 from matplotlib.patches import PathPatch
 from scipy.stats import kde
 import numpy as np
-from scipy.stats import expon, gamma, weibull_min, lognorm 
+from scipy.stats import expon, gamma, weibull_min, lognorm
+from sklearn.utils import resample
 from QuakeRates.utilities.memory_coefficient import memory_coefficient, burstiness
 
 # Generate some random data from an exponential distirbution
 n_sim = 10000
-n_events = 4 # Number of inter-event times
+n_events = 6 # Number of inter-event times
 # We run nsim simulations, each with n_events
 # Do efficiently by doing all at once and then reshaping,
 # as simulations are independently distributed
-scale = 100000
+scale = 100
 ie_times = expon(scale=scale).rvs(size=(n_sim*n_events))
 print(ie_times)
 ie_times = np.reshape(ie_times, (n_sim, n_events))
@@ -59,6 +60,36 @@ plt.savefig(figname)
 plt.clf()
 plt.hist(cov, bins=50)
 figname = 'exponential_cov_hist_%i_events_lamba_%i.png' % (n_events, scale)
+plt.savefig(figname)
+
+# Now test some resampling
+print('ie_times', ie_times)
+b_res = []
+for ie_set in ie_times:
+    for i in range(10):
+        resamples = resample(ie_set, n_samples=n_events)
+#        print('ie_set', ie_set)
+#        print('resamples', resamples)
+        b = burstiness(resamples)
+        b_res.append(b)
+#    all_resamples.append(resamples)
+#resamples = resample(ie_times)#, n_samples=3)
+#print('resamples', resamples)
+#b_res = []
+#for r in resamples:
+ #   b_r = burstiness(r)
+ #   b_res.append(b_r)
+plt.clf()
+b_res = np.array(b_res)
+print('b_res', b_res)
+plt.hist(b_res, bins=50 ,density=True, alpha=0.5, label = 'Resampled')
+plt.hist(burst, bins=50, density=True, alpha=0.5, label = 'Original')
+plt.xlabel('B')
+plt.ylabel('Density')
+plt.legend()
+figname = 'exponential_burst_resample_hist_%i_events_lamba_%i.png' % (n_events, scale) 
+plt.savefig(figname)
+figname = 'exponential_burst_resample_hist_%i_events_lamba_%i.pdf' % (n_events, scale)
 plt.savefig(figname)
 
 # Now plot in M-B space
@@ -114,7 +145,7 @@ plt.savefig('Exponential_B_M_diagram.png')
 
 # Now try gamma distribution
 plt.clf()
-ie_times = gamma(2.0, scale=100).rvs(size=(n_sim*n_events))
+ie_times = gamma(2.2, scale=100).rvs(size=(n_sim*n_events))
 print(ie_times)
 ie_times = np.reshape(ie_times, (n_sim, n_events))
 plt.hist(ie_times, bins=20)
@@ -171,7 +202,7 @@ plt.savefig('Gamma_B_M_diagram.png')
 
 # Now try Weibull distribution
 plt.clf()
-ie_times = weibull_min(2.0, scale=100).rvs(size=(n_sim*n_events))
+ie_times = weibull_min(1.6, scale=100).rvs(size=(n_sim*n_events))
 print(ie_times)
 ie_times = np.reshape(ie_times, (n_sim, n_events))
 plt.hist(ie_times, bins=20)
