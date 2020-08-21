@@ -84,7 +84,8 @@ tectonic_regions = ['all']
 #tectonic_regions = ['Plate_boundary_master']
 #tectonic_regions = ['Subduction']
 #tectonic_regions = ['Near_plate_boundary']
-min_number_events = 5
+min_number_events = 5 # Use for all other calculations.
+min_num_events_mem = 6 # Use for memory coefficient
 
 #Summarise for comment to add to figure filename
 fig_comment = ''
@@ -378,8 +379,10 @@ burstiness_bounds = np.array(burstiness_bounds).T
 burstiness_stds = np.array(burstiness_stds)
 burstiness_expon = np.array(burstinesses_expon)
 burstiness_gamma = np.array(burstinesses_gamma)
-memory_stds = np.array(memory_stds)
-memory_bounds = np.array(memory_bounds).T 
+inds = np.where(num_events >= min_num_events_mem) # Get memory coefficients for more than 6 events
+memory_coefficients = np.array(memory_coefficients)[inds]
+memory_stds = np.array(memory_stds)[inds]
+memory_bounds = np.array(memory_bounds)[inds].T
 memory_spearman_bounds = np.array(memory_spearman_bounds).T
 memory_spearman_lag2_bounds = np.array(memory_spearman_lag2_bounds).T
 ie_gamma_alpha = np.array(ie_gamma_alpha)
@@ -792,11 +795,14 @@ pyplot.savefig(figname)
 pyplot.clf()
 ax = pyplot.subplot(111)
 mean_mems = []
+mean_ltr_mem = mean_ltr[inds]
+ltr_bounds_mem = ltr_bounds.T[inds].T
 for i, mem_set in enumerate(memory_coefficients):
     mean_mem = np.mean(mem_set)
 #    print('Mean memory coefficient combined', mean_mem)
     mean_mems.append(mean_mem)
 colours = []
+plot_colours_mem = list(np.array(plot_colours)[inds])
 for mean_mem in mean_mems:
     if mean_mem <= -0.05:
         colours.append('b')
@@ -804,19 +810,19 @@ for mean_mem in mean_mems:
         colours.append('g')
     else:
         colours.append('r')
-pyplot.errorbar(mean_ltr, mean_mems,
-                xerr = ltr_bounds,
+pyplot.errorbar(mean_ltr_mem, mean_mems,
+                xerr = ltr_bounds_mem,
                 ecolor = '0.3',
                 elinewidth=0.7,
                 linestyle="None",
                 zorder=1)
-pyplot.errorbar(mean_ltr, mean_mems,
+pyplot.errorbar(mean_ltr_mem, mean_mems,
                 yerr = memory_bounds,
                 ecolor = '0.3',
                 elinewidth=0.7,
                 linestyle="None",
                 zorder=1)
-pyplot.scatter(mean_ltr, mean_mems, marker = 's', c=plot_colours,
+pyplot.scatter(mean_ltr_mem, mean_mems, marker = 's', c=plot_colours_mem,
                s=25, zorder=2)
 for i, txt in enumerate(names):
     if max_interevent_times[i] > 10 and annotate_plots:
@@ -951,8 +957,10 @@ ax.set_ylabel('M (Spearman Rank Lag-2)')
 figname = 'memory_coefficient_Spearman_L1_vs_L2_%s.png' % fig_comment
 pyplot.savefig(figname)
 
+
 # Plot burstiness against memory coefficient
 # Just used now for looking at uncertainties in how the open interval is modelled
+"""
 pyplot.clf()
 fig = pyplot.figure(1)
 ax = pyplot.subplot(111)
@@ -1017,7 +1025,7 @@ figname = 'burstiness_vs_memory_coefficient_%s.png' % fig_comment
 pyplot.savefig(figname)
 figname = 'burstiness_vs_memory_coefficient_%s.pdf' % fig_comment
 pyplot.savefig(figname) 
-
+"""
 # Plot COV against number of events to look at sampling biases
 pyplot.clf()
 ax = pyplot.subplot(111)
@@ -1615,19 +1623,19 @@ for i, mem_set in enumerate(memory_coefficients):
     mean_mem = np.mean(mem_set)
 #    print('Mean memory coefficient combined', mean_mem)
     mean_mems.append(mean_mem)
-pyplot.errorbar(mean_ltr, mean_mems,
-                xerr = ltr_bounds,
+pyplot.errorbar(mean_ltr_mem, mean_mems,
+                xerr = ltr_bounds_mem,
                 ecolor = '0.3',
                 elinewidth=0.5,
                 linestyle="None",
                 zorder=1)
-pyplot.errorbar(mean_ltr, mean_mems,
+pyplot.errorbar(mean_ltr_mem, mean_mems,
                 yerr = memory_bounds,
                 ecolor = '0.3',
                 elinewidth=0.5,
                 linestyle="None",
                 zorder=1)
-pyplot.scatter(mean_ltr, mean_mems, marker = 's', c=plot_colours,
+pyplot.scatter(mean_ltr_mem, mean_mems, marker = 's', c=plot_colours_mem,
                s=18, zorder=2)
 for i, txt in enumerate(names):
     if max_interevent_times[i] > 10 and annotate_plots:
@@ -1645,8 +1653,9 @@ ax.set_ylabel('M', fontsize=10)
 # Bilinear fixed hinge and constant slope ODR
 hxfix = np.log10(2e-4)
 bilin_hxfix_cons_slope = odrpack.Model(bilinear_reg_fix_zero_slope)
-data = odrpack.RealData(np.log10(mean_ltr), mean_mems,
-                        sx=np.log10(np.sqrt(long_term_rate_stds)), sy=np.sqrt(memory_stds))
+long_term_rate_stds_mem = long_term_rate_stds[inds]
+data = odrpack.RealData(np.log10(mean_ltr_mem), mean_mems,
+                        sx=np.log10(np.sqrt(long_term_rate_stds_mem)), sy=np.sqrt(memory_stds))
 odr = odrpack.ODR(data, bilin_hxfix_cons_slope, beta0=[-3, -1.0])
 odr.set_job(fit_type=0)
 out = odr.run()
@@ -1743,19 +1752,21 @@ ax.annotate('b)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
 # Add third plot
 pyplot.subplot2grid((3, 2), (1,0), colspan=1, rowspan=1)
 ax = pyplot.gca()
-pyplot.errorbar(mean_mems, mean_bs,
+mean_bs_mem = mean_bs[inds]
+burstiness_bounds_mem = burstiness_bounds.T[inds].T
+pyplot.errorbar(mean_mems, mean_bs_mem,
                 xerr = memory_bounds,
                 ecolor = '0.3',
                 elinewidth=0.5,
                 linestyle="None",
                 zorder=1)
-pyplot.errorbar(mean_mems, mean_bs,
-                yerr = burstiness_bounds,
+pyplot.errorbar(mean_mems, mean_bs_mem,
+                yerr = burstiness_bounds_mem,
                 ecolor = '0.3',
                 elinewidth=0.5,
                 linestyle="None",
                 zorder=1)
-pyplot.scatter(mean_mems, mean_bs, marker = 's', c=plot_colours,
+pyplot.scatter(mean_mems, mean_bs_mem, marker = 's', c=plot_colours_mem,
                s=18, zorder=2)
 for i, txt in enumerate(names):
     if max_interevent_times[i] > 10 and annotate_plots:
@@ -1776,10 +1787,11 @@ print(np.array(mean_mems).flatten())
 print(np.array(mean_bs).flatten())
 print(memory_stds.flatten())
 print(burstiness_stds.flatten())
+burstiness_stds_mem = burstiness_stds[inds]
 data = RealData(np.array(mean_mems).flatten(),
-                np.array(mean_bs).flatten(),
+                np.array(mean_bs_mem).flatten(),
                 sx = np.sqrt(memory_stds.flatten()),
-                sy = np.sqrt(burstiness_stds.flatten()))
+                sy = np.sqrt(burstiness_stds_mem.flatten()))
 # Set up ODR with the model and data
 odr = ODR(data, linear_model, beta0=[1., -1.])
 out = odr.run()
@@ -2069,22 +2081,23 @@ for mean_b in mean_bs:
         colours.append('g')
     else:
         colours.append('r')
-pyplot.errorbar(mean_mems, mean_bs,
+pyplot.errorbar(mean_mems, mean_bs_mem,
                 xerr = memory_bounds,
                 ecolor = '0.8',
                 elinewidth=0.7,
                 linestyle="None",
                 zorder=1)
-pyplot.errorbar(mean_mems, mean_bs,
-                yerr = burstiness_bounds,
+pyplot.errorbar(mean_mems, mean_bs_mem,
+                yerr = burstiness_bounds_mem,
                 ecolor = '0.8',
                 elinewidth=0.7,
                 linestyle="None",
                 zorder=1)
-pyplot.scatter(mean_mems, mean_bs, marker = 's', c=plot_colours,
+pyplot.scatter(mean_mems, mean_bs_mem, marker = 's', c=plot_colours_mem,
                s=25, zorder=2)
 texts = []
-for i, txt in enumerate(names):
+
+for i, txt in enumerate(list(np.array(names)[inds])):
     sp = camel_case_split(txt)
     # Handle special cases of two word fault names
     if sp[0] == 'San' or sp[0] == 'Dead':
@@ -2094,7 +2107,7 @@ for i, txt in enumerate(names):
     else:
         flt_txt = sp[0]
     text = ax.annotate(flt_txt,
-                        (mean_mems[i], mean_bs[i]),
+                        (mean_mems[i], mean_bs_mem[i]),
                         fontsize=8, zorder=3)
     texts.append(text)
 
