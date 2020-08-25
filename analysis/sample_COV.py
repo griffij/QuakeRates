@@ -64,7 +64,7 @@ param_file_list_NZ = ['Akatore4eventBdy_output.txt',
 #param_file_list = []
 #for f in param_file_list_NZ:
 #    param_file_list.append(os.path.join(filepath, f))
-n_samples = 1000  # Number of Monte Carlo samples of the eq chronologies
+n_samples = 10000  # Number of Monte Carlo samples of the eq chronologies
 half_n = int(n_samples/2)
 print(half_n)
 annotate_plots = False # If True, lable each fault on the plot
@@ -380,9 +380,12 @@ burstiness_stds = np.array(burstiness_stds)
 burstiness_expon = np.array(burstinesses_expon)
 burstiness_gamma = np.array(burstinesses_gamma)
 inds = np.where(num_events >= min_num_events_mem) # Get memory coefficients for more than 6 events
-memory_coefficients = np.array(memory_coefficients)[inds]
-memory_stds = np.array(memory_stds)[inds]
-memory_bounds = np.array(memory_bounds)[inds].T
+memory_coefficients = np.array(memory_coefficients)
+memory_coefficients_min = memory_coefficients[inds]
+memory_stds = np.array(memory_stds)
+memory_stds_min = memory_stds[inds]
+memory_bounds_min = np.array(memory_bounds)[inds].T
+memory_bounds = np.array(memory_bounds).T
 memory_spearman_bounds = np.array(memory_spearman_bounds).T
 memory_spearman_lag2_bounds = np.array(memory_spearman_lag2_bounds).T
 ie_gamma_alpha = np.array(ie_gamma_alpha)
@@ -801,6 +804,7 @@ for i, mem_set in enumerate(memory_coefficients):
     mean_mem = np.mean(mem_set)
 #    print('Mean memory coefficient combined', mean_mem)
     mean_mems.append(mean_mem)
+mean_mems = np.array(mean_mems)
 colours = []
 plot_colours_mem = list(np.array(plot_colours)[inds])
 for mean_mem in mean_mems:
@@ -810,19 +814,19 @@ for mean_mem in mean_mems:
         colours.append('g')
     else:
         colours.append('r')
-pyplot.errorbar(mean_ltr_mem, mean_mems,
+pyplot.errorbar(mean_ltr_mem, mean_mems[inds],
                 xerr = ltr_bounds_mem,
                 ecolor = '0.3',
                 elinewidth=0.7,
                 linestyle="None",
                 zorder=1)
-pyplot.errorbar(mean_ltr_mem, mean_mems,
-                yerr = memory_bounds,
+pyplot.errorbar(mean_ltr_mem, mean_mems[inds],
+                yerr = memory_bounds_min,
                 ecolor = '0.3',
                 elinewidth=0.7,
                 linestyle="None",
                 zorder=1)
-pyplot.scatter(mean_ltr_mem, mean_mems, marker = 's', c=plot_colours_mem,
+pyplot.scatter(mean_ltr_mem, mean_mems[inds], marker = 's', c=plot_colours_mem,
                s=25, zorder=2)
 for i, txt in enumerate(names):
     if max_interevent_times[i] > 10 and annotate_plots:
@@ -1618,24 +1622,24 @@ ax.annotate('a)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
 # Add second plot (Memory vs LTR)
 pyplot.subplot2grid((3, 2), (0,1), colspan=1, rowspan=1) 
 ax = pyplot.gca()
-mean_mems = []
-for i, mem_set in enumerate(memory_coefficients):
-    mean_mem = np.mean(mem_set)
-#    print('Mean memory coefficient combined', mean_mem)
-    mean_mems.append(mean_mem)
-pyplot.errorbar(mean_ltr_mem, mean_mems,
+#mean_mems = []
+#for i, mem_set in enumerate(memory_coefficients):
+#    mean_mem = np.mean(mem_set)
+##    print('Mean memory coefficient combined', mean_mem)
+#    mean_mems.append(mean_mem)
+pyplot.errorbar(mean_ltr_mem, mean_mems[inds],
                 xerr = ltr_bounds_mem,
                 ecolor = '0.3',
                 elinewidth=0.5,
                 linestyle="None",
                 zorder=1)
-pyplot.errorbar(mean_ltr_mem, mean_mems,
-                yerr = memory_bounds,
+pyplot.errorbar(mean_ltr_mem, mean_mems[inds],
+                yerr = memory_bounds_min,
                 ecolor = '0.3',
                 elinewidth=0.5,
                 linestyle="None",
                 zorder=1)
-pyplot.scatter(mean_ltr_mem, mean_mems, marker = 's', c=plot_colours_mem,
+pyplot.scatter(mean_ltr_mem, mean_mems[inds], marker = 's', c=plot_colours_mem,
                s=18, zorder=2)
 for i, txt in enumerate(names):
     if max_interevent_times[i] > 10 and annotate_plots:
@@ -1650,12 +1654,14 @@ ax.set_xscale('log')
 ax.set_xlabel('Long-term rate (events per year)', fontsize=10)
 ax.set_ylabel('M', fontsize=10)
 
+def linear_func(B, x):
+    return B[0]*x + B[1]   
 # Bilinear fixed hinge and constant slope ODR
 hxfix = np.log10(2e-4)
 bilin_hxfix_cons_slope = odrpack.Model(bilinear_reg_fix_zero_slope)
 long_term_rate_stds_mem = long_term_rate_stds[inds]
-data = odrpack.RealData(np.log10(mean_ltr_mem), mean_mems,
-                        sx=np.log10(np.sqrt(long_term_rate_stds_mem)), sy=np.sqrt(memory_stds))
+data = odrpack.RealData(np.log10(mean_ltr_mem), mean_mems[inds],
+                        sx=np.log10(np.sqrt(long_term_rate_stds_mem)), sy=np.sqrt(memory_stds_min))
 odr = odrpack.ODR(data, bilin_hxfix_cons_slope, beta0=[-3, -1.0])
 odr.set_job(fit_type=0)
 out = odr.run()
@@ -1670,7 +1676,7 @@ idx = xvals > 10**hxfix
 yrng[idx] = (ylevel)
 print('yrng', yrng)
 print('hx', hxfix)
-pyplot.plot(xvals, yrng, c='0.4')
+pyplot.plot(xvals, yrng, c='0.4', linestyle = '--')
 txt = 'y = {:4.2f}Log(x) {:=+6.2f}, x < {:3.1E}'.format(a, b, np.power(10, hxfix))
 ax.annotate(txt, (1.5e-6, -0.85), fontsize=8) 
 txt = 'y = {:4.2f}, x >= {:3.1E}'.format(ylevel, np.power(10, hxfix))
@@ -1701,15 +1707,15 @@ ax.annotate(txt, (1.5e-6, -0.95), fontsize=8)
 #ax.annotate(txt, (1.3e-6, 0.8), fontsize=8)
 
 # Linear ODR fit
-#linear  = odrpack.Model(f)
-#odr = odrpack.ODR(data, linear, beta0=[-1, -1.0,]) 
-#odr.set_job(fit_type=0)
-#out = odr.run()
-#out.pprint()
-#a = out.beta[0]
-#b = out.beta[1]
-#xvals = np.arange(1.e-4, 1e2, 1e-2)
-#yrng = a*np.log10(xvals) + b #10**(b + a * xvals)
+linear  = odrpack.Model(linear_func)
+odr = odrpack.ODR(data, linear, beta0=[-1, -1.0,]) 
+odr.set_job(fit_type=0)
+out = odr.run()
+out.pprint()
+a = out.beta[0]
+b = out.beta[1]
+xvals = np.arange(1.e-4, 1e2, 1e-2)
+yrng = a*np.log10(xvals) + b #10**(b + a * xvals)
 #pyplot.plot(xvals, yrng, c='0.6')
 #txt = 'Y = {:4.2f}Log(x) {:=+6.2f}'.format(a, b)
 #print(txt)                                                                                                                                 
@@ -1754,19 +1760,19 @@ pyplot.subplot2grid((3, 2), (1,0), colspan=1, rowspan=1)
 ax = pyplot.gca()
 mean_bs_mem = mean_bs[inds]
 burstiness_bounds_mem = burstiness_bounds.T[inds].T
-pyplot.errorbar(mean_mems, mean_bs_mem,
-                xerr = memory_bounds,
+pyplot.errorbar(mean_mems[inds], mean_bs_mem,
+                xerr = memory_bounds_min,
                 ecolor = '0.3',
                 elinewidth=0.5,
                 linestyle="None",
                 zorder=1)
-pyplot.errorbar(mean_mems, mean_bs_mem,
+pyplot.errorbar(mean_mems[inds], mean_bs_mem,
                 yerr = burstiness_bounds_mem,
                 ecolor = '0.3',
                 elinewidth=0.5,
                 linestyle="None",
                 zorder=1)
-pyplot.scatter(mean_mems, mean_bs_mem, marker = 's', c=plot_colours_mem,
+pyplot.scatter(mean_mems[inds], mean_bs_mem, marker = 's', c=plot_colours_mem,
                s=18, zorder=2)
 for i, txt in enumerate(names):
     if max_interevent_times[i] > 10 and annotate_plots:
@@ -1783,12 +1789,8 @@ pyplot.plot([-1,1],[0, 0], linestyle='dashed', linewidth=1, c='0.5')
 def linear_func(B, x):
     return B[0]*x + B[1]
 linear_model = Model(linear_func)
-print(np.array(mean_mems).flatten())
-print(np.array(mean_bs).flatten())
-print(memory_stds.flatten())
-print(burstiness_stds.flatten())
 burstiness_stds_mem = burstiness_stds[inds]
-data = RealData(np.array(mean_mems).flatten(),
+data = RealData(np.array(mean_mems[inds]).flatten(),
                 np.array(mean_bs_mem).flatten(),
                 sx = np.sqrt(memory_stds.flatten()),
                 sy = np.sqrt(burstiness_stds_mem.flatten()))
@@ -2081,19 +2083,19 @@ for mean_b in mean_bs:
         colours.append('g')
     else:
         colours.append('r')
-pyplot.errorbar(mean_mems, mean_bs_mem,
-                xerr = memory_bounds,
+pyplot.errorbar(mean_mems[inds], mean_bs_mem,
+                xerr = memory_bounds_min,
                 ecolor = '0.8',
                 elinewidth=0.7,
                 linestyle="None",
                 zorder=1)
-pyplot.errorbar(mean_mems, mean_bs_mem,
+pyplot.errorbar(mean_mems[inds], mean_bs_mem,
                 yerr = burstiness_bounds_mem,
                 ecolor = '0.8',
                 elinewidth=0.7,
                 linestyle="None",
                 zorder=1)
-pyplot.scatter(mean_mems, mean_bs_mem, marker = 's', c=plot_colours_mem,
+pyplot.scatter(mean_mems[inds], mean_bs_mem, marker = 's', c=plot_colours_mem,
                s=25, zorder=2)
 texts = []
 
@@ -2107,7 +2109,7 @@ for i, txt in enumerate(list(np.array(names)[inds])):
     else:
         flt_txt = sp[0]
     text = ax.annotate(flt_txt,
-                        (mean_mems[i], mean_bs_mem[i]),
+                        (mean_mems[inds][i], mean_bs_mem[i]),
                         fontsize=8, zorder=3)
     texts.append(text)
 
@@ -2184,10 +2186,10 @@ pyplot.savefig(figname)
 
 # Dump all results to a csv file
 results_filename = 'Results_summary_%s.csv' % fig_comment
-all_results = np.vstack([names, references, mean_ltr, ltr_bounds[0,:], ltr_bounds[1,:],
-                         mean_bs, burstiness_bounds[0,:], burstiness_bounds[1,:],
-                         mean_mems, memory_bounds[0,:], memory_bounds[1,:]]).T
-header = 'Name, reference, mean long-term annual rate, long-term rate 2.5p, long-term rate 97.5p, mean burstiness,'\
+all_results = np.vstack([names, references, num_events, mean_ltr, (mean_ltr-ltr_bounds[0,:]), (mean_ltr+ltr_bounds[1,:]),
+                         mean_bs, (mean_bs-burstiness_bounds[0,:]), (mean_bs+burstiness_bounds[1,:]),
+                         mean_mems, (mean_mems-memory_bounds[0,:]), (mean_mems+memory_bounds[1,:])]).T
+header = 'Name, reference, number of events, mean long-term annual rate, long-term rate 2.5p, long-term rate 97.5p, mean burstiness,'\
     'burstiness 2.5p, burstiness 97.5p, mean memory coefficient, memory coefficient 2.5p,' \
     'memory coefficient 97.5p'
 np.savetxt(results_filename, all_results, header = header, delimiter=',', fmt="%s")
@@ -2432,7 +2434,6 @@ print(np.shape(burstiness_expon))
 for i, b in enumerate(burstinesses):
     ks = ks_2samp(b, burstiness_expon[i])
     all_pvalues.append(ks[0])
-print('all pvalues', all_pvalues)
 pyplot.clf()
 pyplot.hist(all_pvalues, bins=50, density=True)
 ax = pyplot.gca()
@@ -2854,6 +2855,14 @@ mean_all_covs = np.mean(np.array(covs))
 print('Mean COV, all records', mean_all_covs)
 mean_all_bs = np.mean(burstinesses)
 print('Mean burstiness, all records', mean_all_bs)
+print('Std dev burstiness, all records', np.std(burstinesses)) 
+print('Mean memory coefficient, all records', np.mean(memory_coefficients))
+print('Std dev memory coefficient, all records', np.std(memory_coefficients))
+print('Mean burstiness, fast faults', np.mean(burstinesses[indices]))
+print('Std dev burstiness, fast faults', np.std(burstinesses[indices]))
+print('Mean memory coefficient, fast faults', np.mean(memory_coefficients[indices])) 
+print('Std dev memory coefficient, fast faults', np.std(memory_coefficients[indices])) 
+
 # Get alpha only for high activity rate faults
 alpha_fast_faults = ie_gamma_alpha[indices]
 print('Mean alpha paramater for gamma distribution', np.mean(ie_gamma_alpha))
@@ -2863,8 +2872,15 @@ print('Mean alpha paramater for gamma distribution, high activity rate faults',
 print('Median alpha paramater for gamma distribution, high activity rate faults', np.median(alpha_fast_faults))
 # Try excluding outliers
 alpha_fast_faults_exclude_outliers = alpha_fast_faults[alpha_fast_faults < 10]
-print('Mean alpha paramater for gamma distribution, exclude outliers',
+alpha_all_faults_exclude_outliers = ie_gamma_alpha[ie_gamma_alpha < 10] 
+print('Mean alpha paramater for gamma distribution fast faults, exclude outliers',
       np.mean(alpha_fast_faults_exclude_outliers))
+print('Median alpha paramater for gamma distribution fast faults, exclude outliers',
+      np.median(alpha_fast_faults_exclude_outliers)) 
+print('Mean alpha paramater for gamma distribution, all faults excluding outliers',
+      np.mean(alpha_all_faults_exclude_outliers))
+print('Median alpha paramater for gamma distribution, all faults excluding outliers',
+      np.median(alpha_all_faults_exclude_outliers)) 
 
 #################################
 # Look at events where we've modelled the open interval because it's exceptionally long
