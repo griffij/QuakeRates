@@ -12,7 +12,7 @@ from QuakeRates.utilities.memory_coefficient import memory_coefficient, burstine
 
 # Generate some random data from an exponential distirbution
 n_sim = 10000
-n_events = 6 # Number of inter-event times
+n_events = 9 # Number of inter-event times
 # We run nsim simulations, each with n_events
 # Do efficiently by doing all at once and then reshaping,
 # as simulations are independently distributed
@@ -82,10 +82,25 @@ for ie_set in ie_times:
 plt.clf()
 b_res = np.array(b_res)
 print('b_res', b_res)
+# Quantify bias
+# 10th percentile of original disitrbution of B
+orig_10p = np.percentile(burst, 10)
+print(orig_10p)
+res_10p = np.sum(b_res < orig_10p)/len(b_res)
+print('res_10p', res_10p)
 plt.hist(b_res, bins=50 ,density=True, alpha=0.5, label = 'Resampled')
 plt.hist(burst, bins=50, density=True, alpha=0.5, label = 'Original')
+# Add line showing 10th percentile of original distirbution
+yl = 3#1.1*max(burst)
+plt.plot([orig_10p, orig_10p],[0.0, 3.5], linestyle = 'dashed', c='0.5')
 plt.xlabel('B')
 plt.ylabel('Density')
+ax = plt.gca()
+res_10ptext = 'Proportion of resampled distribution\n < 10th percentile of original\n distribution:  %.2f' % res_10p
+ax.annotate(res_10ptext, (0.02, 0.8), xycoords = 'axes fraction',
+            fontsize=10, fontstyle='italic')
+ax.set_ylim([0.0, 3.5])
+
 plt.legend()
 figname = 'exponential_burst_resample_hist_%i_events_lamba_%i.png' % (n_events, scale) 
 plt.savefig(figname)
