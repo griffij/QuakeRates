@@ -32,13 +32,13 @@ from QuakeRates.utilities.memory_coefficient import burstiness, memory_coefficie
 filepath = '../params'
 param_file_list = glob(os.path.join(filepath, '*.txt'))
 
-param_file_list_NZ = ['Akatore4eventBdy_output.txt',
+param_file_list_NZ = ['Akatore_TaylorSilva_2019.txt',
                       'AlpineHokuriCk_Berryman_2012_simple.txt',
                       'AlpineSouthWestland_Cochran_2017_simple.txt',
                       'AwatereEast_Nicol_2016_simple.txt',
                       'ClarenceEast_Nicol_2016_simple.txt',
                       'CloudyFault_Nicol_2016_simple.txt',
-                      'Dunstan6_GNS_unpub_simple.txt',
+                      'Dunstan_GNS_unpub_simple.txt',
                       'HopeConway_Hatem_2019_simple.txt',
                       'Hope_Khajavi_2016_simple.txt',
                       'Ihaia_Nicol_2016_simple.txt',
@@ -58,11 +58,43 @@ param_file_list_NZ = ['Akatore4eventBdy_output.txt',
                       'Wairau_Nicol_2018_simple.txt',
                       'Waimana_Nicol_2016_simple.txt',
                       'Wellington_Langridge_2011_simple.txt',
-                      'Waitangi_simple.txt',
+                      'Waitangi_GNS_unpub_simple.txt',
                       'Whakatane_Nicol_2016_simple.txt',
                       'Whirinaki_Nicol_2016_simple.txt']
+# List of faults in study by Williams et al 2019
+# Note this is not entirely the same, as there are some records from
+# that study that are not included in ours.
+param_file_list_W = ['AlpineHokuriCk_Berryman_2012_simple.txt',
+                     'HaywardTysons_Lienkaemper_2007_simple.txt',
+                     'SanJacintoMysticLake_Onderdonk_2018_simple.txt',
+                     'NorthAnatolianElmacik_Fraser_2010_simple.txt',
+                     'SanAndreasWrightwood_Weldon_2004_simple.txt',
+                     'SanAndreasCarizzo_Akciz_2010_simple.txt',
+                     'SanJacintoHogLake_Rockwell_2015_simple.txt',
+                     'SanAndreasMissionCk_Fumal_2002_simple.txt',
+                     'SanAndreasPalletCk_Scharer_2011_simple.txt',
+                     'Xorkoli_Altyn_Tagh_Yuan_2018.txt',
+                     'NorthAnatolianYaylabeli_Kozaci_2011_simple.txt',
+                     'ElsinoreTemecula_Vaughan_1999_simple.txt',
+                     'DeadSeaJordan_Ferry_2011_simple.txt',
+                     'SanAndreasBigBend_Scharer_2017_simple.txt',
+                     'WasatchBrigham_McCalpin_1996_simple.txt',
+                     'Irpinia_Pantosti_1993_simple.txt',
+                     'WasatchWeber_Duross_2011_simple.txt',
+                     'WasatchNilphi_Duross_2017_simple.txt',
+                     'LomaBlanca_Williams_2017_simple.txt',
+                     'AlaskaPWSCopper_Plafker_1994_simple.txt',
+                     'NankaiTrough_Hori_2004_simple.txt',
+                     'CascadiaNth_Adams_1994_simple.txt',
+                     'CascadiaSth_Goldfinger_2003_simple.txt',
+                     'JavonCanyon_SarnaWojicki_1987_simple.txt',
+                     'NewGuinea_Ota_1996_simple.txt',
+                     'ChileMargin_Moernaut_2018_simple.txt']
+
+
 #param_file_list = []
 #for f in param_file_list_NZ:
+#for f in param_file_list_W:
 #    param_file_list.append(os.path.join(filepath, f))
 n_samples = 10000  # Number of Monte Carlo samples of the eq chronologies
 half_n = int(n_samples/2)
@@ -90,6 +122,8 @@ min_num_events_mem = 6 # Use for memory coefficient
 #Summarise for comment to add to figure filename
 fig_comment = ''
 #fig_comment = 'NZ_examples_'
+#fig_comment = 'Williams2019_'
+
 for f in faulting_styles:
     fig_comment += f
     fig_comment += '_'
@@ -156,6 +190,7 @@ for s in param_file_list:
     if sp[0].split('/')[2] in names:
         references.append(sp[1] + ' ' + sp[2])
 n_faults = len(names)
+print('Number of faults', n_faults)
 
 for i, event_set in enumerate(event_sets):
     # Handle cases with uncertain number of events. Where events identification is
