@@ -1666,14 +1666,14 @@ ax.set_xlabel('M')
 
 # Now we add on some of the points from seismicity catalogs from Chen et al 2020
 # First regions
-mem_seis = [0.07]#, 0.25, -0.11, 0.35, -0.02, 0.31, 0.0, 0.21, -0.23]
-b_seis = [0.10]#, 0.23, 0.05, 0.08, 0.09, 0.12, 0.31, 0.06, 0.03]
-labels = ['Global']#, 'Japan', 'Taiwan','California', 'New Zealand',
+#mem_seis = [0.07]#, 0.25, -0.11, 0.35, -0.02, 0.31, 0.0, 0.21, -0.23]
+#b_seis = [0.10]#, 0.23, 0.05, 0.08, 0.09, 0.12, 0.31, 0.06, 0.03]
+#labels = ['Global']#, 'Japan', 'Taiwan','California', 'New Zealand',
 #          'North China', 'East Africa', 'Tibet', 'Xinjiang']
-pyplot.scatter(mem_seis, b_seis, marker = '^', s=25, zorder=2, c='k')
-for i, txt in enumerate(labels):
-    text = ax.annotate(txt, (mem_seis[i], b_seis[i]), fontsize=8, zorder=3, style='italic')
-    texts.append(text)
+#pyplot.scatter(mem_seis, b_seis, marker = '^', s=25, zorder=2, c='k')
+#for i, txt in enumerate(labels):
+#    text = ax.annotate(txt, (mem_seis[i], b_seis[i]), fontsize=8, zorder=3, style='italic')
+#    texts.append(text)
 # Now individual faults from Chen et al 2020
 #mem_seis = [-0.15, -0.06, 0.23, -0.34]
 #b_seis = [-0.05, 0.07, 0.01, 0.02]
@@ -1710,13 +1710,13 @@ pyplot.legend()
 line1 = ax.scatter([1], [100], marker = 's', c = 'r', s=25)
 line2 = ax.scatter([1], [100], marker = 's', c = 'g', s=25)
 line3 = ax.scatter([1], [100], marker = 's', c = 'b', s=25)
-line4 = ax.scatter([1], [100], marker = '^', c = 'k', s=25)
+#line4 = ax.scatter([1], [100], marker = '^', c = 'k', s=25)
 #line5 = ax.scatter([1], [100], marker = 'v', c = 'k', s=25)
 line6, = ax.plot([1, 2], [100, 101], c='orangered', linewidth=1)
 line7, = ax.plot([1, 2], [100, 101], c='orange', linewidth=1)
 line8, = ax.plot([1, 2], [100, 101], c='slategrey', linewidth=1)
-pyplot.legend((line1, line2, line3, line4, line6, line7, line8),
-              ('Normal', 'Strike slip', 'Reverse', 'Instrumental - global',
+pyplot.legend((line1, line2, line3, line6, line7, line8),
+              ('Normal', 'Strike slip', 'Reverse',
                'Exponential', 'Gamma', 'Weibull'))
 figname = 'B_M_phase_comparison_%s.png' % fig_comment 
 fig.set_size_inches(w=8,h=8.)
