@@ -2142,33 +2142,34 @@ ax.annotate('e)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
 pyplot.subplot2grid((4, 3), (1,2), colspan=1, rowspan=1)
 indices_r = np.argwhere(fault_styles == 'Reverse')
 indices_r_hs = np.intersect1d(indices, indices_r)
-burstiness_r = burstinesses[indices_r_hs]
-burstiness_expon_r = burstiness_expon[indices_r_hs]
-#Do KS test sample by sample
-ks_stats = []
-p_values = []
-for b in burstiness_r.T:
-    ks_stat = ks_2samp(b.flatten(), burstiness_expon_r.flatten()) 
-    ks_stats.append(ks_stat[0])
-    p_values.append(ks_stat[1])
-p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
-if p_reject < 0.95:
-    rej = 'Accept'
-else:
-    rej = 'Reject'
-pyplot.hist(np.array(burstiness_expon_r.flatten()), bins = 60,
-            alpha=0.5, density=True, label = 'Exponential', color='#1f77b4')
-pyplot.hist(burstiness_r.flatten(), bins = 60,
-            alpha=0.5, density=True, label = 'Data', color='#ff7f0e')
-ax = pyplot.gca()
-ax.set_xlim([-1.0, 0.5])
-ax.set_xlabel('B')
-ax.set_ylabel('Density')
-# Annotate figure
-txt = 'p reject: %.2f\n%s\nReverse\n(High rate)' % (p_reject, rej)
-ax.annotate(txt, (0.03, 0.72), xycoords = 'axes fraction', fontsize = 10)
-ax.annotate('f)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
-ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+if len(indices_r_hs) > 0: # Do empty plot if not data
+    burstiness_r = burstinesses[indices_r_hs]
+    burstiness_expon_r = burstiness_expon[indices_r_hs]
+    #Do KS test sample by sample
+    ks_stats = []
+    p_values = []
+    for b in burstiness_r.T:
+        ks_stat = ks_2samp(b.flatten(), burstiness_expon_r.flatten()) 
+        ks_stats.append(ks_stat[0])
+        p_values.append(ks_stat[1])
+    p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
+    if p_reject < 0.95:
+        rej = 'Accept'
+    else:
+        rej = 'Reject'
+    pyplot.hist(np.array(burstiness_expon_r.flatten()), bins = 60,
+                alpha=0.5, density=True, label = 'Exponential', color='#1f77b4')
+    pyplot.hist(burstiness_r.flatten(), bins = 60,
+                alpha=0.5, density=True, label = 'Data', color='#ff7f0e')
+    ax = pyplot.gca()
+    ax.set_xlim([-1.0, 0.5])
+    ax.set_xlabel('B')
+    ax.set_ylabel('Density')
+    # Annotate figure
+    txt = 'p reject: %.2f\n%s\nReverse\n(High rate)' % (p_reject, rej)
+    ax.annotate(txt, (0.03, 0.72), xycoords = 'axes fraction', fontsize = 10)
+    ax.annotate('f)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
+    ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
 
 #########################
 # Now we add plots against gamma distribution
@@ -2318,32 +2319,34 @@ ax.annotate('k)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10)
 #############
 # Twelfth plot - reverse faults against gamma
 pyplot.subplot2grid((4, 3), (3,2), colspan=1, rowspan=1)
-burstiness_gamma_r = burstiness_gamma[indices_r_hs]
-#Do KS test sample by sample
-ks_stats = []
-p_values = []
-for b in burstiness_r.T:
-    ks_stat = ks_2samp(b.flatten(), burstiness_gamma_r.flatten()) 
-    ks_stats.append(ks_stat[0])
-    p_values.append(ks_stat[1])
-p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
-if p_reject < 0.95:
-    rej = 'Accept'
-else:
-    rej = 'Reject'
-pyplot.hist(np.array(burstiness_gamma_r.flatten()), bins = 60,
-            alpha=0.5, density=True, label = 'Gamma', color='slategrey')
-pyplot.hist(burstiness_r.flatten(), bins = 60,
-            alpha=0.5, density=True, label = 'Data', color='#ff7f0e')
-ax = pyplot.gca()
-ax.set_xlim([-1.0, 0.5])
-ax.set_xlabel('B')
-ax.set_ylabel('Density')
-# Annotate figure
-txt = 'p reject: %.2f\n%s\nReverse\n(High rate)' % (p_reject, rej)
-ax.annotate(txt, (0.03, 0.72), xycoords = 'axes fraction', fontsize = 10)
-ax.annotate('l)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10) 
-ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f')) 
+if len(indices_r_hs) > 0: # Do empty plot if not data   
+    burstiness_gamma_r = burstiness_gamma[indices_r_hs]
+    #Do KS test sample by sample
+    ks_stats = []
+    p_values = []
+    for b in burstiness_r.T:
+        ks_stat = ks_2samp(b.flatten(), burstiness_gamma_r.flatten()) 
+        ks_stats.append(ks_stat[0])
+        p_values.append(ks_stat[1])
+    p_reject = (np.array(p_values) < 0.05).sum() / len(p_values)
+    if p_reject < 0.95:
+        rej = 'Accept'
+    else:
+        rej = 'Reject'
+    pyplot.hist(np.array(burstiness_gamma_r.flatten()), bins = 60,
+                alpha=0.5, density=True, label = 'Gamma', color='slategrey')
+    pyplot.hist(burstiness_r.flatten(), bins = 60,
+                alpha=0.5, density=True, label = 'Data', color='#ff7f0e')
+    ax = pyplot.gca()
+    ax.set_xlim([-1.0, 0.5])
+    ax.set_xlabel('B')
+    ax.set_ylabel('Density')
+    # Annotate figure
+    txt = 'p reject: %.2f\n%s\nReverse\n(High rate)' % (p_reject, rej)
+    ax.annotate(txt, (0.03, 0.72), xycoords = 'axes fraction', fontsize = 10)
+    ax.annotate('l)', (-0.23, 0.98), xycoords = 'axes fraction', fontsize=10) 
+    ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+    
 #############
 fig.set_size_inches(w=9,h=12.) 
 pyplot.tight_layout()
