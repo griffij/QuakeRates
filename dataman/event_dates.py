@@ -95,7 +95,8 @@ class EventSet(object):
         self.name = name
 
     def gen_chronologies(self, n, search_limit=500, min_separation=20,
-                         observation_start=None, observation_end=2019):
+                         observation_start=None, observation_end=2019,
+                         add_future_event=False):
         """Generate n randomly sampled chronolgies for the events in
         EventSet object. As dating uncertainties may overlap bewteen events,
         event chronology is enforced and random samples that aren't in
@@ -144,9 +145,11 @@ class EventSet(object):
                 #            print('chronologies.T[-1]', chronologies.T[-1])
                 time_elapsed = observation_end - np.mean(chron_tmp.T[-1])
                 #            print('mean last event')
+                
                 if (time_elapsed) > \
                    (mean_ie_time + 2*std_ie_time):
-                    self.add_events = True
+                    if add_future_event:
+                        self.add_events = True
                     if self.name.startswith('Alpine'):
                         # Ignore records not complete until present
                         # i.e. Berryman 2012
@@ -169,6 +172,13 @@ class EventSet(object):
             chronologies = np.array(chron_samples).T
             c = chronologies[~np.any(np.diff(chronologies)<min_separation,
                                      axis=1)]
+            # Now we remove any events in the future
+            # unless deliberately specified by self.add_events=True
+            # This could be updated with historical constraints
+            if self.add_events:
+                pass
+            else:
+                c = c[~np.any(c > observation_end, axis=1)]
             chron_samples = c.T.tolist()
             n_samples = len(chron_samples[0])
             loop_counter += 1
@@ -501,4 +511,5 @@ class EventSet(object):
         gamfit_all = gamma.fit(self.interevent_times.flatten(), floc=0)
         self.gamma_alphas = np.array(self.gamma_alphas)
         self.mean_gamma_alpha = np.mean(self.gamma_alphas)
+        self.median_gamma_alpha = np.median(self.gamma_alphas)
         self.mean_gamma_alpha_all = gamfit_all[0]        

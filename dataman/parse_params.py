@@ -33,6 +33,10 @@ def get_event_sets(param_file_list, tectonic_regions,
                    faulting_styles, min_number_events):
     """Function to take parameter file list, read data
     and return list of event_sets and fautl names
+    list: param_file_list
+    list: tectonic_regions
+    list: fault_styles
+    int: min_number_events
     """
     names = [] # Store names
     event_sets = [] # Store EventSet objects
