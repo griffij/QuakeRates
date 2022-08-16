@@ -1,0 +1,7 @@
+filename = '../data/SanhePinggu_Ran_1998_simple.txt'
+chron_type = 'Age2Sigma'
+sigma_level = 1
+event_order = 'Forwards'
+tectonic_region = 'Active_intraplate'
+faulting_style = 'Unknown'
+slip_rate_mean_lower_upper = [0.0,0.0,0.0]

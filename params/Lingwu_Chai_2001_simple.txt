@@ -1,0 +1,7 @@
+filename = '../data/Lingwu_Chai_2001_simple.txt'
+chron_type = 'Age2Sigma'
+sigma_level = 1
+event_order = 'Forwards'
+tectonic_region = 'Active_intraplate'
+faulting_style = 'Normal'
+slip_rate_mean_lower_upper = [0.0,0.0,0.0]
