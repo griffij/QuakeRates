@@ -5,3 +5,6 @@ event_order = 'Forwards'
 tectonic_region = 'Subduction'
 faulting_style = 'Reverse'
 slip_rate_mean_lower_upper = [47, 45, 49]
+method = 'Turbidite'
+location = [-127.53,48.93]
+location_accuracy = 'Approximate'

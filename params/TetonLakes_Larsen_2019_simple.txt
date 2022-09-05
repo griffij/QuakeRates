@@ -5,3 +5,6 @@ event_order = 'Forwards'
 tectonic_region = 'Near_plate_boundary'
 faulting_style = 'Normal'
 slip_rate_mean_lower_upper = [0.8,0.2,2]
+method = 'Turbidite'
+location = [-110.731303, 43.764000]
+location_accuracy = 'Approximate'

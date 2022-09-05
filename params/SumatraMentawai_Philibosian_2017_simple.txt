@@ -5,3 +5,6 @@ event_order = 'Forwards'
 tectonic_region = 'Subduction'
 faulting_style = 'Reverse'
 slip_rate_mean_lower_upper = [51,49,53]
+method = 'Paleogeodesy'
+location = [98.865,-2.622]
+location_accuracy = 'Approximate'

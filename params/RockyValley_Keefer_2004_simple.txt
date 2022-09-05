@@ -5,3 +5,6 @@ event_order = 'Backwards'
 tectonic_region = 'Near_plate_boundary'
 faulting_style = 'Normal'
 slip_rate_mean_lower_upper = [0.023, 0.013, 0.033]
+method = 'Trench'
+location = [-116.15,36.7]
+location_accuracy = 'Approximate'
