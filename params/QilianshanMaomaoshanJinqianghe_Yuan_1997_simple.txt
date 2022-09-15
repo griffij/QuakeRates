@@ -1,6 +1,6 @@
 filename = '../data/QilianshanMaomaoshanJinqianghe_Yuan_1997_simple.txt'
 chron_type = 'Age2Sigma'
-sigma_level = 1
+sigma_level = 2
 event_order = 'Forwards'
 tectonic_region = 'Active_intraplate'
 faulting_style = 'Strike_slip'
