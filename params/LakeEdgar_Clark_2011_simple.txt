@@ -5,3 +5,6 @@ event_order = 'Backwards'
 tectonic_region = 'Intraplate_noncratonic'
 faulting_style = 'Reverse'
 slip_rate_mean_lower_upper = [0.17,0.11,0.24]
+method = 'Geomorphology'
+location = [146.3415,-42.933]
+location_accuracy = 'Approximate'
