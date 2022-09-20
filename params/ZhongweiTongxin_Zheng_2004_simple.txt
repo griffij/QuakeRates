@@ -5,3 +5,6 @@ event_order = 'Forwards'
 tectonic_region = 'Active_intraplate'
 faulting_style = 'Oblique'
 slip_rate_mean_lower_upper = [0.0,0.0,0.0]
+method = 'Trench'
+location = [105.5,37.25]
+location_accuracy = 'Approximate'
