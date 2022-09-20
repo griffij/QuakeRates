@@ -19,6 +19,7 @@ names, event_sets, event_certainties, num_events, \
     longitudes, latitudes, location_accuracies = get_event_sets(paramfiles, ['all'], ['all'], 1,
                                                 return_full=True)
 sort_index = np.argsort(names)
+writer.writerow(header)
 for i in sort_index:
 #for i, event_set in enumerate(event_sets):
     if num_events[i] >= 5:# and longitudes[i] != 'NULL':
