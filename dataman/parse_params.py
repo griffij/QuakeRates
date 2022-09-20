@@ -30,7 +30,7 @@ def parse_param_file(param_file_name):
     return params
 
 def get_event_sets(param_file_list, tectonic_regions,
-                   faulting_styles, min_number_events):
+                   faulting_styles, min_number_events, return_full=False):
     """Function to take parameter file list, read data
     and return list of event_sets and fautl names
     list: param_file_list
@@ -45,6 +45,11 @@ def get_event_sets(param_file_list, tectonic_regions,
     slip_rates = []
     tect_regions = []
     fault_styles = []
+    methods = []
+    locations = []
+    longitudes = []
+    latitudes = []
+    location_accuracies = []
     for param_file in param_file_list:
         name = param_file.split('/')[-1].split('_')[0]
         print(name)
@@ -111,4 +116,30 @@ def get_event_sets(param_file_list, tectonic_regions,
         event_set.name = name
         event_set.slip_rates = params['slip_rate_mean_lower_upper']
         event_sets.append(event_set)
-    return names, event_sets, event_certainties, num_events, tect_regions, fault_styles
+        try:
+            event_set.method = params['method']
+        except KeyError:
+            event_set.method = 'NULL'
+        try:
+            print(params['location'])
+            event_set.location = params['location']
+            event_set.longitude = params['location'][0]
+            event_set.latitude = params['location'][1]
+        except KeyError:
+            event_set.location = 'NULL'
+            event_set.longitude = 'NULL'
+            event_set.latitude = 'NULL'
+        try:
+            event_set.location_accuracy = params['location_accuracy']
+        except KeyError:
+            event_set.location_accuracy = 'NULL'
+        methods.append(event_set.method)
+        locations.append(event_set.location)
+        longitudes.append(event_set.longitude)
+        latitudes.append(event_set.latitude)
+        location_accuracies.append(event_set.location_accuracy)
+    if return_full:
+        return names, event_sets, event_certainties, num_events, tect_regions, \
+            fault_styles, methods, longitudes, latitudes, location_accuracies
+    else:
+        return names, event_sets, event_certainties, num_events, tect_regions, fault_styles
