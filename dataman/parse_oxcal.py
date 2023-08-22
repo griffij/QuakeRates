@@ -8,7 +8,7 @@ import os, sys
 import csv
 from QuakeRates.dataman.event_dates import EventDate, EventSet
 
-def parse_oxcal(filename, key_dict, event_order=None):
+def parse_oxcal(filename, key_dict, event_order=None, current_year=None):
     """Parse in csv output file from OxCal and extract data as desired.
     :param filename: string of path to input file
     :param key_dict: dictionary specifying which part of the OxCal file is
@@ -17,6 +17,8 @@ def parse_oxcal(filename, key_dict, event_order=None):
     :param event_order: Ordered list of key for key_dict specifying the
     chronological order of the events (forward in time, i.e. oldest event
     is first).
+    :param current_year: Current calendar year. Used to convert OxCal outputs 
+    in AD/BC calendar years to years BP. 
     """
 
     # Dicts for storing dates and probabilities
@@ -38,10 +40,16 @@ def parse_oxcal(filename, key_dict, event_order=None):
                     #print(row['type'])
                     #print(key_dict[row['name']][0])
                     #print(key_dict[row['name']][1])
-                    if row['op'] ==  key_dict[row['name']][0] and \
-                       row['type'] == key_dict[row['name']][1]:
-                        date_dict[row['name']].append(float(row['value']))
-                        prob_dict[row['name']].append(float(row['probability']))
+                    if current_year is not None:
+                        if row['op'] ==  key_dict[row['name']][0] and \
+                           row['type'] == key_dict[row['name']][1]:
+                            date_dict[row['name']].append(float(row['value'])-current_year)
+                            prob_dict[row['name']].append(float(row['probability']))
+                    else:
+                        if row['op'] ==  key_dict[row['name']][0] and \
+                           row['type'] == key_dict[row['name']][1]:
+                            date_dict[row['name']].append(float(row['value']))
+                            prob_dict[row['name']].append(float(row['probability']))
 
     event_list = []
     if event_order is not None:

@@ -30,7 +30,8 @@ def parse_param_file(param_file_name):
     return params
 
 def get_event_sets(param_file_list, tectonic_regions,
-                   faulting_styles, min_number_events, return_full=False):
+                   faulting_styles, min_number_events,
+                   return_full=False, current_year=None):
     """Function to take parameter file list, read data
     and return list of event_sets and fautl names
     list: param_file_list
@@ -80,11 +81,13 @@ def get_event_sets(param_file_list, tectonic_regions,
             msg = 'chron_type not defined in parameter file ' + param_file
             print(msg)
             raise
+        params['current_year'] = current_year
         if params['chron_type'] == 'OxCal':
             if len(params['event_order']) >= min_number_events:
                 num_events.append(len(params['event_order']))
                 events = parse_oxcal(params['filename'], params['events'],
-                                     params['event_order'])
+                                     event_order=params['event_order'],
+                                     current_year=params['current_year'])
                 event_set = EventSet(events)
                 try:
                     event_certainty = np.array(params['event_certainty'])
