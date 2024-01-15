@@ -7,6 +7,8 @@ If you use this code or the associated data in a publication, please cite this p
 
 To cite the code directly, use the DOI: https://doi.org/10.5281/zenodo.4001031
 
+Additional data was added for this publications: Wang, T., Griffin, J., Brenna, M., Fletcher, D., Zeng, J., Stirling, M., Dillingham, P. and Kang, J. Earthquake forecasting from paleoseismic records. Nature Communications
+
 The main script for running the analysis is `./analysis/fault_B_M_analysis.py`. This script is used to generate Monte Carlo samples for earthquake chronologies and calculate coefficient of variation (COV), burstiness (B) and memory coefficients (M) and their respective uncertainties from the data.
 
 Data is stored in the directory `./data`. Data is either .txt files containing event times and uncertainties, or `.csv` files containing OxCal outputs. Each data file is associated with a parameter file in `./params` that describes how the event timing data is given and some basic information abou the fault.
